@@ -1,11 +1,10 @@
 ---
-import { doctor } from '@/config/site';
-import BookingForm from './BookingForm';
+import { doctor } from "@/config/site";
+import BookingForm from "./BookingForm";
 ---
 
 <section class="section" id="contacto">
   <div class="wrap contact__grid">
-
     <!-- Info column -->
     <div class="reveal">
       <span class="eyebrow">Agenda tu cita</span>
@@ -13,11 +12,12 @@ import BookingForm from './BookingForm';
         Demos el primer paso hacia tu nueva sonrisa.
       </h2>
       <p style="color:var(--ink-soft);margin-top:18px;font-size:18px;">
-        Reserva tu valoración inicial. Te responderemos para confirmar el día y la hora que mejor te convengan.
+        Reserva tu valoración inicial. Te responderemos para confirmar el día y
+        la hora que mejor te convengan.
       </p>
 
       <ul class="info-list">
-        <li>
+        <!-- <li>
           <span class="ic" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/>
@@ -28,12 +28,21 @@ import BookingForm from './BookingForm';
             <b>Consultorio</b>
             <span>{doctor.address}</span>
           </div>
-        </li>
+        </li> -->
         <li>
           <span class="ic" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 7v5l3 2"/>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v5l3 2"></path>
             </svg>
           </span>
           <div>
@@ -43,8 +52,19 @@ import BookingForm from './BookingForm';
         </li>
         <li>
           <span class="ic" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"
+              ></path>
             </svg>
           </span>
           <div>
@@ -54,15 +74,14 @@ import BookingForm from './BookingForm';
         </li>
       </ul>
 
-      <div class="map" aria-label="Ubicación del consultorio">
+      <!-- <div class="map" aria-label="Ubicación del consultorio">
         <div class="ph"><span class="ph__label">mapa · ubicación del consultorio</span></div>
-      </div>
+      </div> -->
     </div>
 
     <!-- Form column (React island, loads when visible) -->
     <div class="reveal">
       <BookingForm client:visible whatsappNumber={doctor.whatsapp} />
     </div>
-
   </div>
 </section>
