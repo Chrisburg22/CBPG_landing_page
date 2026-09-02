@@ -36,7 +36,7 @@ export const treatments: TreatmentCard[] = [
   },
   {
     icon: 'kids',
-    title: 'Ortodoncia infantil',
+    title: 'Ortopedia',
     description: 'Ortopedia y guía del crecimiento en edades tempranas para prevenir tratamientos más largos.',
     tag: 'Para los más peques →',
   },
