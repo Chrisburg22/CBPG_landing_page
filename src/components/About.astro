@@ -1,0 +1,40 @@
+---
+import { doctor } from '@/config/site';
+---
+
+<section class="section" id="sobre">
+  <div class="wrap about__grid">
+
+    <div class="about__media reveal">
+      <div class="ph"><span class="ph__label">foto · doctora en consulta</span></div>
+    </div>
+
+    <div class="reveal">
+      <span class="eyebrow">Sobre la doctora</span>
+      <h2 style="font-size:clamp(30px,4.4vw,48px);margin-top:18px;">
+        Cuido cada detalle como si fuera mi propia sonrisa.
+      </h2>
+      <p style="color:var(--ink-soft);margin-top:18px;font-size:18px;">
+        Soy la <strong>Dra. {doctor.name}</strong>, especialista en ortodoncia con más de una
+        década acompañando a mis pacientes en su transformación. Combino tecnología de diagnóstico
+        digital con un trato cercano para que el proceso sea claro, cómodo y a tu medida.
+      </p>
+      <ul class="about__list">
+        <li>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Especialista certificada en Ortodoncia y Ortopedia Maxilar.
+        </li>
+        <li>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Escaneo intraoral digital — sin moldes incómodos.
+        </li>
+        <li>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+          Planes de pago flexibles y citas que se adaptan a ti.
+        </li>
+      </ul>
+      <p class="signature">Dra. {doctor.name}</p>
+    </div>
+
+  </div>
+</section>

@@ -1,0 +1,19 @@
+---
+const certifications = [
+  'Colegio Odontológico',
+  'Asoc. de Ortodoncia',
+  'Invisalign Provider',
+  'Univ. Posgrado',
+];
+---
+
+<div class="strip">
+  <div class="wrap strip__inner">
+    <p>Certificaciones y membresías</p>
+    <div class="strip__logos" role="list">
+      {certifications.map((cert) => (
+        <span role="listitem">{cert}</span>
+      ))}
+    </div>
+  </div>
+</div>

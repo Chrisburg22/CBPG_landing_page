@@ -1,0 +1,46 @@
+---
+import { treatments } from '@/config/site';
+
+// SVG icons mapped by key
+const icons: Record<string, string> = {
+  aligners: `<rect x="3" y="9" width="18" height="6" rx="3"/><path d="M7 9v6M12 9v6M17 9v6" stroke-width="1.5"/>`,
+  'brackets-aesthetic': `<circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><path d="M3 12h1M8 12h2M14 12h2M20 12h1"/>`,
+  'brackets-metal': `<rect x="4" y="10" width="16" height="4" rx="2"/><path d="M8 10V8M12 10V8M16 10V8M8 16v-2M12 16v-2M16 16v-2"/>`,
+  kids: `<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z"/>`,
+  retainers: `<path d="M12 3v18M5 8c3 0 4 4 7 4s4-4 7-4"/>`,
+};
+---
+
+<section class="section section--alt" id="tratamientos">
+  <div class="wrap">
+    <div class="section__head reveal">
+      <span class="eyebrow">Tratamientos</span>
+      <h2>Opciones para cada sonrisa y cada estilo de vida.</h2>
+      <p>Cada plan comienza con una valoración y un diagnóstico digital. Elegimos juntos la técnica que mejor se ajusta a tus objetivos.</p>
+    </div>
+
+    <div class="cards">
+      {treatments.map((t) => (
+        <article class="card reveal">
+          <div class="card__icon" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" set:html={icons[t.icon] ?? ''} />
+          </div>
+          <h3>{t.title}</h3>
+          <p>{t.description}</p>
+          <span class="card__tag">{t.tag}</span>
+        </article>
+      ))}
+
+      <!-- CTA card -->
+      <article class="card reveal" style="display:flex;flex-direction:column;justify-content:center;background:var(--accent);color:var(--on-accent);border-color:var(--accent);">
+        <h3 style="color:var(--on-accent);">¿No sabes cuál elegir?</h3>
+        <p style="color:color-mix(in oklab,var(--on-accent) 85%,transparent);">
+          En la valoración estudiamos tu caso y te recomendamos la mejor opción, sin compromiso.
+        </p>
+        <a href="#contacto" class="btn" style="background:var(--on-accent);color:var(--accent-deep);margin-top:20px;align-self:flex-start;">
+          Agendar valoración
+        </a>
+      </article>
+    </div>
+  </div>
+</section>

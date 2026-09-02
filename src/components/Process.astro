@@ -1,0 +1,23 @@
+---
+import { processSteps } from '@/config/site';
+---
+
+<section class="section section--alt" id="proceso">
+  <div class="wrap">
+    <div class="section__head reveal">
+      <span class="eyebrow">Cómo funciona</span>
+      <h2>Tu tratamiento, paso a paso.</h2>
+      <p>Un proceso claro y sin sorpresas, desde la primera visita hasta tu sonrisa final.</p>
+    </div>
+
+    <div class="steps">
+      {processSteps.map((step, i) => (
+        <div class="step reveal">
+          {i === 0 && <span class="step__line" aria-hidden="true"></span>}
+          <h3>{step.title}</h3>
+          <p>{step.description}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,56 @@
+---
+import { doctor } from '@/config/site';
+---
+
+<header class="nav" id="nav">
+  <div class="wrap nav__inner">
+    <a class="brand" href="#top" aria-label="Inicio">
+      <span class="brand__mark">{doctor.initials}</span>
+      <span class="brand__name">
+        {doctor.name}
+        <small>{doctor.specialty}</small>
+      </span>
+    </a>
+
+    <nav class="nav__links" id="navLinks" aria-label="Principal">
+      <a href="#sobre">Sobre mí</a>
+      <a href="#tratamientos">Tratamientos</a>
+      <a href="#resultados">Resultados</a>
+      <a href="#proceso">Proceso</a>
+      <a href="#faq">Preguntas</a>
+    </nav>
+
+    <div class="nav__cta">
+      <a href="#contacto" class="btn btn--primary">Agendar cita</a>
+      <button class="nav__burger" id="burger" aria-label="Menú" aria-expanded="false" aria-controls="navLinks">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  const nav = document.getElementById('nav')!;
+  const burger = document.getElementById('burger')!;
+  const navLinks = document.getElementById('navLinks')!;
+
+  // Sticky shadow
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('is-stuck', window.scrollY > 12);
+  }, { passive: true });
+
+  // Mobile burger
+  burger.addEventListener('click', () => {
+    const isOpen = navLinks.classList.toggle('open');
+    burger.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  navLinks.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).tagName === 'A') {
+      navLinks.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>

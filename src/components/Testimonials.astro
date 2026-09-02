@@ -1,0 +1,32 @@
+---
+import { testimonials } from '@/config/site';
+---
+
+<section class="section" id="testimonios">
+  <div class="wrap">
+    <div class="section__head reveal">
+      <span class="eyebrow">Lo que dicen mis pacientes</span>
+      <h2>Confianza que se nota al sonreír.</h2>
+    </div>
+
+    <div class="quotes">
+      {testimonials.map((t) => (
+        <figure class="quote reveal">
+          <div class="quote__stars" aria-label={`${t.stars} estrellas`}>
+            {'★'.repeat(t.stars)}
+          </div>
+          <p>"{t.quote}"</p>
+          <figcaption class="quote__who">
+            <span class="quote__avatar">
+              <span class="ph" aria-hidden="true"></span>
+            </span>
+            <span>
+              <b>{t.name}</b>
+              <span>{t.treatment}</span>
+            </span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+  </div>
+</section>

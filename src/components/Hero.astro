@@ -1,0 +1,58 @@
+---
+import { doctor } from '@/config/site';
+---
+
+<section class="hero" id="top">
+  <div class="hero__glow" aria-hidden="true"></div>
+  <div class="wrap hero__grid">
+
+    <div class="hero__copy">
+      <span class="eyebrow reveal">Especialista en Ortodoncia</span>
+      <h1 class="reveal">
+        Una sonrisa alineada, <em>diseñada</em> para ti.
+      </h1>
+      <p class="hero__sub reveal">
+        Tratamientos de ortodoncia de precisión para adultos y adolescentes.
+        Alineadores invisibles, brackets estéticos y planes pensados para tu ritmo de vida.
+      </p>
+      <div class="hero__actions reveal">
+        <a href="#contacto" class="btn btn--primary">Reservar valoración</a>
+        <a href="#tratamientos" class="btn btn--ghost">Ver tratamientos</a>
+      </div>
+      <div class="hero__trust reveal">
+        <div>
+          <b>{doctor.yearsExperience}+</b>
+          <span>años de experiencia</span>
+        </div>
+        <div>
+          <b>{doctor.patientsTreated}</b>
+          <span>sonrisas tratadas</span>
+        </div>
+        <div>
+          <b>{doctor.rating}</b>
+          <span>valoración de pacientes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero__media reveal">
+      <div class="portrait">
+        <div class="ph">
+          <span class="ph__label">foto · retrato de la doctora</span>
+        </div>
+      </div>
+      <div class="hero__badge">
+        <span class="dot" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </span>
+        <div>
+          <b>Valoración inicial</b>
+          <span>diagnóstico y plan personalizado</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
