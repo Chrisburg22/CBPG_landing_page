@@ -1,11 +1,10 @@
 ---
-import { doctor } from '@/config/site';
+import { doctor } from "@/config/site";
 ---
 
 <section class="hero" id="top">
   <div class="hero__glow" aria-hidden="true"></div>
   <div class="wrap hero__grid">
-
     <div class="hero__copy">
       <span class="eyebrow reveal">Especialista en Ortodoncia</span>
       <h1 class="reveal">
@@ -13,13 +12,14 @@ import { doctor } from '@/config/site';
       </h1>
       <p class="hero__sub reveal">
         Tratamientos de ortodoncia de precisión para adultos y adolescentes.
-        Alineadores invisibles, brackets estéticos y planes pensados para tu ritmo de vida.
+        Alineadores invisibles, brackets estéticos y planes pensados para tu
+        ritmo de vida.
       </p>
       <div class="hero__actions reveal">
         <a href="#contacto" class="btn btn--primary">Reservar valoración</a>
         <a href="#tratamientos" class="btn btn--ghost">Ver tratamientos</a>
       </div>
-      <div class="hero__trust reveal">
+      <!-- <div class="hero__trust reveal">
         <div>
           <b>{doctor.yearsExperience}+</b>
           <span>años de experiencia</span>
@@ -32,7 +32,7 @@ import { doctor } from '@/config/site';
           <b>{doctor.rating}</b>
           <span>valoración de pacientes</span>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <div class="hero__media reveal">
@@ -43,8 +43,17 @@ import { doctor } from '@/config/site';
       </div>
       <div class="hero__badge">
         <span class="dot" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 6 9 17l-5-5"/>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5"></path>
           </svg>
         </span>
         <div>
@@ -53,6 +62,5 @@ import { doctor } from '@/config/site';
         </div>
       </div>
     </div>
-
   </div>
 </section>
