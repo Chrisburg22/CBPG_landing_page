@@ -1,0 +1,110 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Nav from '@/components/Nav.astro';
+import Footer from '@/components/Footer.astro';
+import { doctor, legal } from '@/config/site';
+
+/** Marca en pantalla los datos que la doctora aún no ha entregado. */
+const pendiente = (valor: string) => valor.trim() === '';
+const dato = (valor: string, etiqueta: string) => (pendiente(valor) ? `[FALTA: ${etiqueta}]` : valor);
+
+const hayPendientes = [legal.responsable, legal.domicilio, legal.correoArco].some(pendiente);
+const fecha = legal.ultimaActualizacion || '[FALTA: fecha de última actualización]';
+---
+
+<Layout
+  title="Aviso de Privacidad — Dra. Berenice Parada"
+  description="Cómo tratamos y protegemos los datos personales que nos compartes al agendar tu cita."
+  noindex
+>
+  <Nav />
+
+  <main id="contenido" class="section legal">
+    <div class="wrap">
+      <span class="eyebrow">Documento legal</span>
+      <h1>Aviso de Privacidad</h1>
+      <p class="legal__meta">Última actualización: {fecha}</p>
+
+      {hayPendientes && (
+        <div class="legal__alerta" role="alert">
+          <b>Este documento aún no está completo.</b>
+          Faltan datos que solo puede proporcionar la doctora. No publiques el sitio
+          hasta rellenar el objeto <code>legal</code> en <code>src/config/site.ts</code>.
+        </div>
+      )}
+
+      <h2>1. Quién es responsable de tus datos</h2>
+      <p>
+        {dato(legal.responsable, 'responsable — nombre o razón social')}, con domicilio en
+        {' '}{dato(legal.domicilio, 'domicilio del responsable')}, es responsable del tratamiento
+        de los datos personales que nos proporcionas a través de este sitio, en términos de la
+        Ley Federal de Protección de Datos Personales en Posesión de los Particulares.
+      </p>
+
+      <h2>2. Qué datos recabamos</h2>
+      <p>
+        A través del formulario de citas recabamos tu nombre, teléfono, correo electrónico y el
+        tratamiento que te interesa. Si escribes en el campo de mensaje, podrías compartirnos
+        información sobre tu salud bucal.
+      </p>
+      <p>
+        Los datos de salud son <strong>datos personales sensibles</strong>. Solo los tratamos
+        con tu consentimiento expreso, que otorgas al marcar la casilla del formulario, y
+        únicamente para atender tu solicitud de cita.
+      </p>
+
+      <h2>3. Para qué los usamos</h2>
+      <ul>
+        <li>Contactarte para agendar, confirmar o reprogramar tu valoración.</li>
+        <li>Responder las dudas que nos plantees.</li>
+        <li>Preparar tu expediente clínico si decides iniciar tratamiento.</li>
+      </ul>
+      <p>
+        No usamos tus datos para fines publicitarios ni los vendemos, cedemos o compartimos con
+        terceros para que te ofrezcan productos o servicios.
+      </p>
+
+      <h2>4. Con quién los compartimos</h2>
+      <p>
+        Para hacerte llegar los correos de este sitio utilizamos un proveedor de servicios de
+        correo electrónico que actúa como encargado del tratamiento y está obligado a mantener
+        la confidencialidad de tu información. No realizamos ninguna otra transferencia sin tu
+        consentimiento, salvo las previstas por la ley.
+      </p>
+
+      <h2>5. Cuánto tiempo los conservamos</h2>
+      <p>
+        Conservamos las solicitudes de cita durante el tiempo necesario para atenderlas. Si
+        inicias tratamiento, tu expediente clínico se conserva por el plazo que marca la
+        normatividad sanitaria aplicable.
+      </p>
+
+      <h2>6. Tus derechos ARCO</h2>
+      <p>
+        Puedes solicitar el <strong>acceso</strong> a tus datos, su <strong>rectificación</strong>
+        cuando sean inexactos, su <strong>cancelación</strong> cuando consideres que no se
+        requieren, u <strong>oponerte</strong> a su uso para fines específicos. También puedes
+        revocar en cualquier momento el consentimiento que nos otorgaste.
+      </p>
+      <p>
+        Para ejercer cualquiera de estos derechos escribe a
+        {' '}<strong>{dato(legal.correoArco, 'correo para solicitudes ARCO')}</strong>,
+        indicando tu nombre, un medio de contacto y qué derecho deseas ejercer. Te responderemos
+        en los plazos que marca la ley.
+      </p>
+
+      <h2>7. Cambios a este aviso</h2>
+      <p>
+        Podemos actualizar este aviso cuando cambien nuestras prácticas o la legislación
+        aplicable. La versión vigente siempre estará publicada en esta página, con su fecha de
+        última actualización.
+      </p>
+
+      <p class="legal__cierre">
+        ¿Alguna duda sobre cómo tratamos tu información? Escríbenos a {doctor.email}.
+      </p>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

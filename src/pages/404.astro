@@ -1,0 +1,29 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { doctor } from '@/config/site';
+---
+
+<Layout
+  title="Página no encontrada — Dra. Berenice Parada"
+  description="La página que buscas no existe o cambió de dirección."
+  noindex
+>
+  <main id="contenido" class="section" style="min-height:70vh;display:grid;place-items:center;text-align:center;">
+    <div class="wrap" style="max-width:560px;">
+      <span class="eyebrow" style="justify-content:center;">Error 404</span>
+      <h1 style="font-size:clamp(34px,6vw,56px);margin-top:18px;">
+        Esta página no existe.
+      </h1>
+      <p style="color:var(--ink-soft);margin-top:18px;font-size:18px;">
+        Puede que el enlace esté mal escrito o que la página haya cambiado de dirección.
+        Desde el inicio encuentras todo: tratamientos, resultados y el formulario de citas.
+      </p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:32px;">
+        <a href="/" class="btn btn--primary">Volver al inicio</a>
+        <a href={`https://wa.me/${doctor.whatsapp}`} target="_blank" rel="noopener noreferrer" class="btn btn--ghost">
+          Escribir por WhatsApp
+        </a>
+      </div>
+    </div>
+  </main>
+</Layout>

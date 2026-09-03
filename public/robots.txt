@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# La API de contacto no tiene nada que indexar
+Disallow: /api/
+
+Sitemap: https://bereniceparada.com/sitemap-index.xml

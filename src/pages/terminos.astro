@@ -1,0 +1,91 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Nav from '@/components/Nav.astro';
+import Footer from '@/components/Footer.astro';
+import { doctor, legal } from '@/config/site';
+
+const pendiente = (valor: string) => valor.trim() === '';
+const dato = (valor: string, etiqueta: string) => (pendiente(valor) ? `[FALTA: ${etiqueta}]` : valor);
+
+const hayPendientes = [legal.responsable, legal.cedulaEspecialidad].some(pendiente);
+const fecha = legal.ultimaActualizacion || '[FALTA: fecha de última actualización]';
+---
+
+<Layout
+  title="Términos de uso — Dra. Berenice Parada"
+  description="Condiciones de uso del sitio y alcance de la información publicada."
+  noindex
+>
+  <Nav />
+
+  <main id="contenido" class="section legal">
+    <div class="wrap">
+      <span class="eyebrow">Documento legal</span>
+      <h1>Términos de uso</h1>
+      <p class="legal__meta">Última actualización: {fecha}</p>
+
+      {hayPendientes && (
+        <div class="legal__alerta" role="alert">
+          <b>Este documento aún no está completo.</b>
+          Faltan datos que solo puede proporcionar la doctora. No publiques el sitio
+          hasta rellenar el objeto <code>legal</code> en <code>src/config/site.ts</code>.
+        </div>
+      )}
+
+      <h2>1. Sobre este sitio</h2>
+      <p>
+        Este sitio pertenece a {dato(legal.responsable, 'responsable — nombre o razón social')}
+        {' '}y presenta los servicios de ortodoncia de la Dra. {doctor.name}, con cédula
+        profesional de especialidad {dato(legal.cedulaEspecialidad, 'cédula de especialidad')}.
+      </p>
+
+      <h2>2. La información no sustituye una consulta</h2>
+      <p>
+        Los textos sobre tratamientos, duraciones y resultados son orientativos y de carácter
+        general. <strong>No constituyen un diagnóstico ni una recomendación clínica.</strong>
+        Cada caso requiere una valoración presencial: solo así es posible determinar el
+        tratamiento adecuado, su duración y su costo.
+      </p>
+
+      <h2>3. Sobre los casos mostrados</h2>
+      <p>
+        Las imágenes de casos y los testimonios publicados corresponden a pacientes que
+        autorizaron su difusión por escrito. Los resultados mostrados son individuales y
+        dependen del diagnóstico, la anatomía de cada paciente y su seguimiento del
+        tratamiento. <strong>No garantizamos resultados equivalentes en otros casos.</strong>
+      </p>
+
+      <h2>4. Solicitudes de cita</h2>
+      <p>
+        Enviar el formulario no confirma una cita: es una solicitud. Nos pondremos en contacto
+        contigo para acordar día y hora según disponibilidad. Al enviarlo te comprometes a
+        proporcionar información veraz.
+      </p>
+
+      <h2>5. Propiedad de los contenidos</h2>
+      <p>
+        Los textos, imágenes y elementos gráficos de este sitio están protegidos por la
+        legislación de derechos de autor. No pueden reproducirse ni utilizarse con fines
+        comerciales sin autorización previa por escrito.
+      </p>
+
+      <h2>6. Enlaces a otros sitios</h2>
+      <p>
+        Este sitio puede enlazar a servicios de terceros, como WhatsApp o Google Maps. No
+        respondemos por el contenido ni por las políticas de privacidad de esos servicios.
+      </p>
+
+      <h2>7. Legislación aplicable</h2>
+      <p>
+        Estos términos se rigen por la legislación mexicana. Para cualquier controversia, las
+        partes se someten a los tribunales competentes del domicilio del responsable.
+      </p>
+
+      <p class="legal__cierre">
+        Para cualquier aclaración sobre estos términos, escríbenos a {doctor.email}.
+      </p>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

@@ -1,52 +1,127 @@
 ---
 import '@/styles/global.css';
+import { doctor, faqs } from '@/config/site';
 
 interface Props {
   title?: string;
   description?: string;
+  /** Las páginas legales no deben competir en buscadores con la principal. */
+  noindex?: boolean;
 }
 
 const {
   title = 'Dra. Berenice Parada — Ortodoncia',
   description = 'Ortodoncia de precisión y estética para adultos y adolescentes. Alineadores invisibles, brackets estéticos y planes a tu medida.',
+  noindex = false,
 } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('/og-image.jpg', Astro.site);
+
+// Ficha del negocio para Google. Mientras los datos de site.ts sean de relleno,
+// este bloque también lo será: revisar al sustituirlos.
+const negocioSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Dentist',
+  name: `Dra. ${doctor.name} — ${doctor.specialty}`,
+  description,
+  url: Astro.site?.toString(),
+  telephone: `+${doctor.whatsapp}`, // E.164: Google no interpreta el formato local
+  email: doctor.email,
+  // Sin dirección pública: se declara solo el área de servicio.
+  // TODO(SEO): si algún día se publica el consultorio, añadir aquí un
+  // PostalAddress — Google lo necesita para posicionar en búsquedas locales.
+  areaServed: { '@type': 'City', name: 'Guadalajara, Jalisco, México' },
+  medicalSpecialty: 'Orthodontic',
+  availableService: [
+    { '@type': 'MedicalTherapy', name: 'Alineadores invisibles' },
+    { '@type': 'MedicalTherapy', name: 'Brackets estéticos' },
+    { '@type': 'MedicalTherapy', name: 'Brackets metálicos' },
+    { '@type': 'MedicalTherapy', name: 'Ortodoncia infantil' },
+  ],
+  sameAs: [`https://instagram.com/${doctor.instagram.replace('@', '')}`],
+};
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.question,
+    acceptedAnswer: { '@type': 'Answer', text: f.answer },
+  })),
+};
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang="es-MX">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#2f7d75" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="es_MX" />
+    <meta property="og:site_name" content={`Dra. ${doctor.name}`} />
 
-    <!-- Fonts -->
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Fuentes -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <script is:inline>
+      // Se marca antes de pintar: sin esto el contenido nunca se oculta,
+      // así que un fallo de JS deja la página legible en vez de en blanco.
+      if ('IntersectionObserver' in window) document.documentElement.classList.add('js-anim');
+    </script>
+
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(negocioSchema)} />
+    {!noindex && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
   </head>
   <body>
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <slot />
 
-    <!-- Scroll reveal -->
+    <!-- Animación de aparición al hacer scroll -->
     <script>
       const reveals = document.querySelectorAll<HTMLElement>('.reveal');
+      const revelar = (el: Element) => el.classList.add('in');
+
       if ('IntersectionObserver' in window) {
+        // Red de seguridad incondicional: pase lo que pase, a los 10 s todo el
+        // contenido es visible. La animación es un adorno; poder leer la página
+        // no lo es. No se cancela aunque el observer parezca funcionar, porque
+        // puede dejar de emitir (pestaña en segundo plano, navegador sin
+        // compositing) tras revelar solo lo primero.
+        setTimeout(() => reveals.forEach(revelar), 10000);
+
         const obs = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry, i) => {
               if (entry.isIntersecting) {
                 (entry.target as HTMLElement).style.transitionDelay = `${Math.min(i * 60, 240)}ms`;
-                entry.target.classList.add('in');
+                revelar(entry.target);
                 obs.unobserve(entry.target);
               }
             });
@@ -55,7 +130,7 @@ const {
         );
         reveals.forEach((el) => obs.observe(el));
       } else {
-        reveals.forEach((el) => el.classList.add('in'));
+        reveals.forEach(revelar);
       }
     </script>
   </body>

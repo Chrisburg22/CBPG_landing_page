@@ -1,0 +1,113 @@
+---
+import { Image } from 'astro:assets';
+import { caseStudy } from '@/config/site';
+
+/**
+ * Secuencia de tratamiento de un caso real.
+ *
+ * Las fotos se cargan con `import.meta.glob` en lugar de importarlas una a una
+ * para que el sitio compile aunque falte alguna: mientras no exista el archivo
+ * se muestra el marcador rayado. Al copiar la foto a src/assets/caso-01/
+ * aparece sola, sin tocar este componente.
+ */
+const fotos = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/caso-01/*.{jpg,jpeg,png,webp}',
+  { eager: true }
+);
+
+const foto = (nombre: string) => fotos[`/src/assets/caso-01/${nombre}.jpg`]?.default;
+
+const pendiente = (v: string) => v.trim() === '';
+const hayFicha = !pendiente(caseStudy.treatment) || !pendiente(caseStudy.duration);
+---
+
+<section class="section" id="resultados">
+  <div class="wrap">
+
+    <div class="section__head reveal">
+      <span class="eyebrow">Un caso real</span>
+      <h2>De principio a fin, sin saltarnos el proceso.</h2>
+      <p>
+        Así avanza un tratamiento de ortodoncia: el punto de partida, los meses de trabajo
+        y el resultado. Cada caso es distinto, pero el acompañamiento es siempre el mismo.
+      </p>
+    </div>
+
+    {hayFicha && (
+      <dl class="case__meta reveal">
+        {!pendiente(caseStudy.treatment) && (
+          <div>
+            <dt>Tratamiento</dt>
+            <dd>{caseStudy.treatment}</dd>
+          </div>
+        )}
+        {!pendiente(caseStudy.duration) && (
+          <div>
+            <dt>Duración</dt>
+            <dd>{caseStudy.duration}</dd>
+          </div>
+        )}
+      </dl>
+    )}
+
+    <ol class="case__stages">
+      {caseStudy.stages.map((etapa) => {
+        const img = foto(`${etapa.id}-frontal`);
+        return (
+          <li class="stage reveal">
+            <div class="stage__media stage__media--frontal">
+              {img ? (
+                <Image src={img} alt={etapa.alt} widths={[400, 700, 1000]} sizes="(max-width: 720px) 92vw, (max-width: 940px) 46vw, 30vw" loading="lazy" />
+              ) : (
+                <div class="ph"><span class="ph__label">foto · {etapa.id} frontal</span></div>
+              )}
+            </div>
+            <span class="stage__label">{etapa.label}</span>
+            <h3>{etapa.title}</h3>
+            <p>{etapa.description}</p>
+          </li>
+        );
+      })}
+    </ol>
+
+    <div class="case__arches reveal">
+      <h3 class="case__arches-title">Vistas desde arriba</h3>
+      <p class="case__arches-intro">
+        Es donde mejor se aprecia el cambio: cómo las piezas dejan de montarse unas sobre
+        otras y se acomodan siguiendo la curva natural de la arcada.
+      </p>
+
+      <div class="arches__grid">
+        {caseStudy.arches.map((arcada) => (
+          <div class="arch">
+            <h4>{arcada.label}</h4>
+            <div class="arch__pair">
+              {(['antes', 'despues'] as const).map((momento) => {
+                const img = foto(`${momento}-${arcada.id}`);
+                const alt = momento === 'antes' ? arcada.altAntes : arcada.altDespues;
+                return (
+                  <figure class="arch__shot">
+                    <div class="stage__media stage__media--oclusal">
+                      {img ? (
+                        <Image src={img} alt={alt} widths={[300, 520, 660]} sizes="(max-width: 720px) 44vw, 22vw" loading="lazy" />
+                      ) : (
+                        <div class="ph"><span class="ph__label">foto · {momento} {arcada.id}</span></div>
+                      )}
+                    </div>
+                    <figcaption>{momento === 'antes' ? 'Antes' : 'Después'}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <p class="case__consent">
+      Imágenes de un paciente real, publicadas con su consentimiento por escrito.
+      Los resultados dependen del diagnóstico de cada persona y no son extrapolables a otros casos.
+    </p>
+
+  </div>
+</section>

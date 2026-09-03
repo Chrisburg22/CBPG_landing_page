@@ -1,4 +1,15 @@
 /node_modules
-/.pnp.js
 /dist
+/.astro
+/.vercel
 .vite
+
+# Variables de entorno — nunca subir la API key de Resend
+.env
+.env.production
+.env*.local
+
+# Configuración local de Claude Code, no compartible
+.claude/settings.local.json
+
+.DS_Store

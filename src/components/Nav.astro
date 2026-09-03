@@ -36,21 +36,37 @@ import { doctor } from '@/config/site';
   const burger = document.getElementById('burger')!;
   const navLinks = document.getElementById('navLinks')!;
 
-  // Sticky shadow
+  // Sombra al hacer scroll
   window.addEventListener('scroll', () => {
     nav.classList.toggle('is-stuck', window.scrollY > 12);
   }, { passive: true });
 
-  // Mobile burger
+  function cerrarMenu(devolverFoco = false) {
+    if (!navLinks.classList.contains('open')) return;
+    navLinks.classList.remove('open');
+    burger.setAttribute('aria-expanded', 'false');
+    if (devolverFoco) burger.focus();
+  }
+
   burger.addEventListener('click', () => {
-    const isOpen = navLinks.classList.toggle('open');
-    burger.setAttribute('aria-expanded', String(isOpen));
+    const abierto = navLinks.classList.toggle('open');
+    burger.setAttribute('aria-expanded', String(abierto));
   });
 
+  // Al elegir un enlace, el menú se cierra
   navLinks.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).tagName === 'A') {
-      navLinks.classList.remove('open');
-      burger.setAttribute('aria-expanded', 'false');
-    }
+    if ((e.target as HTMLElement).tagName === 'A') cerrarMenu();
+  });
+
+  // Escape cierra y devuelve el foco al botón
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') cerrarMenu(true);
+  });
+
+  // Un clic fuera del menú también lo cierra
+  document.addEventListener('click', (e) => {
+    const objetivo = e.target as Node;
+    if (navLinks.contains(objetivo) || burger.contains(objetivo)) return;
+    cerrarMenu();
   });
 </script>

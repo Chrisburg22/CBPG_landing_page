@@ -32,9 +32,8 @@ import { doctor } from '@/config/site';
       <div>
         <h4>Contacto</h4>
         <ul>
-          <li>{doctor.address.split(',')[0]}</li>
-          <li>{doctor.phone}</li>
-          <li>{doctor.email}</li>
+          <li><a href={`tel:+${doctor.whatsapp}`}>{doctor.phone}</a></li>
+          <li><a href={`mailto:${doctor.email}`}>{doctor.email}</a></li>
           <li><a href="#contacto">Agendar cita →</a></li>
         </ul>
       </div>
@@ -43,7 +42,7 @@ import { doctor } from '@/config/site';
 
     <div class="footer__bottom">
       <span>© {new Date().getFullYear()} Dra. {doctor.name} · {doctor.specialty}. Todos los derechos reservados.</span>
-      <span>Aviso de privacidad · Términos</span>
+      <span><a href="/aviso-de-privacidad">Aviso de privacidad</a> · <a href="/terminos">Términos</a></span>
     </div>
   </div>
 </footer>

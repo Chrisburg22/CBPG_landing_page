@@ -1,12 +1,29 @@
 ---
+import { Image } from 'astro:assets';
 import { doctor } from '@/config/site';
+
+const titulaciones = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/doctora-titulacion.{jpg,jpeg,png,webp}',
+  { eager: true }
+);
+const titulacion = Object.values(titulaciones)[0]?.default;
 ---
 
 <section class="section" id="sobre">
   <div class="wrap about__grid">
 
     <div class="about__media reveal">
-      <div class="ph"><span class="ph__label">foto · doctora en consulta</span></div>
+      {titulacion ? (
+        <Image
+          src={titulacion}
+          alt={`La Dra. ${doctor.name} el día de su titulación como especialista, en la Universidad de Guadalajara`}
+          widths={[400, 700, 1000]}
+          sizes="(max-width: 940px) 92vw, 42vw"
+          loading="lazy"
+        />
+      ) : (
+        <div class="ph"><span class="ph__label">foto · doctora en consulta</span></div>
+      )}
     </div>
 
     <div class="reveal">

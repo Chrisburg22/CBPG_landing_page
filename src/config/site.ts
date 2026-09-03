@@ -1,18 +1,30 @@
-import type { DoctorConfig, TreatmentCard, FAQItem, Testimonial, ProcessStep } from '@/types/site';
+import type { CaseStudy, DoctorConfig, TreatmentCard, FAQItem, LegalConfig, Testimonial, ProcessStep } from '@/types/site';
 
 export const doctor: DoctorConfig = {
   name: 'Berenice Parada',
   initials: 'BP',
   specialty: 'Ortodoncia',
-  email: 'hola@bereniceparada.com',
-  phone: '+00 000 000 000',
-  whatsapp: '+00000000000',
-  address: 'Av. Principal 1234, Torre Médica, Piso 4 — Consultorio 402',
+  email: 'cbparada03@gmail.com',
+  phone: '33 1951 4983',
+  whatsapp: '523319514983', // E.164 sin '+', como lo requiere wa.me
   schedule: 'Lun a Vie · 9:00 – 19:00 · Sáb · 9:00 – 13:00',
   instagram: '@bereniceparada',
   yearsExperience: 12,
   patientsTreated: '2.400+',
   rating: '4.9★',
+};
+
+/**
+ * PENDIENTE DE LA DOCTORA. Cada cadena vacía se marca en pantalla como
+ * dato faltante en /aviso-de-privacidad. No publicar hasta completarlas.
+ */
+export const legal: LegalConfig = {
+  responsable: '',
+  domicilio: '',
+  correoArco: '',
+  cedulaLicenciatura: '',
+  cedulaEspecialidad: '',
+  ultimaActualizacion: '',
 };
 
 export const treatments: TreatmentCard[] = [
@@ -91,6 +103,61 @@ export const testimonials: Testimonial[] = [
     treatment: 'Brackets estéticos',
   },
 ];
+
+/**
+ * Caso clínico publicado en la sección de resultados.
+ * Las fotos viven en src/assets/caso-01/ y las carga CaseStudy.astro.
+ * Publicado con consentimiento firmado del paciente.
+ *
+ * BORRADOR: los textos describen lo que se ve en las fotos, pero los redactó
+ * el desarrollador. La doctora debe revisarlos —  es quien puede afirmar algo
+ * clínico— y rellenar `treatment` y `duration`, que se marcan en pantalla
+ * mientras estén vacíos.
+ */
+export const caseStudy: CaseStudy = {
+  treatment: '',
+  duration: '',
+  stages: [
+    {
+      id: 'antes',
+      label: 'Antes',
+      title: 'El punto de partida',
+      description:
+        'Los dientes se apiñan y giran sobre sí mismos, sin espacio suficiente en la arcada. Es uno de los motivos de consulta más frecuentes.',
+      alt: 'Vista frontal de la dentadura antes del tratamiento: dientes apiñados y girados en ambas arcadas.',
+    },
+    {
+      id: 'durante',
+      label: 'Durante',
+      title: 'El tratamiento en marcha',
+      description:
+        'Con la aparatología colocada, cada pieza se desplaza poco a poco hasta su sitio. El avance se revisa en cada cita.',
+      alt: 'Vista frontal durante el tratamiento: brackets colocados en ambas arcadas y dientes ya en movimiento.',
+    },
+    {
+      id: 'despues',
+      label: 'Después',
+      title: 'El resultado',
+      description:
+        'Las piezas quedan alineadas y la mordida encaja. A partir de aquí entran los retenedores, que son los que cuidan el resultado.',
+      alt: 'Vista frontal al finalizar el tratamiento: dientes alineados y mordida corregida.',
+    },
+  ],
+  arches: [
+    {
+      id: 'superior',
+      label: 'Arcada superior',
+      altAntes: 'Arcada superior antes del tratamiento, vista desde arriba: apiñamiento en el sector anterior.',
+      altDespues: 'Arcada superior al finalizar, vista desde arriba: piezas alineadas siguiendo la curva de la arcada.',
+    },
+    {
+      id: 'inferior',
+      label: 'Arcada inferior',
+      altAntes: 'Arcada inferior antes del tratamiento, vista desde arriba: incisivos apiñados y girados.',
+      altDespues: 'Arcada inferior al finalizar, vista desde arriba: incisivos alineados.',
+    },
+  ],
+};
 
 export const processSteps: ProcessStep[] = [
   {

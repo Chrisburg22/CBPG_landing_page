@@ -1,5 +1,14 @@
 ---
+import { Image } from 'astro:assets';
 import { doctor } from '@/config/site';
+
+// Glob en lugar de import directo: el sitio compila aunque la foto no esté,
+// mostrando el marcador. Al copiarla a src/assets/ aparece sola.
+const retratos = import.meta.glob<{ default: ImageMetadata }>(
+  '/src/assets/doctora-retrato.{jpg,jpeg,png,webp}',
+  { eager: true }
+);
+const retrato = Object.values(retratos)[0]?.default;
 ---
 
 <section class="hero" id="top">
@@ -37,9 +46,20 @@ import { doctor } from '@/config/site';
 
     <div class="hero__media reveal">
       <div class="portrait">
-        <div class="ph">
-          <span class="ph__label">foto · retrato de la doctora</span>
-        </div>
+        {retrato ? (
+          <Image
+            src={retrato}
+            alt={`La Dra. ${doctor.name}, especialista en ortodoncia`}
+            widths={[400, 600, 900]}
+            sizes="(max-width: 940px) 420px, 40vw"
+            loading="eager"
+            fetchpriority="high"
+          />
+        ) : (
+          <div class="ph">
+            <span class="ph__label">foto · retrato de la doctora</span>
+          </div>
+        )}
       </div>
       <div class="hero__badge">
         <span class="dot" aria-hidden="true">

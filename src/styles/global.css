@@ -173,6 +173,7 @@ img { max-width: 100%; display: block; }
 .hero__trust span { font-size: 14px; color: var(--ink-soft); margin-top: 6px; letter-spacing: .01em; }
 
 .hero__media { position: relative; }
+.portrait img, .about__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .portrait {
   position: relative;
   aspect-ratio: 4 / 5;
@@ -191,7 +192,8 @@ img { max-width: 100%; display: block; }
   background: var(--accent-tint); display: grid; place-items: center;
   color: var(--accent-deep); flex: none;
 }
-.hero__badge b { font-family: var(--font-display); font-size: 17px; }
+.hero__badge > div { display: flex; flex-direction: column; gap: 2px; }
+.hero__badge b { font-family: var(--font-display); font-size: 17px; line-height: 1.2; }
 .hero__badge span { font-size: 13px; color: var(--ink-soft); }
 
 /* ---------- Placeholder media ---------- */
@@ -237,28 +239,79 @@ img { max-width: 100%; display: block; }
 .card p { color: var(--ink-soft); font-size: 16px; }
 .card__tag { display: inline-block; margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--accent-deep); }
 
-/* ---------- Before / After ---------- */
-.ba { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
-.ba__viewer {
-  position: relative; aspect-ratio: 4/3; border-radius: var(--radius-lg);
-  overflow: hidden; box-shadow: var(--shadow-md); user-select: none; touch-action: none; cursor: ew-resize;
+/* ---------- Caso clínico ---------- */
+.case__meta {
+  display: flex; flex-wrap: wrap; gap: 14px 40px; margin: 0 0 40px;
+  padding: 20px 26px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
 }
-.ba__layer { position: absolute; inset: 0; }
-.ba__layer--after { clip-path: inset(0 0 0 50%); }
-.ba__tag {
-  position: absolute; top: 16px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-  background: rgba(38,34,29,.62); color: #fff; padding: 6px 12px; border-radius: 100px; backdrop-filter: blur(4px);
+.case__meta > div { display: flex; flex-direction: column; gap: 2px; }
+.case__meta dt {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft);
 }
-.ba__tag--before { left: 16px; }
-.ba__tag--after { right: 16px; }
-.ba__handle {
-  position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
-  background: #fff; transform: translateX(-50%); box-shadow: 0 0 0 1px rgba(0,0,0,.06);
+.case__meta dd { margin: 0; font-family: var(--font-display); font-size: 21px; }
+
+/* Las tres etapas. Es una secuencia con orden real, de ahí la lista ordenada. */
+.case__stages {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3vw, 34px);
+  counter-reset: etapa;
 }
-.ba__knob {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  width: 46px; height: 46px; border-radius: 50%; background: #fff;
-  box-shadow: var(--shadow-md); display: grid; place-items: center; color: var(--accent-deep);
+.stage { display: flex; flex-direction: column; }
+.stage__media {
+  position: relative; overflow: hidden;
+  border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  background: var(--bg-deep);
+}
+.stage__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* Los aspectos los marcan las fotos: las frontales son panorámicas y las
+   oclusales casi cuadradas. Fijarlos evita saltos de maquetación al cargar. */
+.stage__media--frontal { aspect-ratio: 725 / 346; }
+.stage__media--oclusal { aspect-ratio: 654 / 522; }
+
+.stage__label {
+  counter-increment: etapa;
+  display: inline-flex; align-items: center; gap: 8px; align-self: flex-start;
+  margin-top: 20px; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 600; color: var(--accent-deep);
+}
+.stage__label::before {
+  content: counter(etapa); display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-tint); font-size: 12px; letter-spacing: 0;
+}
+.stage h3 { font-size: clamp(20px, 2.4vw, 24px); margin-top: 10px; }
+.stage p { margin-top: 10px; color: var(--ink-soft); font-size: 15.5px; }
+
+/* Comparación de arcadas */
+.case__arches {
+  margin-top: clamp(48px, 7vw, 80px); padding-top: clamp(36px, 5vw, 56px);
+  border-top: 1px solid var(--line);
+}
+.case__arches-title { font-size: clamp(22px, 3vw, 28px); }
+.case__arches-intro {
+  margin-top: 12px; color: var(--ink-soft); font-size: 16.5px; max-width: 62ch;
+}
+.arches__grid {
+  margin-top: 34px; display: grid; grid-template-columns: 1fr 1fr;
+  gap: clamp(28px, 4vw, 52px);
+}
+.arch h4 {
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft);
+  margin-bottom: 14px;
+}
+.arch__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.arch__shot { margin: 0; }
+.arch__shot figcaption {
+  margin-top: 9px; font-size: 13px; color: var(--ink-soft);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+
+.case__consent {
+  margin-top: clamp(34px, 5vw, 48px); padding-top: 22px;
+  border-top: 1px solid var(--line-soft, var(--line));
+  font-size: 14px; color: var(--ink-soft); max-width: 70ch;
 }
 
 /* ---------- Process ---------- */
@@ -301,8 +354,17 @@ img { max-width: 100%; display: block; }
   display: grid; place-items: center; transition: transform .3s, background .3s, color .3s;
 }
 .faq__item.open .faq__q .icn { transform: rotate(45deg); background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.faq__a { overflow: hidden; max-height: 0; transition: max-height .4s cubic-bezier(.2,.8,.2,1); }
-.faq__a > div { padding-bottom: 24px; color: var(--ink-soft); font-size: 17px; max-width: 680px; }
+.faq__heading { margin: 0; font-family: inherit; font-size: inherit; font-weight: inherit; line-height: inherit; letter-spacing: normal; }
+.faq__a {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows .4s cubic-bezier(.2,.8,.2,1), visibility .4s;
+  visibility: hidden;
+}
+.faq__item.open .faq__a { grid-template-rows: 1fr; visibility: visible; }
+.faq__a > div {
+  overflow: hidden; min-height: 0;
+  padding-bottom: 24px; color: var(--ink-soft); font-size: 17px; max-width: 680px;
+}
 
 /* ---------- Contact ---------- */
 .contact__grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(36px, 5vw, 64px); }
@@ -373,16 +435,91 @@ img { max-width: 100%; display: block; }
 .wa-float:hover { transform: scale(1.08); }
 
 /* ---------- Scroll reveal ---------- */
-.reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1); }
-.reveal.in { opacity: 1; transform: none; }
+/* El contenido es visible por defecto. Solo se oculta para animarlo cuando
+   el navegador confirma que soporta IntersectionObserver (clase en <html>),
+   de modo que un fallo de JS nunca deja la página en blanco. */
+.js-anim .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1); }
+.js-anim .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { opacity: 1 !important; transform: none !important; }
+  .js-anim .reveal { opacity: 1 !important; transform: none !important; }
   html { scroll-behavior: auto; }
+}
+
+/* ---------- Enlace para saltar al contenido ---------- */
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 200;
+  background: var(--accent); color: var(--on-accent);
+  padding: 12px 20px; border-radius: var(--radius-sm);
+  font-weight: 600; font-size: 15px;
+  transition: top .2s;
+}
+.skip-link:focus { top: 12px; }
+
+/* ---------- Foco visible ---------- */
+:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- Formulario: campos añadidos ---------- */
+
+/* Honeypot antispam: fuera de la vista pero no con display:none,
+   que algunos bots detectan y saltan. */
+.hp {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.consent label {
+  display: grid; grid-template-columns: auto 1fr; gap: 10px;
+  align-items: start; font-weight: 400; font-size: 14px;
+  line-height: 1.5; color: var(--ink-soft); cursor: pointer;
+}
+.consent input {
+  width: 18px; height: 18px; margin: 2px 0 0; flex: none;
+  accent-color: var(--accent); cursor: pointer;
+}
+.consent a { color: var(--accent-deep); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.consent.invalid label > span { color: #b4452e; }
+.consent .err { display: none; }
+.consent.invalid .err { display: block; }
+
+.form__error {
+  color: #b4452e; font-size: 14px; margin-top: 12px; text-align: center;
+}
+.form__error:empty { display: none; }
+
+.btn[disabled] { opacity: .6; cursor: progress; }
+
+/* ---------- Páginas legales ---------- */
+.legal .wrap { max-width: 760px; }
+.legal h1 { font-size: clamp(32px, 5vw, 46px); margin-top: 16px; }
+.legal h2 {
+  font-size: clamp(21px, 2.6vw, 25px); margin-top: 44px; margin-bottom: 12px;
+  padding-top: 26px; border-top: 1px solid var(--line);
+}
+.legal p { margin-bottom: 16px; color: var(--ink-soft); font-size: 17px; }
+.legal strong { color: var(--ink); font-weight: 600; }
+.legal ul { margin: 0 0 16px; padding-left: 22px; color: var(--ink-soft); font-size: 17px; }
+.legal li { margin-bottom: 8px; }
+.legal__meta { font-size: 14px; color: var(--ink-soft); margin-top: 14px; }
+.legal__cierre {
+  margin-top: 44px; padding-top: 26px; border-top: 1px solid var(--line);
+  font-size: 16px;
+}
+.legal__alerta {
+  margin: 30px 0 0; padding: 18px 22px;
+  background: #fdf2e7; border: 1px solid #e0b184; border-left-width: 4px;
+  border-radius: var(--radius-sm); color: #7d4a22; font-size: 15px; line-height: 1.55;
+}
+.legal__alerta b { display: block; margin-bottom: 4px; }
+.legal__alerta code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13.5px;
+  background: rgba(125,74,34,.1); padding: 1px 5px; border-radius: 4px;
 }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 940px) {
-  .hero__grid, .about__grid, .ba, .contact__grid { grid-template-columns: 1fr; }
+  .hero__grid, .about__grid, .contact__grid { grid-template-columns: 1fr; }
+  .arches__grid { grid-template-columns: 1fr; }
   .hero__media { order: -1; max-width: 420px; }
   .cards, .quotes { grid-template-columns: 1fr 1fr; }
   .steps { grid-template-columns: 1fr 1fr; }
@@ -398,6 +535,7 @@ img { max-width: 100%; display: block; }
     gap: 18px; border-bottom: 1px solid var(--line);
   }
   .cards, .quotes, .steps { grid-template-columns: 1fr; }
+  .case__stages { grid-template-columns: 1fr; }
   .field.row { grid-template-columns: 1fr; gap: 0; }
   .footer__grid { grid-template-columns: 1fr; gap: 30px; }
   .hero__badge { left: 0; }

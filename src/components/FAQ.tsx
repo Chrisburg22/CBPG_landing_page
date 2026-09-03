@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useId, useState } from 'react';
 import type { FAQItem } from '@/types/site';
 
 interface FAQItemComponentProps {
@@ -8,29 +8,29 @@ interface FAQItemComponentProps {
 }
 
 function FAQItemComponent({ item, isOpen, onToggle }: FAQItemComponentProps) {
-  const answerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = answerRef.current;
-    if (!el) return;
-    el.style.maxHeight = isOpen ? `${el.scrollHeight}px` : '0px';
-  }, [isOpen]);
+  const id = useId();
+  const panelId = `${id}-panel`;
+  const buttonId = `${id}-button`;
 
   return (
     <div className={`faq__item${isOpen ? ' open' : ''}`}>
-      <button
-        className="faq__q"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-      >
-        {item.question}
-        <span className="icn" aria-hidden="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14"/>
-          </svg>
-        </span>
-      </button>
-      <div className="faq__a" ref={answerRef}>
+      <h3 className="faq__heading">
+        <button
+          id={buttonId}
+          className="faq__q"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-controls={panelId}
+        >
+          {item.question}
+          <span className="icn" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </span>
+        </button>
+      </h3>
+      <div className="faq__a" id={panelId} role="region" aria-labelledby={buttonId}>
         <div>{item.answer}</div>
       </div>
     </div>
@@ -56,7 +56,7 @@ export default function FAQ({ items }: FAQProps) {
         <div className="faq reveal">
           {items.map((item, i) => (
             <FAQItemComponent
-              key={i}
+              key={item.question}
               item={item}
               isOpen={openIndex === i}
               onToggle={() => toggle(i)}

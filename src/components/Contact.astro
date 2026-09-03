@@ -20,13 +20,13 @@ import BookingForm from './BookingForm';
         <li>
           <span class="ic" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0Z"/>
-              <circle cx="12" cy="10" r="3"/>
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="m3 7 9 6 9-6"/>
             </svg>
           </span>
           <div>
-            <b>Consultorio</b>
-            <span>{doctor.address}</span>
+            <b>Correo</b>
+            <span><a href={`mailto:${doctor.email}`}>{doctor.email}</a></span>
           </div>
         </li>
         <li>
@@ -49,14 +49,12 @@ import BookingForm from './BookingForm';
           </span>
           <div>
             <b>Teléfono / WhatsApp</b>
-            <span>{doctor.phone}</span>
+            <span>
+              <a href={`tel:+${doctor.whatsapp}`}>{doctor.phone}</a>
+            </span>
           </div>
         </li>
       </ul>
-
-      <div class="map" aria-label="Ubicación del consultorio">
-        <div class="ph"><span class="ph__label">mapa · ubicación del consultorio</span></div>
-      </div>
     </div>
 
     <!-- Form column (React island, loads when visible) -->
