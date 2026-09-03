@@ -5,10 +5,10 @@ export const doctor: DoctorConfig = {
   initials: 'BP',
   specialty: 'Ortodoncia',
   email: 'cbparada03@gmail.com',
-  phone: '33 1951 4983',
-  whatsapp: '523319514983', // E.164 sin '+', como lo requiere wa.me
+  phone: '+52 33 1951 4983',
+  whatsapp: '523319514983', // E.164 sin '+': wa.me no acepta el signo
   schedule: 'Lun a Vie · 9:00 – 19:00 · Sáb · 9:00 – 13:00',
-  instagram: '@bereniceparada',
+  instagram: '@berenice_parada_ortodoncia',
   yearsExperience: 12,
   patientsTreated: '2.400+',
   rating: '4.9★',
@@ -48,7 +48,7 @@ export const treatments: TreatmentCard[] = [
   },
   {
     icon: 'kids',
-    title: 'Ortodoncia infantil',
+    title: 'Ortopedia',
     description: 'Ortopedia y guía del crecimiento en edades tempranas para prevenir tratamientos más largos.',
     tag: 'Para los más peques →',
   },
