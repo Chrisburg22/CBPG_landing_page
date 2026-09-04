@@ -1,5 +1,6 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import AvisoContactado from '@/components/admin/AvisoContactado.astro';
 import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
 import { cambiarEstado, esEstado, fecha, guardarNotas, obtener } from '@/lib/solicitudes';
 import { ESTADOS, ETIQUETA_ESTADO, type Solicitud } from '@/lib/supabase/tipos';
@@ -65,6 +66,8 @@ const error = params.get('error');
   {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
   {error === 'estado' && <p class="aviso aviso--error">Ese estado no es válido.</p>}
 
+  <AvisoContactado modo="detalle" />
+
   {
     solicitud && (
       <div class="detalle-grid">
@@ -86,9 +89,12 @@ const error = params.get('error');
             <div class="acciones" style="margin-top: 22px">
               <a
                 class="btn btn--primary btn--chico"
-                href={aWhatsapp(solicitud.telefono, solicitud.nombre)}
+                href={aWhatsapp(solicitud.telefono, solicitud.nombre, solicitud.tratamiento)}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-wa-id={solicitud.id}
+                data-wa-nombre={solicitud.nombre}
+                data-wa-estado={solicitud.estado}
               >
                 WhatsApp
               </a>
@@ -100,7 +106,7 @@ const error = params.get('error');
 
           <div class="panel">
             <h2 class="panel__titulo">Mensaje</h2>
-            {/* Interpolación normal, nunca set:html: es texto escrito por la paciente. */}
+            {/* Interpolación normal, nunca set:html: es texto escrito por el prospecto. */}
             {solicitud.mensaje ? (
               <p class="mensaje">{solicitud.mensaje}</p>
             ) : (
@@ -114,7 +120,7 @@ const error = params.get('error');
             <h2 class="panel__titulo">Estado</h2>
             <input type="hidden" name="accion" value="estado" />
             <div class="field">
-              <label for="estado">Situación de esta paciente</label>
+              <label for="estado">Situación de este prospecto</label>
               <select id="estado" name="estado">
                 {ESTADOS.map((valor) => (
                   <option value={valor} selected={valor === solicitud?.estado}>
@@ -132,7 +138,7 @@ const error = params.get('error');
             <h2 class="panel__titulo">Notas</h2>
             <input type="hidden" name="accion" value="notas" />
             <div class="field">
-              <label for="notas">Solo para ti. La paciente no las ve.</label>
+              <label for="notas">Solo para ti. El prospecto no las ve.</label>
               <textarea id="notas" name="notas" rows="7" maxlength="4000">{solicitud.notas}</textarea>
             </div>
             <button class="btn btn--ghost btn--block btn--chico" type="submit">

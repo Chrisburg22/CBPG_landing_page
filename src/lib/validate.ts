@@ -16,12 +16,19 @@ export interface BookingPayload {
 
 export type BookingErrors = Partial<Record<keyof BookingPayload, string>>;
 
+/**
+ * La opción "todavía no sé". Se nombra aparte porque no es un tratamiento sino
+ * la ausencia de uno, y hay que tratarla distinto: el mensaje de WhatsApp del
+ * panel no puede decir "su solicitud para aún no estoy seguro/a".
+ */
+export const TRATAMIENTO_SIN_DECIDIR = 'Aún no estoy seguro/a';
+
 export const TRATAMIENTOS = [
   'Alineadores invisibles',
   'Brackets estéticos',
   'Brackets metálicos',
   'Ortodoncia infantil',
-  'Aún no estoy seguro/a',
+  TRATAMIENTO_SIN_DECIDIR,
 ] as const;
 
 export const LIMITES = {

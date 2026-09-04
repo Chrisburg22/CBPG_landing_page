@@ -44,7 +44,7 @@ test('recorrido del panel', async ({ page }) => {
   await pausa(2600);
 
   // ---- 5. La marca como contactada ----
-  await page.getByLabel('Situación de esta paciente').selectOption('contactada');
+  await page.getByLabel('Situación de este prospecto').selectOption('contactada');
   await pausa(700);
   await page.getByRole('button', { name: 'Guardar estado' }).click();
   await expect(page.getByText('Guardado.')).toBeVisible();
@@ -52,7 +52,7 @@ test('recorrido del panel', async ({ page }) => {
 
   // ---- 6. Y deja una nota interna ----
   await page
-    .getByLabel('Solo para ti. La paciente no las ve.')
+    .getByLabel('Solo para ti. El prospecto no las ve.')
     .fill('Le escribí por WhatsApp. Prefiere sábados por la mañana.');
   await pausa(900);
   await page.getByRole('button', { name: 'Guardar notas' }).click();

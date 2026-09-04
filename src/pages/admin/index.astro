@@ -1,9 +1,38 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { contarNuevas, esEstado, fecha, listar, type SolicitudListado } from '@/lib/solicitudes';
+import AvisoContactado from '@/components/admin/AvisoContactado.astro';
+import { aWhatsapp } from '@/lib/contacto-directo';
+import {
+  cambiarEstado,
+  contarNuevas,
+  contarTodas,
+  esEstado,
+  fecha,
+  listar,
+  type SolicitudListado,
+} from '@/lib/solicitudes';
 import { ESTADOS, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
 
 export const prerender = false;
+
+// Cambio rápido de estado desde el aviso que aparece al volver de WhatsApp.
+// POST-Redirect-GET: sin el redirect, recargar repetiría la escritura. Astro
+// valida la cabecera Origin por su cuenta (security.checkOrigin), y por eso
+// esto es un formulario nativo y no un fetch con JSON.
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const id = String(datos.get('id') ?? '');
+  const nuevoEstado = String(datos.get('estado') ?? '');
+  try {
+    if (id && esEstado(nuevoEstado)) {
+      await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
+    }
+  } catch (e) {
+    console.error('[admin] no se pudo cambiar el estado:', e instanceof Error ? e.message : 'desconocido');
+  }
+  // Conservar la querystring: perder el filtro al marcar sería desconcertante.
+  return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
+}
 
 const params = Astro.url.searchParams;
 const estadoParam = params.get('estado');
@@ -12,12 +41,16 @@ const busqueda = params.get('q')?.trim() ?? '';
 
 let solicitudes: SolicitudListado[] = [];
 let nuevas = 0;
+// Total sin filtrar: es lo que permite distinguir "no hay nada" de
+// "hay cosas pero tu filtro las esconde", que son problemas muy distintos.
+let total = 0;
 let fallo: string | null = null;
 
 try {
-  [solicitudes, nuevas] = await Promise.all([
+  [solicitudes, nuevas, total] = await Promise.all([
     listar(Astro.locals.supabase, { estado, busqueda }),
     contarNuevas(Astro.locals.supabase),
+    contarTodas(Astro.locals.supabase),
   ]);
 } catch (e) {
   // Un fallo de base de datos no debe dar un 500 en blanco: la doctora tiene que
@@ -38,6 +71,18 @@ const hayFiltro = !!estado || !!busqueda;
           fallo
             ? 'Sin datos'
             : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender`
+        }
+        {
+          /* Con un filtro puesto es fácil quedarse mirando una tabla vacía sin
+             caer en que hay datos detrás. La salida tiene que estar a un clic. */
+          hayFiltro && (
+            <>
+              {' · '}
+              <a class="admin-head__quitar" href="/admin">
+                Quitar filtro
+              </a>
+            </>
+          )
         }
       </p>
     </div>
@@ -66,6 +111,8 @@ const hayFiltro = !!estado || !!busqueda;
 
   {fallo && <p class="aviso aviso--error">{fallo}</p>}
 
+  <AvisoContactado modo="listado" />
+
   <div class="panel">
     {
       solicitudes.length === 0 && !fallo ? (
@@ -73,19 +120,27 @@ const hayFiltro = !!estado || !!busqueda;
           <strong>{hayFiltro ? 'Nada con ese filtro' : 'Todavía no hay solicitudes'}</strong>
           <p>
             {hayFiltro
-              ? 'Prueba a quitar el filtro o a buscar otra cosa.'
+              ? total > 0
+                ? `Hay ${total} ${total === 1 ? 'solicitud' : 'solicitudes'} en total, pero ninguna coincide con lo que estás filtrando.`
+                : 'Prueba a quitar el filtro o a buscar otra cosa.'
               : 'Cuando alguien llene el formulario de la página, aparecerá aquí.'}
           </p>
+          {hayFiltro && (
+            <a class="btn btn--primary btn--chico" href="/admin" style="margin-top: 20px">
+              Ver todas las solicitudes
+            </a>
+          )}
         </div>
       ) : (
         <div class="tabla-scroll">
           <table class="tabla">
             <thead>
               <tr>
-                <th>Paciente</th>
+                <th>Prospecto</th>
                 <th>Tratamiento</th>
                 <th>Recibida</th>
                 <th>Estado</th>
+                <th><span class="visualmente-oculto">Contactar</span></th>
               </tr>
             </thead>
             <tbody>
@@ -101,6 +156,19 @@ const hayFiltro = !!estado || !!busqueda;
                   <td class="tabla__fecha">{fecha(s.creado_en)}</td>
                   <td>
                     <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
+                  </td>
+                  <td class="tabla__accion">
+                    <a
+                      class="btn btn--primary btn--chico"
+                      href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-wa-id={s.id}
+                      data-wa-nombre={s.nombre}
+                      data-wa-estado={s.estado}
+                    >
+                      WhatsApp
+                    </a>
                   </td>
                 </tr>
               ))}

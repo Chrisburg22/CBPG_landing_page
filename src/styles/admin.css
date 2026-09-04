@@ -68,6 +68,12 @@ body.admin {
 }
 .admin-head h1 { font-size: clamp(28px, 4vw, 38px); }
 .admin-head p { color: var(--ink-soft); font-size: 14.5px; margin-top: 6px; }
+.admin-head__quitar {
+  color: var(--accent-deep);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 /* ---------- Filtros ---------- */
 .filtros { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -77,7 +83,7 @@ body.admin {
 /* ---------- Tabla ---------- */
 /* Contenedor con scroll propio: la tabla nunca empuja el ancho de la página. */
 .tabla-scroll { overflow-x: auto; margin-inline: calc(clamp(20px, 3vw, 30px) * -1); }
-.tabla-scroll > .tabla { min-width: 720px; }
+.tabla-scroll > .tabla { min-width: 860px; }
 
 .tabla { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .tabla th, .tabla td {
@@ -99,6 +105,35 @@ body.admin {
 .tabla a.tabla__nombre { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .tabla__sec { color: var(--ink-soft); font-size: 13px; display: block; margin-top: 3px; }
 .tabla__fecha { white-space: nowrap; color: var(--ink-soft); }
+.tabla__accion { text-align: right; white-space: nowrap; }
+
+/* Visible para lectores de pantalla, no para la vista: la columna de acción no
+   necesita encabezado dibujado, pero sí necesita nombre. */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Aviso de "¿le escribiste?" ---------- */
+.aviso-contacto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--accent-tint);
+  border: 1px solid #c3d8d3;
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 20px;
+}
+.aviso-contacto[hidden] { display: none; }
+.aviso-contacto__texto { font-size: 15px; color: var(--accent-deep); }
+.aviso-contacto__acciones { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- Chips de estado ---------- */
 .chip {
@@ -138,7 +173,7 @@ body.admin {
 .datos dt { color: var(--ink-soft); font-size: 13.5px; }
 .datos dd { margin: 0; overflow-wrap: anywhere; }
 
-/* El mensaje de la paciente conserva sus saltos de línea. Nunca con set:html. */
+/* El mensaje del prospecto conserva sus saltos de línea. Nunca con set:html. */
 .mensaje {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

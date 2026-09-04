@@ -69,6 +69,15 @@ export async function contarNuevas(supabase: Cliente): Promise<number> {
   return count ?? 0;
 }
 
+/** Total sin filtrar. Sirve para decirle a la doctora que su filtro esconde datos. */
+export async function contarTodas(supabase: Cliente): Promise<number> {
+  const { count, error } = await supabase
+    .from('solicitudes')
+    .select('id', { count: 'exact', head: true });
+  if (error) throw new Error(`No se pudo contar: ${error.message}`);
+  return count ?? 0;
+}
+
 /** `null` si no existe o si RLS la oculta: para quien consulta, son lo mismo. */
 export async function obtener(supabase: Cliente, id: string): Promise<Solicitud | null> {
   const { data, error } = await supabase

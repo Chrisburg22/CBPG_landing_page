@@ -1,0 +1,88 @@
+---
+/**
+ * Barra que aparece al volver de WhatsApp y ofrece marcar la solicitud como
+ * contactada.
+ *
+ * Existe porque abrir WhatsApp y no tocar el estado es la forma más fácil de
+ * que el panel deje de reflejar la realidad: todo se queda en "nueva" aunque ya
+ * se haya escrito. Preguntar al volver, en vez de marcarlo al pulsar, evita el
+ * error contrario — dar por contactada a alguien a quien solo se le miró el
+ * número.
+ *
+ * Sin JavaScript no aparece nada y el resto sigue funcionando: el enlace abre
+ * WhatsApp y el estado se cambia a mano, como siempre.
+ */
+interface Props {
+  /**
+   * 'listado' manda `id` + `estado` a /admin; 'detalle' manda `accion=estado`
+   * a la propia ficha, que ya tiene su manejador.
+   */
+  modo: 'listado' | 'detalle';
+}
+
+const { modo } = Astro.props;
+---
+
+<form class="aviso-contacto" method="post" hidden data-aviso-contacto>
+  {modo === 'listado' && <input type="hidden" name="id" data-aviso-id />}
+  {modo === 'detalle' && <input type="hidden" name="accion" value="estado" />}
+  <input type="hidden" name="estado" value="contactada" />
+
+  <p class="aviso-contacto__texto">
+    ¿Le escribiste a <strong data-aviso-nombre></strong>?
+  </p>
+  <div class="aviso-contacto__acciones">
+    <button class="btn btn--primary btn--chico" type="submit">Marcar como contactada</button>
+    <button class="btn btn--ghost btn--chico" type="button" data-aviso-cerrar>Ahora no</button>
+  </div>
+</form>
+
+<script is:inline>
+  (() => {
+    const aviso = document.querySelector('[data-aviso-contacto]');
+    if (!aviso) return;
+
+    const campoId = aviso.querySelector('[data-aviso-id]');
+    const campoNombre = aviso.querySelector('[data-aviso-nombre]');
+
+    /** Solicitud cuyo WhatsApp se acaba de abrir, a la espera de que vuelvas. */
+    let pendiente = null;
+
+    document.addEventListener('click', (evento) => {
+      const enlace = evento.target.closest('[data-wa-id]');
+      if (!enlace) return;
+      // Preguntarlo sobre una ya agendada o descartada sería ruido.
+      if (enlace.dataset.waEstado !== 'nueva') return;
+      pendiente = {
+        id: enlace.dataset.waId,
+        nombre: enlace.dataset.waNombre || 'este prospecto',
+        desde: Date.now(),
+      };
+    });
+
+    function ofrecer() {
+      if (!pendiente) return;
+      // Un margen mínimo: si la pestaña recupera el foco al instante, es que
+      // WhatsApp no llegó a abrirse y no hay nada que preguntar.
+      if (Date.now() - pendiente.desde < 1500) return;
+
+      if (campoId) campoId.value = pendiente.id;
+      if (campoNombre) campoNombre.textContent = pendiente.nombre;
+      aviso.hidden = false;
+      aviso.scrollIntoView({ block: 'nearest' });
+      pendiente = null;
+    }
+
+    // `visibilitychange` cubre el caso normal (WhatsApp abre en otra pestaña).
+    // `focus` cubre cuando se abre la aplicación de escritorio y la pestaña
+    // nunca llega a ocultarse. Los dos, porque ninguno basta solo.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') ofrecer();
+    });
+    window.addEventListener('focus', ofrecer);
+
+    aviso.querySelector('[data-aviso-cerrar]')?.addEventListener('click', () => {
+      aviso.hidden = true;
+    });
+  })();
+</script>

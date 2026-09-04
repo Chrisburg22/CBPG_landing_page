@@ -7,6 +7,7 @@ import {
   nombreDePrueba,
   sembrarSolicitud,
 } from './apoyo';
+import { TRATAMIENTO_SIN_DECIDIR } from '../src/lib/validate';
 
 /**
  * El recorrido completo: una paciente llena el formulario de la landing y la
@@ -97,12 +98,12 @@ test.describe('Panel de solicitudes', () => {
     await entrarAlPanel(page);
     await page.getByRole('link', { name: nombre }).click();
 
-    await page.getByLabel('Situación de esta paciente').selectOption('agendada');
+    await page.getByLabel('Situación de este prospecto').selectOption('agendada');
     await page.getByRole('button', { name: 'Guardar estado' }).click();
     await expect(page.getByText('Guardado.')).toBeVisible();
 
     const notas = 'Llamé el martes. Prefiere sábados por la mañana.';
-    await page.getByLabel('Solo para ti. La paciente no las ve.').fill(notas);
+    await page.getByLabel('Solo para ti. El prospecto no las ve.').fill(notas);
     await page.getByRole('button', { name: 'Guardar notas' }).click();
     await expect(page.getByText('Guardado.')).toBeVisible();
 
@@ -138,6 +139,99 @@ test.describe('Panel de solicitudes', () => {
 
     await page.goto('/admin?estado=nueva');
     await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
+  });
+
+  /**
+   * Un filtro puesto y una tabla vacía se leen igual que "no hay nada", y ahí es
+   * donde uno concluye que el panel está roto teniendo los datos delante. El
+   * estado vacío tiene que decir que hay solicitudes escondidas y ofrecer la
+   * salida en un clic.
+   */
+  test('un filtro que no encuentra nada avisa de que hay datos detrás', async ({ page }) => {
+    await entrarAlPanel(page);
+    // La solicitud sembrada es 'nueva'; este filtro no la alcanza.
+    await page.goto('/admin?estado=descartada');
+
+    await expect(page.getByText('Nada con ese filtro')).toBeVisible();
+    await expect(page.getByText(/Hay \d+ solicitudes? en total/)).toBeVisible();
+
+    await page.getByRole('link', { name: 'Ver todas las solicitudes' }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
+  });
+
+  test('el enlace de WhatsApp lleva un mensaje armado con el formulario', async ({ page }) => {
+    await entrarAlPanel(page);
+
+    const enlace = page.locator('tr', { hasText: nombre }).getByRole('link', { name: 'WhatsApp' });
+    const href = await enlace.getAttribute('href');
+    const url = new URL(href!);
+
+    // Teléfono normalizado a E.164, que es lo que wa.me espera.
+    expect(url.pathname).toBe('/523311223344');
+
+    // Se decodifica el parámetro en vez de buscar subcadenas en el href: así la
+    // prueba lee el mensaje que recibe la persona, no su versión escapada.
+    const texto = url.searchParams.get('text') ?? '';
+    expect(texto).toContain('Hola E2E');
+    expect(texto).toContain('Dra. Berenice Parada');
+    expect(texto).toContain('alineadores invisibles');
+    // Nunca el texto libre: puede llevar datos de salud y esto es una URL.
+    expect(texto).not.toContain(mensaje);
+  });
+
+  test('sin tratamiento decidido, el mensaje no nombra ninguno', async ({ page }) => {
+    const indeciso = nombreDePrueba('indeciso');
+    await sembrarSolicitud({
+      nombre: indeciso,
+      telefono: '3312345678',
+      // La quinta opción del formulario: "todavía no sé". Sin el caso especial,
+      // el mensaje diría "su solicitud de valoración para aún no estoy seguro/a".
+      tratamiento: TRATAMIENTO_SIN_DECIDIR,
+    });
+
+    await entrarAlPanel(page);
+    const href = await page
+      .locator('tr', { hasText: indeciso })
+      .getByRole('link', { name: 'WhatsApp' })
+      .getAttribute('href');
+    const texto = new URL(href!).searchParams.get('text') ?? '';
+
+    expect(texto).toContain('su solicitud de valoración.');
+    expect(texto.toLowerCase()).not.toContain('seguro');
+    expect(texto).not.toContain('para ');
+
+    await limpiar(indeciso);
+  });
+
+  test('al volver de WhatsApp ofrece marcar como contactada', async ({ page, context }) => {
+    // El enlace sale del sitio: se corta la petición para que la pestaña nueva
+    // no cargue nada, y se cierra en cuanto aparece.
+    await context.route('https://wa.me/**', (ruta) => ruta.abort());
+    await entrarAlPanel(page);
+
+    const emergente = context.waitForEvent('page');
+    await page.locator('tr', { hasText: nombre }).getByRole('link', { name: 'WhatsApp' }).click();
+    await (await emergente).close();
+
+    // El script exige 1,5 s desde el clic: un refoco instantáneo significa que
+    // WhatsApp no llegó a abrirse.
+    await page.waitForTimeout(1700);
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    const aviso = page.locator('[data-aviso-contacto]');
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText(nombre);
+
+    await aviso.getByRole('button', { name: 'Marcar como contactada' }).click();
+    await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Contactada');
+
+    const { data } = await clienteAdmin()
+      .from('solicitudes')
+      .select('estado')
+      .eq('nombre', nombre)
+      .single();
+    expect(data?.estado).toBe('contactada');
   });
 
   test('una solicitud que no existe da 404, no un error del servidor', async ({ page }) => {
