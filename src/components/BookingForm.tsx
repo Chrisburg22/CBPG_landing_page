@@ -9,7 +9,7 @@ interface BookingFormProps {
 type Status = 'idle' | 'sending' | 'ok' | 'error';
 
 const EMPTY: BookingPayload = {
-  nombre: '', telefono: '', email: '', tratamiento: '', mensaje: '', consentimiento: false,
+  nombre: '', telefono: '', tratamiento: '', mensaje: '', consentimiento: false,
 };
 
 export default function BookingForm({ whatsappNumber }: BookingFormProps) {
@@ -32,7 +32,7 @@ export default function BookingForm({ whatsappNumber }: BookingFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ nombre: true, telefono: true, email: true, tratamiento: true, consentimiento: true });
+    setTouched({ nombre: true, telefono: true, tratamiento: true, consentimiento: true });
     const errs = validate(form);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -117,19 +117,6 @@ export default function BookingForm({ whatsappNumber }: BookingFormProps) {
           </div>
         </div>
 
-        <div className={fieldClass('email')}>
-          <label htmlFor="email">Correo electrónico</label>
-          <input
-            type="email" id="email" name="email" placeholder="tucorreo@ejemplo.com" required
-            autoComplete="email" maxLength={LIMITES.email}
-            aria-invalid={showErr('email')}
-            aria-describedby={describedBy('email')}
-            value={form.email}
-            onChange={(e) => set('email', e.target.value)}
-            onBlur={() => blur('email')}
-          />
-          <span className="err" id="email-error" role="alert">{showErr('email') ? errors.email : ''}</span>
-        </div>
 
         <div className={fieldClass('tratamiento')}>
           <label htmlFor="tratamiento">¿Qué te interesa?</label>

@@ -1,20 +1,20 @@
 /**
  * Validación compartida entre el formulario (navegador) y el endpoint (servidor).
  * Nunca confiar solo en la validación del cliente: se puede saltar con un POST directo.
+ *
+ * No se pide correo: el consultorio contacta por teléfono o WhatsApp, así que
+ * recogerlo sería guardar un dato personal que nadie va a usar.
  */
 
 export interface BookingPayload {
   nombre: string;
   telefono: string;
-  email: string;
   tratamiento: string;
   mensaje: string;
   consentimiento: boolean;
 }
 
 export type BookingErrors = Partial<Record<keyof BookingPayload, string>>;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const TRATAMIENTOS = [
   'Alineadores invisibles',
@@ -27,7 +27,6 @@ export const TRATAMIENTOS = [
 export const LIMITES = {
   nombre: 120,
   telefono: 30,
-  email: 160,
   mensaje: 2000,
 } as const;
 
@@ -40,9 +39,6 @@ export function validate(form: BookingPayload): BookingErrors {
   if (!form.telefono.trim() || form.telefono.replace(/\D/g, '').length < 7)
     errors.telefono = 'Ingresa un teléfono válido.';
   else if (form.telefono.length > LIMITES.telefono) errors.telefono = 'El teléfono es demasiado largo.';
-
-  if (!EMAIL_RE.test(form.email)) errors.email = 'Ingresa un correo válido.';
-  else if (form.email.length > LIMITES.email) errors.email = 'El correo es demasiado largo.';
 
   if (!form.tratamiento) errors.tratamiento = 'Selecciona una opción.';
   else if (!TRATAMIENTOS.includes(form.tratamiento as (typeof TRATAMIENTOS)[number]))
@@ -63,7 +59,6 @@ export function coerce(raw: unknown): BookingPayload {
   return {
     nombre: str(o.nombre),
     telefono: str(o.telefono),
-    email: str(o.email).toLowerCase(),
     tratamiento: str(o.tratamiento),
     mensaje: str(o.mensaje),
     consentimiento: o.consentimiento === true || o.consentimiento === 'true',

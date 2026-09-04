@@ -2,7 +2,6 @@ export interface DoctorConfig {
   name: string;
   initials: string;
   specialty: string;
-  email: string;
   phone: string;
   whatsapp: string;
   schedule: string;

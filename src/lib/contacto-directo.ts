@@ -1,6 +1,8 @@
 /**
  * Enlaces para contestarle a la paciente desde el panel con un toque, sin
  * copiar y pegar números a mano.
+ *
+ * Solo teléfono: el formulario ya no pide correo.
  */
 
 /**
@@ -22,11 +24,6 @@ export function aWhatsapp(telefono: string, nombre: string): string {
   return `https://wa.me/${numero}?text=${encodeURIComponent(saludo.trim())}`;
 }
 
-export function aCorreo(email: string, nombre: string): string {
-  const asunto = 'Su solicitud de cita — Dra. Berenice Parada';
-  const cuerpo = `Hola ${nombre.split(' ')[0] ?? ''}:\n\n`;
-  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
-}
 
 export function aTelefono(telefono: string): string {
   return `tel:+${aE164(telefono)}`;

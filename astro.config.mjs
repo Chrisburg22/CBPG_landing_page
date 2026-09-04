@@ -3,10 +3,10 @@ import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
 
-// TODO(dominio): confirmar el dominio definitivo antes de publicar.
 // De este valor dependen el sitemap, la URL canónica y las etiquetas Open Graph.
+// Con www: el apex hace 308 a www, así que esa es la forma canónica real.
 export default defineConfig({
-  site: 'https://bereniceparada.com',
+  site: 'https://www.drabereniceparadaortodoncista.com.mx',
   // Todo se prerenderiza salvo lo que marque `prerender = false`: hoy /api/contact,
   // /api/cron/* y TODO /admin/*. Si una página de /admin se prerenderiza por olvido,
   // el middleware no corre en tiempo de petición y el panel queda público.
@@ -40,10 +40,6 @@ export default defineConfig({
       ADMIN_EMAILS: envField.string({ context: 'server', access: 'secret', min: 5 }),
       /** Vercel lo inyecta como `Authorization: Bearer …` en los cron. */
       CRON_SECRET: envField.string({ context: 'server', access: 'secret', min: 32 }),
-
-      RESEND_API_KEY: envField.string({ context: 'server', access: 'secret' }),
-      CONTACT_FROM_EMAIL: envField.string({ context: 'server', access: 'secret' }),
-      CONTACT_TO_EMAIL: envField.string({ context: 'server', access: 'public', optional: true }),
     },
   },
 });

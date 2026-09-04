@@ -1,6 +1,6 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { aCorreo, aTelefono, aWhatsapp } from '@/lib/contacto-directo';
+import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
 import { cambiarEstado, esEstado, fecha, guardarNotas, obtener } from '@/lib/solicitudes';
 import { ESTADOS, ETIQUETA_ESTADO, type Solicitud } from '@/lib/supabase/tipos';
 
@@ -74,8 +74,6 @@ const error = params.get('error');
             <dl class="datos">
               <dt>Teléfono</dt>
               <dd>{solicitud.telefono}</dd>
-              <dt>Correo</dt>
-              <dd>{solicitud.email}</dd>
               <dt>Tratamiento</dt>
               <dd>{solicitud.tratamiento}</dd>
               <dt>Consentimiento</dt>
@@ -97,17 +95,7 @@ const error = params.get('error');
               <a class="btn btn--ghost btn--chico" href={aTelefono(solicitud.telefono)}>
                 Llamar
               </a>
-              <a class="btn btn--ghost btn--chico" href={aCorreo(solicitud.email, solicitud.nombre)}>
-                Correo
-              </a>
             </div>
-
-            {!solicitud.notificada && (
-              <p class="aviso aviso--info" style="margin: 20px 0 0">
-                Esta solicitud se guardó pero el aviso por correo no salió. Los datos
-                están completos aquí.
-              </p>
-            )}
           </div>
 
           <div class="panel">

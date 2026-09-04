@@ -8,4 +8,4 @@ Disallow: /api/
 # el candado real son el middleware y las policies de la base de datos.
 Disallow: /admin/
 
-Sitemap: https://bereniceparada.com/sitemap-index.xml
+Sitemap: https://www.drabereniceparadaortodoncista.com.mx/sitemap-index.xml

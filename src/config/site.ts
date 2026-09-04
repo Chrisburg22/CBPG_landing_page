@@ -4,7 +4,6 @@ export const doctor: DoctorConfig = {
   name: 'Berenice Parada',
   initials: 'BP',
   specialty: 'Ortodoncia',
-  email: 'cbparada03@gmail.com',
   phone: '+52 33 1951 4983',
   whatsapp: '523319514983', // E.164 sin '+': wa.me no acepta el signo
   schedule: 'Lun a Vie · 9:00 – 19:00 · Sáb · 9:00 – 13:00',

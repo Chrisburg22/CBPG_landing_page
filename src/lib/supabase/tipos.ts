@@ -2,7 +2,8 @@
  * Tipos de la base de datos. Espejo de la migración `crear_solicitudes_y_admins`.
  *
  * Cotejado contra `generate_typescript_types` del proyecto wffqduqgnknopjrwyjpe
- * el 2026-09-03. Se mantiene escrito a mano por dos divergencias deliberadas,
+ * el 2026-09-03, y revisado el 2026-09-04 al retirar `email`, `notificada` y
+ * `notificacion_id`. Se mantiene escrito a mano por dos divergencias deliberadas,
  * las dos en la dirección de ser más estricto que lo generado:
  *
  *   1. `estado` se declara como unión y no como `string`. En la base es un CHECK
@@ -40,7 +41,6 @@ type SolicitudFila = {
   actualizado_en: string;
   nombre: string;
   telefono: string;
-  email: string;
   tratamiento: string;
   /** PUEDE CONTENER DATOS DE SALUD. Nunca a logs, nunca a una URL, nunca `set:html`. */
   mensaje: string;
@@ -48,8 +48,6 @@ type SolicitudFila = {
   aviso_version: string;
   estado: EstadoSolicitud;
   notas: string;
-  notificada: boolean;
-  notificacion_id: string | null;
 };
 
 export type Database = {
@@ -63,10 +61,10 @@ export type Database = {
       solicitudes: {
         Row: SolicitudFila;
         Insert: Partial<Omit<SolicitudFila, 'id'>> &
-          Pick<SolicitudFila, 'nombre' | 'telefono' | 'email' | 'tratamiento'>;
+          Pick<SolicitudFila, 'nombre' | 'telefono' | 'tratamiento'>;
         // La doctora solo puede tocar estas dos columnas: el GRANT por columna
         // lo impone en la base de datos, esto lo refleja en el tipo.
-        Update: Partial<Pick<SolicitudFila, 'estado' | 'notas' | 'notificada' | 'notificacion_id'>>;
+        Update: Partial<Pick<SolicitudFila, 'estado' | 'notas'>>;
         Relationships: [];
       };
       admins: {

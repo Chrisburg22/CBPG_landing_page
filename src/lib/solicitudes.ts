@@ -30,12 +30,11 @@ function limpiarBusqueda(bruto: string): string {
 }
 
 /** Las columnas del listado. `mensaje` no se trae: no se muestra y puede llevar datos de salud. */
-const COLUMNAS_LISTADO =
-  'id, creado_en, nombre, telefono, email, tratamiento, estado, notificada';
+const COLUMNAS_LISTADO = 'id, creado_en, nombre, telefono, tratamiento, estado';
 
 export type SolicitudListado = Pick<
   Solicitud,
-  'id' | 'creado_en' | 'nombre' | 'telefono' | 'email' | 'tratamiento' | 'estado' | 'notificada'
+  'id' | 'creado_en' | 'nombre' | 'telefono' | 'tratamiento' | 'estado'
 >;
 
 export async function listar(
@@ -52,9 +51,7 @@ export async function listar(
 
   const busqueda = filtro.busqueda ? limpiarBusqueda(filtro.busqueda) : '';
   if (busqueda) {
-    consulta = consulta.or(
-      `nombre.ilike.%${busqueda}%,email.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%`
-    );
+    consulta = consulta.or(`nombre.ilike.%${busqueda}%,telefono.ilike.%${busqueda}%`);
   }
 
   const { data, error } = await consulta;

@@ -27,7 +27,8 @@ const negocioSchema = {
   description,
   url: Astro.site?.toString(),
   telephone: `+${doctor.whatsapp}`, // E.164: Google no interpreta el formato local
-  email: doctor.email,
+  // Sin email: el consultorio atiende por teléfono y WhatsApp, y publicar una
+  // dirección que nadie lee solo genera expectativa incumplida y spam.
   // Sin dirección pública: se declara solo el área de servicio.
   // TODO(SEO): si algún día se publica el consultorio, añadir aquí un
   // PostalAddress — Google lo necesita para posicionar en búsquedas locales.

@@ -58,7 +58,7 @@ const hayFiltro = !!estado || !!busqueda;
       </div>
       <div class="field">
         <label for="q">Buscar</label>
-        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre, correo o teléfono" />
+        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
       </div>
       <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
     </form>
@@ -95,15 +95,10 @@ const hayFiltro = !!estado || !!busqueda;
                     <a class="tabla__nombre" href={`/admin/solicitudes/${s.id}`}>
                       {s.nombre}
                     </a>
-                    <span class="tabla__sec">
-                      {s.telefono} · {s.email}
-                    </span>
+                    <span class="tabla__sec">{s.telefono}</span>
                   </td>
                   <td>{s.tratamiento}</td>
-                  <td class="tabla__fecha">
-                    {fecha(s.creado_en)}
-                    {!s.notificada && <span class="tabla__sec">sin avisar por correo</span>}
-                  </td>
+                  <td class="tabla__fecha">{fecha(s.creado_en)}</td>
                   <td>
                     <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
                   </td>

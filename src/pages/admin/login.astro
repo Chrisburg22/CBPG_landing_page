@@ -4,40 +4,21 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 export const prerender = false;
 
 const params = Astro.url.searchParams;
-const enviado = params.get('enviado') === '1';
 const salio = params.get('salir') === '1';
 const error = params.get('error');
 ---
 
 <AdminLayout title="Acceso" conBarra={false}>
   <div class="acceso">
-    <form class="panel" method="post" action="/admin/auth/enviar-enlace">
+    <form class="panel" method="post" action="/admin/auth/entrar">
       <h1>Panel de solicitudes</h1>
-      <p class="acceso__desc">
-        Escribe tu correo y te mandamos un enlace para entrar. No hay contraseña que recordar.
-      </p>
+      <p class="acceso__desc">Entra con tu correo y contraseña.</p>
 
-      {
-        enviado && (
-          <p class="aviso aviso--ok">
-            Si ese correo tiene acceso, el enlace ya va en camino. Revisa tu bandeja —
-            y la carpeta de no deseados. El enlace caduca en una hora.
-          </p>
-        )
-      }
       {salio && <p class="aviso aviso--info">Cerraste sesión.</p>}
       {
-        error === 'envio' && (
+        error === 'credenciales' && (
           <p class="aviso aviso--error">
-            No pudimos mandar el enlace. Inténtalo de nuevo en unos minutos.
-          </p>
-        )
-      }
-      {
-        error === 'enlace' && (
-          <p class="aviso aviso--error">
-            Ese enlace ya no sirve: caducó, ya se usó, o lo abriste en un navegador
-            distinto al que lo pidió. Pide uno nuevo.
+            Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.
           </p>
         )
       }
@@ -49,13 +30,24 @@ const error = params.get('error');
           name="email"
           type="email"
           required
-          autocomplete="email"
+          autocomplete="username"
           inputmode="email"
           placeholder="tucorreo@ejemplo.com"
         />
       </div>
 
-      <button class="btn btn--primary btn--block" type="submit">Enviarme el enlace</button>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      <button class="btn btn--primary btn--block" type="submit">Entrar</button>
     </form>
   </div>
 </AdminLayout>
