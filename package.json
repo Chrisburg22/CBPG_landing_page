@@ -12,7 +12,8 @@
     "test:e2e:ui": "playwright test --ui",
     "verify:build": "node scripts/verificar-build.mjs",
     "test": "astro check && astro build && node scripts/verificar-build.mjs && playwright test",
-    "demo": "playwright test --config playwright.demo.config.ts"
+    "demo": "playwright test --config playwright.demo.config.ts",
+    "admin": "node scripts/admin.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.5",

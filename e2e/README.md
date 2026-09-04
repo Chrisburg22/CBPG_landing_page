@@ -6,6 +6,19 @@ pnpm test:e2e    # solo las e2e
 pnpm test:e2e:ui # con la interfaz de Playwright
 ```
 
+## Cuentas del panel
+
+```bash
+pnpm admin listar
+pnpm admin alta <correo> [contraseña]
+pnpm admin baja <correo>
+```
+
+El acceso son dos barreras independientes: la variable `ADMIN_EMAILS` y la tabla
+`admins`. El script se ocupa de Supabase y te dice qué poner en `ADMIN_EMAILS`,
+que hay que cambiar a mano en el `.env` **y** en Vercel. `listar` marca con `○`
+las cuentas que están solo en una de las dos: esas no funcionan.
+
 ## Antes de correrlas
 
 Hace falta el `.env` de la aplicación más `E2E_ADMIN_PASSWORD`, la contraseña de
