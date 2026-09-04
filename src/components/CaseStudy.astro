@@ -1,6 +1,7 @@
 ---
-import { Image } from 'astro:assets';
+import { Image, getImage } from 'astro:assets';
 import { caseStudy } from '@/config/site';
+import BeforeAfter from './BeforeAfter';
 
 /**
  * Secuencia de tratamiento de un caso real.
@@ -19,6 +20,53 @@ const foto = (nombre: string) => fotos[`/src/assets/caso-01/${nombre}.jpg`]?.def
 
 const pendiente = (v: string) => v.trim() === '';
 const hayFicha = !pendiente(caseStudy.treatment) || !pendiente(caseStudy.duration);
+
+/**
+ * El comparador es una isla de React y no puede usar <Image>, así que las fotos
+ * se optimizan aquí y se le pasan ya resueltas. Si falta alguna de las dos
+ * devuelve null y el bloque cae en la versión estática: media comparación no
+ * dice nada.
+ */
+/**
+ * Genera las variantes de una foto y devuelve `src` + `srcset`, para que el
+ * móvil no descargue la versión de escritorio. Ninguna variante pasa del ancho
+ * original: varias fotos son pequeñas y ampliarlas solo las emborronaría.
+ */
+const variantes = async (img: ImageMetadata, anchos: number[]) => {
+  const utiles = [...new Set(anchos.map((w) => Math.min(w, img.width)))].sort((x, y) => x - y);
+  const generadas = await Promise.all(utiles.map((width) => getImage({ src: img, width })));
+  return {
+    src: generadas[generadas.length - 1]!.src,
+    srcset: generadas.map((g, i) => `${g.src} ${utiles[i]}w`).join(', '),
+  };
+};
+
+const par = async (vista: string, altAntes: string, altDespues: string, anchos: number[]) => {
+  const a = foto(`antes-${vista}`);
+  const d = foto(`despues-${vista}`);
+  if (!a || !d) return null;
+  return {
+    antes: await variantes(a, anchos),
+    despues: await variantes(d, anchos),
+    altAntes,
+    altDespues,
+  };
+};
+
+const comparador = await par(
+  'frontal',
+  caseStudy.stages.find((e) => e.id === 'antes')?.alt ?? '',
+  caseStudy.stages.find((e) => e.id === 'despues')?.alt ?? '',
+  [560, 900, 1400]
+);
+
+const arcadas = await Promise.all(
+  caseStudy.arches.map(async (arcada) => ({
+    arcada,
+    comparador: await par(arcada.id, arcada.altAntes, arcada.altDespues, [360, 560, 900]),
+  }))
+);
+const hayComparadorDeArcada = arcadas.some((a) => a.comparador !== null);
 ---
 
 <section class="section" id="resultados">
@@ -70,6 +118,25 @@ const hayFicha = !pendiente(caseStudy.treatment) || !pendiente(caseStudy.duratio
       })}
     </ol>
 
+    {comparador && (
+      <div class="case__compare reveal">
+        <h3 class="case__arches-title">Antes y después, en la misma foto</h3>
+        <p class="case__arches-intro">
+          Mueve la línea de un lado a otro para ver cómo se acomodan las piezas: a la
+          izquierda queda el punto de partida y a la derecha el resultado.
+        </p>
+
+        <BeforeAfter
+          client:visible
+          antes={comparador.antes}
+          despues={comparador.despues}
+          altAntes={comparador.altAntes}
+          altDespues={comparador.altDespues}
+          sizes="(max-width: 720px) 92vw, min(1080px, 84vw)"
+        />
+      </div>
+    )}
+
     <div class="case__arches reveal">
       <h3 class="case__arches-title">Vistas desde arriba</h3>
       <p class="case__arches-intro">
@@ -78,9 +145,23 @@ const hayFicha = !pendiente(caseStudy.treatment) || !pendiente(caseStudy.duratio
       </p>
 
       <div class="arches__grid">
-        {caseStudy.arches.map((arcada) => (
+        {arcadas.map(({ arcada, comparador: comp }) => (
           <div class="arch">
             <h4>{arcada.label}</h4>
+
+            {comp ? (
+              <BeforeAfter
+                client:visible
+                antes={comp.antes}
+                despues={comp.despues}
+                altAntes={comp.altAntes}
+                altDespues={comp.altDespues}
+                ratio="654 / 522"
+                sizes="(max-width: 940px) 92vw, min(520px, 40vw)"
+                pista={false}
+                nombre={arcada.label.toLowerCase()}
+              />
+            ) : (
             <div class="arch__pair">
               {(['antes', 'despues'] as const).map((momento) => {
                 const img = foto(`${momento}-${arcada.id}`);
@@ -99,9 +180,14 @@ const hayFicha = !pendiente(caseStudy.treatment) || !pendiente(caseStudy.duratio
                 );
               })}
             </div>
+            )}
           </div>
         ))}
       </div>
+
+      {hayComparadorDeArcada && (
+        <p class="ba__hint">Arrastra la línea de cada arcada o usa las flechas del teclado.</p>
+      )}
     </div>
 
     <p class="case__consent">
