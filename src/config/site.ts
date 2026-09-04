@@ -177,3 +177,13 @@ export const processSteps: ProcessStep[] = [
     description: 'Retiramos el sistema y colocamos retenedores para cuidar el resultado.',
   },
 ];
+
+/**
+ * Versión del aviso de privacidad que se graba con cada solicitud, para poder
+ * acreditar qué texto aceptó la paciente (LFPDPPP art. 8).
+ *
+ * Sale de `legal.ultimaActualizacion`. Mientras ese campo siga vacío —está
+ * pendiente de la doctora— las filas quedan marcadas como 'sin-publicar', que
+ * es la verdad: todavía no hay una versión publicada que citar.
+ */
+export const AVISO_VERSION: string = legal.ultimaActualizacion || 'sin-publicar';

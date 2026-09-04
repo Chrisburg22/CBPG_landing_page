@@ -1,14 +1,19 @@
 /// <reference path="../.astro/types.d.ts" />
 
-interface ImportMetaEnv {
-  /** API key de Resend. Se configura en el hosting, nunca se sube al repo. */
-  readonly RESEND_API_KEY: string;
-  /** Remitente verificado en Resend, p. ej. "Citas <citas@bereniceparada.com>". */
-  readonly CONTACT_FROM_EMAIL: string;
-  /** Bandeja que recibe las solicitudes. Si falta, usa doctor.email de site.ts. */
-  readonly CONTACT_TO_EMAIL: string;
-}
+// Las variables de entorno ya no se declaran aquí: las genera `astro:env` a
+// partir del esquema de astro.config.mjs. Importarlas desde 'astro:env/server'.
 
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
+declare namespace App {
+  interface Locals {
+    /**
+     * Cliente Supabase de la petición en curso, creado por el middleware.
+     * Sujeto a RLS: solo ve lo que la usuaria autenticada puede ver.
+     * Solo existe bajo /admin/*.
+     */
+    supabase: import('@supabase/supabase-js').SupabaseClient<
+      import('@/lib/supabase/tipos').Database
+    >;
+    /** Usuaria autenticada Y dentro de la allowlist. `null` si cualquiera de las dos falla. */
+    user: import('@supabase/supabase-js').User | null;
+  }
 }

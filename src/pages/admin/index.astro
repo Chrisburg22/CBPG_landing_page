@@ -1,0 +1,125 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { contarNuevas, esEstado, fecha, listar, type SolicitudListado } from '@/lib/solicitudes';
+import { ESTADOS, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const params = Astro.url.searchParams;
+const estadoParam = params.get('estado');
+const estado = esEstado(estadoParam) ? estadoParam : undefined;
+const busqueda = params.get('q')?.trim() ?? '';
+
+let solicitudes: SolicitudListado[] = [];
+let nuevas = 0;
+let fallo: string | null = null;
+
+try {
+  [solicitudes, nuevas] = await Promise.all([
+    listar(Astro.locals.supabase, { estado, busqueda }),
+    contarNuevas(Astro.locals.supabase),
+  ]);
+} catch (e) {
+  // Un fallo de base de datos no debe dar un 500 en blanco: la doctora tiene que
+  // ver qué pasó y poder reintentar.
+  console.error('[admin] listado falló:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar las solicitudes. Vuelve a intentarlo en un momento.';
+}
+
+const hayFiltro = !!estado || !!busqueda;
+---
+
+<AdminLayout title="Solicitudes">
+  <div class="admin-head">
+    <div>
+      <h1>Solicitudes</h1>
+      <p>
+        {
+          fallo
+            ? 'Sin datos'
+            : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender`
+        }
+      </p>
+    </div>
+
+    <form class="filtros" method="get" action="/admin">
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="">Todos</option>
+          {
+            ESTADOS.map((valor) => (
+              <option value={valor} selected={valor === estado}>
+                {ETIQUETA_ESTADO[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="q">Buscar</label>
+        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre, correo o teléfono" />
+      </div>
+      <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+
+  <div class="panel">
+    {
+      solicitudes.length === 0 && !fallo ? (
+        <div class="vacio">
+          <strong>{hayFiltro ? 'Nada con ese filtro' : 'Todavía no hay solicitudes'}</strong>
+          <p>
+            {hayFiltro
+              ? 'Prueba a quitar el filtro o a buscar otra cosa.'
+              : 'Cuando alguien llene el formulario de la página, aparecerá aquí.'}
+          </p>
+        </div>
+      ) : (
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Tratamiento</th>
+                <th>Recibida</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {solicitudes.map((s) => (
+                <tr>
+                  <td>
+                    <a class="tabla__nombre" href={`/admin/solicitudes/${s.id}`}>
+                      {s.nombre}
+                    </a>
+                    <span class="tabla__sec">
+                      {s.telefono} · {s.email}
+                    </span>
+                  </td>
+                  <td>{s.tratamiento}</td>
+                  <td class="tabla__fecha">
+                    {fecha(s.creado_en)}
+                    {!s.notificada && <span class="tabla__sec">sin avisar por correo</span>}
+                  </td>
+                  <td>
+                    <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+
+  {/* Con JS, cambiar el estado filtra al vuelo. Sin JS, queda el botón Filtrar. */}
+  <script is:inline>
+    document.getElementById('estado')?.addEventListener('change', (e) => {
+      e.target.form.submit();
+    });
+  </script>
+</AdminLayout>

@@ -4,4 +4,8 @@ Allow: /
 # La API de contacto no tiene nada que indexar
 Disallow: /api/
 
+# El panel es privado. Esto es una petición cortés, no un control de acceso:
+# el candado real son el middleware y las policies de la base de datos.
+Disallow: /admin/
+
 Sitemap: https://bereniceparada.com/sitemap-index.xml

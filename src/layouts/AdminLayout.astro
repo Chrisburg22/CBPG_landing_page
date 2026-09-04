@@ -1,0 +1,48 @@
+---
+import '@/styles/global.css';
+import '@/styles/admin.css';
+
+interface Props {
+  title: string;
+  /** La pantalla de acceso no lleva barra de navegación ni botón de salir. */
+  conBarra?: boolean;
+}
+
+const { title, conBarra = true } = Astro.props;
+const email = Astro.locals.user?.email ?? '';
+---
+
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} · Panel</title>
+    {/* El middleware manda además X-Robots-Tag, que cubre redirects y endpoints. */}
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {/* Sin fuentes de Google, sin JSON-LD, sin canonical: nada de esto tiene
+        sentido en una pantalla privada, y quitarlo la hace cargar antes. */}
+  </head>
+  <body class="admin">
+    {
+      conBarra && (
+        <header class="admin-barra">
+          <div class="wrap admin-barra__interior">
+            <a class="admin-barra__marca" href="/admin">Solicitudes</a>
+            <div class="admin-barra__derecha">
+              {email && <span class="admin-barra__email">{email}</span>}
+              <form method="post" action="/admin/auth/salir">
+                <button class="btn btn--ghost btn--chico" type="submit">Salir</button>
+              </form>
+            </div>
+          </div>
+        </header>
+      )
+    }
+
+    <main class="wrap admin-main" id="contenido">
+      <slot />
+    </main>
+  </body>
+</html>

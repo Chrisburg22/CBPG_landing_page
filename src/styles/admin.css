@@ -1,0 +1,158 @@
+/* ============================================================
+   Panel de administración (/admin)
+   Solo lo que falta sobre global.css. Los tokens, .wrap, .btn,
+   .field y .eyebrow vienen de allí.
+   ============================================================ */
+
+/* Sin las fuentes de Google —el panel no las carga— la pila cae a system-ui,
+   que es lo que queremos: una pantalla de trabajo, no una pieza editorial. */
+body.admin {
+  font-size: 16px;
+  background: var(--bg-deep);
+}
+
+.admin-main { padding-block: 36px 80px; }
+
+/* ---------- Barra ---------- */
+.admin-barra {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.admin-barra__interior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 62px;
+}
+.admin-barra__marca {
+  font-family: var(--font-display);
+  font-size: 21px;
+}
+.admin-barra__derecha { display: flex; align-items: center; gap: 14px; }
+.admin-barra__email { font-size: 13.5px; color: var(--ink-soft); }
+
+@media (max-width: 560px) {
+  .admin-barra__email { display: none; }
+}
+
+/* ---------- Botón pequeño ---------- */
+.btn--chico { padding: 9px 16px; font-size: 14px; }
+
+/* ---------- Panel / tarjeta ---------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: clamp(20px, 3vw, 30px);
+  box-shadow: var(--shadow-sm);
+}
+.panel + .panel { margin-top: 20px; }
+.panel__titulo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+/* ---------- Cabecera de página ---------- */
+.admin-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.admin-head h1 { font-size: clamp(28px, 4vw, 38px); }
+.admin-head p { color: var(--ink-soft); font-size: 14.5px; margin-top: 6px; }
+
+/* ---------- Filtros ---------- */
+.filtros { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.filtros .field { margin-bottom: 0; }
+.filtros select, .filtros input { min-width: 190px; }
+
+/* ---------- Tabla ---------- */
+/* Contenedor con scroll propio: la tabla nunca empuja el ancho de la página. */
+.tabla-scroll { overflow-x: auto; margin-inline: calc(clamp(20px, 3vw, 30px) * -1); }
+.tabla-scroll > .tabla { min-width: 720px; }
+
+.tabla { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.tabla th, .tabla td {
+  text-align: left;
+  padding: 13px clamp(20px, 3vw, 30px);
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.tabla th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.tabla tbody tr:last-child td { border-bottom: 0; }
+.tabla tbody tr:hover { background: var(--bg); }
+.tabla a.tabla__nombre { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.tabla__sec { color: var(--ink-soft); font-size: 13px; display: block; margin-top: 3px; }
+.tabla__fecha { white-space: nowrap; color: var(--ink-soft); }
+
+/* ---------- Chips de estado ---------- */
+.chip {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 100px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chip--nueva      { background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
+.chip--contactada { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
+.chip--agendada   { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
+.chip--descartada { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
+
+/* ---------- Avisos ---------- */
+.aviso {
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  font-size: 14.5px;
+  margin-bottom: 20px;
+  border: 1px solid;
+}
+.aviso--ok    { background: #e4efdf; border-color: #c9debf; color: #3f6b32; }
+.aviso--error { background: #f8e7e2; border-color: #eccfc6; color: #b4452e; }
+.aviso--info  { background: var(--accent-tint); border-color: #c3d8d3; color: var(--accent-deep); }
+
+.vacio { text-align: center; padding: 56px 20px; color: var(--ink-soft); }
+.vacio strong { display: block; font-family: var(--font-display); font-size: 21px; color: var(--ink); margin-bottom: 8px; }
+
+/* ---------- Detalle ---------- */
+.detalle-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .detalle-grid { grid-template-columns: 1fr; } }
+
+.datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 20px; font-size: 15px; }
+.datos dt { color: var(--ink-soft); font-size: 13.5px; }
+.datos dd { margin: 0; overflow-wrap: anywhere; }
+
+/* El mensaje de la paciente conserva sus saltos de línea. Nunca con set:html. */
+.mensaje {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-size: 15px;
+}
+.mensaje--vacio { color: var(--ink-soft); font-style: italic; }
+
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- Acceso ---------- */
+.acceso { max-width: 420px; margin: clamp(48px, 12vh, 120px) auto; }
+.acceso h1 { font-size: 30px; margin-bottom: 8px; }
+.acceso p.acceso__desc { color: var(--ink-soft); font-size: 15px; margin-bottom: 24px; }
