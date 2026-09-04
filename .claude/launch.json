@@ -4,8 +4,9 @@
     {
       "name": "landing",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "autoPort": true
+      "runtimeArgs": ["dev", "--port", "4331"],
+      "port": 4331,
+      "autoPort": false
     }
   ]
 }
