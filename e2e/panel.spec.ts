@@ -1,0 +1,148 @@
+import { expect, test } from '@playwright/test';
+import {
+  clienteAdmin,
+  entrarAlPanel,
+  enviarFormulario,
+  limpiar,
+  nombreDePrueba,
+  sembrarSolicitud,
+} from './apoyo';
+
+/**
+ * El recorrido completo: una paciente llena el formulario de la landing y la
+ * doctora ve esa misma solicitud en el panel. Es la prueba que justifica todo
+ * el proyecto, así que va sobre datos reales de punta a punta — nada simulado.
+ */
+test.describe('Panel de solicitudes', () => {
+  const telefono = '33 1122 3344';
+  const mensaje = 'Me interesa saber el costo aproximado y si dan facilidades de pago.';
+  let nombre: string;
+
+  test.beforeEach(async () => {
+    nombre = nombreDePrueba('panel');
+    await sembrarSolicitud({ nombre, telefono, tratamiento: 'Alineadores invisibles', mensaje });
+  });
+
+  test.afterEach(async () => {
+    await limpiar(nombre);
+  });
+
+  /**
+   * La prueba que justifica el proyecto entero: una paciente llena el
+   * formulario de la landing y la doctora ve esa misma solicitud en el panel.
+   * Es la única que pasa por el formulario de verdad — ver `sembrarSolicitud`.
+   */
+  test('recorrido completo: del formulario de la landing al dashboard', async ({ page }) => {
+    const delFormulario = nombreDePrueba('recorrido');
+    const suMensaje = 'Vi su Instagram y quiero una valoración.';
+
+    await enviarFormulario(page, {
+      nombre: delFormulario,
+      telefono: '33 9988 7766',
+      tratamiento: 'Brackets metálicos',
+      mensaje: suMensaje,
+    });
+    await expect(page.getByText('¡Solicitud enviada!')).toBeVisible();
+
+    await entrarAlPanel(page);
+
+    const fila = page.locator('tr', { hasText: delFormulario });
+    await expect(fila).toBeVisible();
+    await expect(fila).toContainText('33 9988 7766');
+    await expect(fila).toContainText('Brackets metálicos');
+    await expect(fila.locator('.chip')).toHaveText('Nueva');
+
+    // Y el mensaje que escribió llega íntegro al detalle.
+    await page.getByRole('link', { name: delFormulario }).click();
+    await expect(page.getByText(suMensaje)).toBeVisible();
+
+    await limpiar(delFormulario);
+  });
+
+  test('el dashboard lista las solicitudes con su estado', async ({ page }) => {
+    await entrarAlPanel(page);
+
+    const fila = page.locator('tr', { hasText: nombre });
+    await expect(fila).toBeVisible();
+    await expect(fila).toContainText(telefono);
+    await expect(fila).toContainText('Alineadores invisibles');
+    await expect(fila.locator('.chip')).toHaveText('Nueva');
+
+    // El contador de la cabecera cuenta exactamente las filas que hay en la tabla.
+    const filas = await page.locator('tbody tr').count();
+    await expect(page.locator('.admin-head p').first()).toContainText(`${filas} solicitud`);
+  });
+
+  test('el detalle muestra el mensaje completo y los accesos de contacto', async ({ page }) => {
+    await entrarAlPanel(page);
+    await page.getByRole('link', { name: nombre }).click();
+
+    await expect(page.getByRole('heading', { name: nombre })).toBeVisible();
+    await expect(page.getByText(mensaje)).toBeVisible();
+    await expect(page.getByText(telefono)).toBeVisible();
+
+    // El teléfono se normaliza a E.164 para que wa.me lo acepte.
+    const whatsapp = page.getByRole('link', { name: 'WhatsApp' });
+    await expect(whatsapp).toHaveAttribute('href', /wa\.me\/523311223344/);
+    await expect(page.getByRole('link', { name: 'Llamar' })).toHaveAttribute(
+      'href',
+      'tel:+523311223344'
+    );
+
+    // Ya no hay correo que mostrar ni botón que lo use.
+    await expect(page.getByRole('link', { name: 'Correo' })).toHaveCount(0);
+  });
+
+  test('cambiar el estado y guardar notas persiste de verdad', async ({ page }) => {
+    await entrarAlPanel(page);
+    await page.getByRole('link', { name: nombre }).click();
+
+    await page.getByLabel('Situación de esta paciente').selectOption('agendada');
+    await page.getByRole('button', { name: 'Guardar estado' }).click();
+    await expect(page.getByText('Guardado.')).toBeVisible();
+
+    const notas = 'Llamé el martes. Prefiere sábados por la mañana.';
+    await page.getByLabel('Solo para ti. La paciente no las ve.').fill(notas);
+    await page.getByRole('button', { name: 'Guardar notas' }).click();
+    await expect(page.getByText('Guardado.')).toBeVisible();
+
+    // Recargar no basta como prueba: hay que mirar la base.
+    const { data } = await clienteAdmin()
+      .from('solicitudes')
+      .select('estado, notas, creado_en, actualizado_en')
+      .eq('nombre', nombre)
+      .single();
+
+    expect(data?.estado).toBe('agendada');
+    expect(data?.notas).toBe(notas);
+    // El trigger de actualizado_en hizo su trabajo.
+    expect(new Date(data!.actualizado_en).getTime()).toBeGreaterThan(
+      new Date(data!.creado_en).getTime()
+    );
+
+    // Y el listado refleja el cambio.
+    await page.goto('/admin');
+    await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Agendada');
+  });
+
+  test('el filtro por estado y la búsqueda encuentran la solicitud', async ({ page }) => {
+    await entrarAlPanel(page);
+
+    await page.getByLabel('Buscar').fill(nombre.split(' ').slice(-1)[0]!);
+    await page.getByRole('button', { name: 'Filtrar' }).click();
+    await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
+
+    // Filtrada por un estado que no tiene, desaparece.
+    await page.goto('/admin?estado=descartada');
+    await expect(page.locator('tr', { hasText: nombre })).toHaveCount(0);
+
+    await page.goto('/admin?estado=nueva');
+    await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
+  });
+
+  test('una solicitud que no existe da 404, no un error del servidor', async ({ page }) => {
+    await entrarAlPanel(page);
+    const respuesta = await page.goto('/admin/solicitudes/00000000-0000-4000-8000-000000000000');
+    expect(respuesta?.status()).toBe(404);
+  });
+});
