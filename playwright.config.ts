@@ -15,6 +15,8 @@ export const BASE_URL = `http://localhost:${PUERTO}`;
 
 export default defineConfig({
   testDir: './e2e',
+  // La demo se graba aparte, con playwright.demo.config.ts.
+  testIgnore: 'demo.spec.ts',
   globalSetup: './e2e/global-setup.ts',
   // En serie a propósito: todas las pruebas comparten una base de datos real y
   // el listado del panel cuenta filas. En paralelo se pisarían.
