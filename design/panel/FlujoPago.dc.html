@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+  :root{
+    --bg:#f5f1ea; --bg-deep:#efe9df; --surface:#fffdf9; --ink:#26221d; --ink-soft:#6f675c;
+    --line:#e3dccf; --accent:#2f7d75; --accent-deep:#245f59; --accent-tint:#e2ebe7; --on-accent:#fbfaf6;
+    --radius:18px; --radius-sm:12px; --radius-lg:28px;
+    --shadow-sm:0 1px 2px rgba(38,34,29,.04), 0 6px 18px rgba(38,34,29,.05);
+    --shadow-md:0 4px 12px rgba(38,34,29,.06), 0 24px 48px rgba(38,34,29,.09);
+    --ease:cubic-bezier(.2,.8,.2,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg-deep);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  a{color:var(--accent-deep);text-decoration:none} a:hover{color:var(--accent)}
+  h1,h2,h3,h4{margin:0;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+
+  /* shell */
+  .shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100%}
+  .side{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:26px;padding:20px 16px}
+  .side__marca{display:flex;align-items:center;gap:10px;padding:6px 10px 0}
+  .side__marca b{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .side__marca span{display:block;font-size:12px;color:var(--ink-soft);letter-spacing:.04em}
+  .nav{display:flex;flex-direction:column;gap:4px}
+  .nav__t{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);padding:0 12px 8px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:var(--radius-sm);
+    font-size:15px;font-weight:500;color:var(--ink);transition:background .25s var(--ease)}
+  .nav a:hover{background:var(--bg)}
+  .nav a.is-on{background:var(--accent-tint);color:var(--accent-deep);font-weight:600}
+  .nav a .n{margin-left:auto;font-size:12.5px;font-weight:600;background:var(--accent);color:var(--on-accent);
+    border-radius:100px;padding:1px 8px}
+  .nav svg{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .side__pie{margin-top:auto;border-top:1px solid var(--line);padding:14px 12px 4px;font-size:13px;color:var(--ink-soft)}
+  .side__pie b{display:block;color:var(--ink);font-size:14px;font-weight:600}
+
+  .col{display:flex;flex-direction:column;min-width:0}
+  .top{background:var(--surface);border-bottom:1px solid var(--line);min-height:62px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 30px}
+  .top__mig{font-size:13.5px;color:var(--ink-soft)}
+  .top__der{display:flex;align-items:center;gap:12px}
+  .main{padding:30px;display:flex;flex-direction:column;gap:20px}
+
+  .head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .head h1{font-size:32px}
+  .head p{margin:6px 0 0;color:var(--ink-soft);font-size:14.5px}
+
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px 26px;box-shadow:var(--shadow-sm)}
+  .panel--flush{padding:24px 0 0}
+  .panel__t{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+  .panel--flush .panel__t{padding:0 26px}
+  .panel__t h2{font-size:19px}
+  .panel__t a{font-size:14px;font-weight:600}
+
+  /* botones */
+  .btn{display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;border-radius:100px;
+    font:inherit;font-size:16px;font-weight:600;padding:15px 26px;cursor:pointer;
+    background:var(--accent);color:var(--on-accent);box-shadow:0 8px 22px -10px var(--accent);
+    transition:box-shadow .25s var(--ease),background .25s var(--ease)}
+  .btn:hover{box-shadow:0 14px 30px -12px var(--accent)}
+  .btn--ghost{background:transparent;color:var(--ink);border-color:var(--line);box-shadow:none}
+  .btn--ghost:hover{background:var(--bg);box-shadow:none}
+  .btn--chico{padding:9px 16px;font-size:14px}
+  .btn--wa{background:#1fa155;box-shadow:0 12px 30px -8px rgba(31,161,85,.6)}
+
+  /* campos */
+  .campo{display:flex;flex-direction:column}
+  .campo label{font-size:14px;font-weight:600;margin-bottom:7px}
+  .campo input,.campo select,.campo textarea{font:inherit;font-size:16px;padding:13px 15px;
+    border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg);color:var(--ink)}
+  .campo textarea{resize:vertical;min-height:88px}
+  .campo .ayuda{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+  .filtros{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+  .filtros .campo{min-width:190px}
+  .buscar{position:relative;flex:1;min-width:230px}
+  .buscar input{width:100%;padding-left:42px}
+  .buscar svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+    stroke:var(--ink-soft);fill:none;stroke-width:1.7}
+
+  /* tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:6px}
+  .tile__k{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .tile__v{font-size:36px;font-weight:600;letter-spacing:-.02em;line-height:1.05}
+  .tile__d{font-size:13px;color:var(--ink-soft)}
+  .tile__d.alta{color:#b4452e;font-weight:600}
+  .tile__d.ok{color:#3f6b32;font-weight:600}
+
+  /* tabla */
+  .tabla{width:100%;border-collapse:collapse;font-size:14.5px}
+  .tabla th,.tabla td{text-align:left;padding:13px 26px;border-bottom:1px solid var(--line);vertical-align:top}
+  .tabla th{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+  .tabla tbody tr:hover{background:var(--bg)}
+  .tabla tbody tr:last-child td{border-bottom:0}
+  .tabla .num{text-align:right;font-variant-numeric:tabular-nums}
+  .tabla .acc{text-align:right;white-space:nowrap}
+  .sec{color:var(--ink-soft);font-size:13px;display:block;margin-top:3px}
+  .nom{font-weight:600}
+
+  /* chips */
+  .chip{display:inline-block;font-size:12.5px;font-weight:600;padding:4px 11px;border-radius:100px;border:1px solid transparent;white-space:nowrap}
+  .chip--nueva{background:var(--accent-tint);color:var(--accent-deep);border-color:#c3d8d3}
+  .chip--contactada{background:#fdf1dc;color:#8a5c15;border-color:#ecd9b0}
+  .chip--agendada{background:#e4efdf;color:#3f6b32;border-color:#c9debf}
+  .chip--descartada{background:#efece7;color:var(--ink-soft);border-color:var(--line)}
+  .chip--vencida{background:#f8e7e2;color:#b4452e;border-color:#eccfc6}
+
+  .aviso{border-radius:var(--radius-sm);padding:12px 16px;font-size:14.5px;border:1px solid}
+  .aviso--info{background:var(--accent-tint);border-color:#c3d8d3;color:var(--accent-deep)}
+  .aviso--error{background:#f8e7e2;border-color:#eccfc6;color:#b4452e}
+
+  .barra{height:6px;border-radius:100px;background:var(--bg-deep);overflow:hidden}
+  .barra i{display:block;height:100%;background:var(--accent);border-radius:100px}
+
+  .datos{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:10px 20px;font-size:15px;margin:0}
+  .datos dt{font-size:13.5px;color:var(--ink-soft)}
+  .datos dd{margin:0}
+
+  .lienzo{padding:34px 38px;display:flex;flex-direction:column;gap:26px;min-height:100%}
+  .lienzo h1{font-size:28px}
+  .lienzo .sub{margin:6px 0 0;color:var(--ink-soft);font-size:14.5px;max-width:74ch}
+  .fila{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .caja{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+        padding:14px 16px;min-width:172px;max-width:216px;box-shadow:var(--shadow-sm)}
+  .caja b{display:block;font-size:15px;font-weight:600;margin-bottom:4px}
+  .caja span{font-size:13px;color:var(--ink-soft);line-height:1.45;display:block}
+  .caja--ini{background:var(--ink);border-color:var(--ink)}
+  .caja--ini b{color:var(--on-accent)} .caja--ini span{color:#a59c8d}
+  .caja--acc{background:var(--accent-tint);border-color:#c3d8d3}
+  .caja--acc b{color:var(--accent-deep)}
+  .caja--fin{background:#e4efdf;border-color:#c9debf} .caja--fin b{color:#3f6b32}
+  .caja--mal{background:#f8e7e2;border-color:#eccfc6} .caja--mal b{color:#b4452e}
+  .caja--esp{background:var(--bg);border-style:dashed}
+  .flecha{align-self:center;display:flex;align-items:center;gap:6px;padding:0 12px;color:var(--ink-soft);font-size:12.5px;white-space:nowrap}
+  .flecha::after{content:"";width:26px;height:1px;background:var(--line);position:relative}
+  .flecha svg{width:14px;height:14px;stroke:var(--ink-soft);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .rama{display:flex;flex-direction:column;gap:12px}
+  .nota{font-size:13px;color:var(--ink-soft);background:var(--bg);border-left:0;border:1px solid var(--line);
+        border-radius:var(--radius-sm);padding:12px 15px;max-width:80ch}
+  .nota code,code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+        background:var(--accent-tint);color:var(--accent-deep);border-radius:5px;padding:1px 5px}
+  .tabla-def{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+        box-shadow:var(--shadow-sm);min-width:246px;overflow:hidden}
+  .tabla-def h3{font-size:14.5px;padding:11px 15px;border-bottom:1px solid var(--line);background:var(--bg);
+        letter-spacing:.04em;font-family:ui-monospace,Menlo,monospace;font-weight:600}
+  .tabla-def h3 em{font-style:normal;float:right;font-family:system-ui,sans-serif;font-size:11.5px;
+        letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .tabla-def ul{margin:0;padding:10px 15px 13px;list-style:none;font-size:13px;
+        font-family:ui-monospace,Menlo,monospace;line-height:1.85;color:var(--ink-soft)}
+  .tabla-def li b{color:var(--ink);font-weight:600}
+  .tabla-def--nueva{border-color:#c3d8d3} .tabla-def--nueva h3{background:var(--accent-tint);color:var(--accent-deep)}
+</style>
+</helmet>
+
+<div class="lienzo">
+  <div>
+    <h1>Flujo: plan de pagos y cobros</h1>
+    <p class="sub">Dos caminos que conviven: las mensualidades del plan (se generan solas al dar de alta el tratamiento) y los cargos sueltos (retenedor, radiografía, urgencia).</p>
+  </div>
+
+  <div class="fila">
+    <div class="caja caja--ini"><b>Alta del plan</b><span>costo total · enganche · nº de mensualidades · día de corte</span></div>
+    <div class="flecha"><span>automático</span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="caja caja--acc"><b>Se generan las cuotas</b><span>una fila por mensualidad con su fecha de vencimiento</span></div>
+    <div class="flecha"><span></span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="caja"><b>cuota · pendiente</b><span>aparece en «Pagos por cobrar»</span></div>
+  </div>
+
+  <div class="fila" style="padding-left:42px">
+    <div class="caja caja--esp"><b>¿Pagó a tiempo?</b></div>
+    <div class="flecha"><span>sí</span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="rama">
+      <div class="fila">
+        <div class="caja caja--acc"><b>Registrar pago</b><span>monto, método, fecha, nota</span></div>
+        <div class="flecha"><span></span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+        <div class="caja caja--fin"><b>cuota · pagada</b><span>baja el saldo del paciente y sube el cobrado del mes</span></div>
+      </div>
+      <div class="fila">
+        <div class="caja caja--mal"><b>cuota · vencida</b><span>pasó la fecha sin pago</span></div>
+        <div class="flecha"><span>recordatorio</span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+        <div class="caja caja--acc"><b>WhatsApp de cobro</b><span>vuelve al registro de pago cuando abone</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fila">
+    <div class="caja caja--ini"><b>Cargo suelto</b><span>retenedor, radiografía, urgencia · fuera del plan</span></div>
+    <div class="flecha"><span>se cobra en el momento</span><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+    <div class="caja caja--fin"><b>pago · pagado</b><span>entra al total del mes, no toca el saldo del plan</span></div>
+  </div>
+
+  <div class="nota"><b>Abonos parciales:</b> si el paciente paga menos que la cuota, el pago se guarda con su monto real y la cuota queda <code>parcial</code> con el resto pendiente. El saldo del paciente siempre es <code>total del plan − suma de pagos</code>, nunca un número escrito a mano.</div>
+</div>
+
+</x-dc>
+</body>
+</html>

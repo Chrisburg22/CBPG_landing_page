@@ -1,0 +1,27 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+export const prerender = false;
+---
+
+<AdminLayout title="Pagos" seccion="pagos">
+  <div class="admin-head">
+    <div>
+      <h1>Pagos</h1>
+      <p>Mensualidades del plan y cargos sueltos</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="vacio">
+      <strong>Todavía no hay pagos</strong>
+      <p>
+        Los pagos se registran sobre el plan de tratamiento de cada paciente. En cuanto haya
+        pacientes con plan, aquí se verá lo cobrado del mes y lo que queda por cobrar.
+      </p>
+      <a class="btn btn--primary btn--chico" href="/admin/pacientes" style="margin-top: 20px">
+        Ver pacientes
+      </a>
+    </div>
+  </div>
+</AdminLayout>

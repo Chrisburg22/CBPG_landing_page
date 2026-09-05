@@ -12,6 +12,11 @@ export default defineConfig({
   // el middleware no corre en tiempo de petición y el panel queda público.
   output: 'static',
   adapter: vercel(),
+  // La barra de herramientas de desarrollo se dibuja fija abajo y tapa la barra
+  // de pestañas del panel en anchos de teléfono: en las pruebas, un toque sobre
+  // «Prospectos» acaba en la barra de Astro. Los configs de Playwright ponen
+  // ASTRO_DEV_TOOLBAR=0; en el desarrollo normal sigue encendida.
+  devToolbar: { enabled: process.env.ASTRO_DEV_TOOLBAR !== '0' },
   integrations: [
     react(),
     // El panel no se anuncia. Además lleva noindex en el layout y X-Robots-Tag

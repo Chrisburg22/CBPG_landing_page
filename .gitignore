@@ -20,3 +20,7 @@
 /blob-report
 /.playwright
 /demo-video
+
+# Canvas de diseño: las fuentes .dc.html sí se versionan; el archivo sembrado
+# no, son ~2,7 MB del editor empaquetado que se regeneran con seed-canvas.mjs.
+/design/panel/panel-ortodoncia.html

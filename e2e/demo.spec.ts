@@ -28,29 +28,39 @@ test('recorrido del panel', async ({ page }) => {
   await expect(page.getByText('¡Solicitud enviada!')).toBeVisible();
   await pausa(2200);
 
-  // ---- 2. La doctora entra al panel ----
-  await entrarAlPanel(page);
+  // ---- 2. La doctora entra al panel y ve el resumen del día ----
+  await entrarAlPanel(page, '/admin');
+  await expect(page.getByRole('heading', { level: 1, name: /doctora/ })).toBeVisible();
+  await pausa(2800);
+
+  // ---- 3. Pasa a Prospectos desde la navegación ----
+  // Se navega con el menú y no con page.goto a propósito: así el vídeo enseña
+  // la navegación en la forma que le toque a cada tamaño de pantalla.
+  await page
+    .getByRole('navigation', { name: 'Secciones del panel' })
+    .getByRole('link', { name: /^Prospectos/ })
+    .click();
   await pausa(2000);
 
-  // ---- 3. Su solicitud ya está en la lista ----
+  // ---- 4. Su solicitud ya está en la lista ----
   const fila = page.locator('tr', { hasText: nombre });
   await expect(fila).toBeVisible();
   await expect(fila.locator('.chip')).toHaveText('Nueva');
   await pausa(2000);
 
-  // ---- 4. Abre el detalle: mensaje completo y accesos de contacto ----
+  // ---- 5. Abre el detalle: mensaje completo y accesos de contacto ----
   await page.getByRole('link', { name: nombre }).click();
   await expect(page.getByText(mensaje)).toBeVisible();
   await pausa(2600);
 
-  // ---- 5. La marca como contactada ----
+  // ---- 6. La marca como contactada ----
   await page.getByLabel('Situación de este prospecto').selectOption('contactada');
   await pausa(700);
   await page.getByRole('button', { name: 'Guardar estado' }).click();
   await expect(page.getByText('Guardado.')).toBeVisible();
   await pausa(1600);
 
-  // ---- 6. Y deja una nota interna ----
+  // ---- 7. Y deja una nota interna ----
   await page
     .getByLabel('Solo para ti. El prospecto no las ve.')
     .fill('Le escribí por WhatsApp. Prefiere sábados por la mañana.');
@@ -59,8 +69,8 @@ test('recorrido del panel', async ({ page }) => {
   await expect(page.getByText('Guardado.')).toBeVisible();
   await pausa(1800);
 
-  // ---- 7. De vuelta a la lista, el estado ya cambió ----
-  await page.getByRole('link', { name: 'Todas las solicitudes' }).click();
+  // ---- 8. De vuelta a la lista, el estado ya cambió ----
+  await page.getByRole('link', { name: 'Todos los prospectos' }).click();
   await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Contactada');
   await pausa(2400);
 

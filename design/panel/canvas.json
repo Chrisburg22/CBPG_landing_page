@@ -1,0 +1,267 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Escritorio"
+    },
+    {
+      "id": "page-2",
+      "name": "Tablet"
+    },
+    {
+      "id": "page-3",
+      "name": "Móvil"
+    },
+    {
+      "id": "page-4",
+      "name": "Flujos y datos"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "page": "page-1",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "Inicio"
+    },
+    {
+      "file": "Pacientes.dc.html",
+      "page": "page-1",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "Pacientes"
+    },
+    {
+      "file": "Prospectos.dc.html",
+      "page": "page-1",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "Prospectos"
+    },
+    {
+      "file": "Pagos.dc.html",
+      "page": "page-1",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1040,
+      "title": "Pagos"
+    },
+    {
+      "file": "PacienteDetalle.dc.html",
+      "page": "page-1",
+      "x": 6240,
+      "y": 0,
+      "w": 1440,
+      "h": 1100,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "RegistrarPago.dc.html",
+      "page": "page-1",
+      "x": 7800,
+      "y": 0,
+      "w": 720,
+      "h": 880,
+      "title": "Registrar pago"
+    },
+    {
+      "file": "Sidebar.dc.html",
+      "page": "page-1",
+      "x": 8640,
+      "y": 0,
+      "w": 520,
+      "h": 640,
+      "title": "Navegación"
+    },
+    {
+      "file": "TabletHome.dc.html",
+      "page": "page-2",
+      "x": 0,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Inicio"
+    },
+    {
+      "file": "TabletPacientes.dc.html",
+      "page": "page-2",
+      "x": 868,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Pacientes"
+    },
+    {
+      "file": "TabletProspectos.dc.html",
+      "page": "page-2",
+      "x": 1736,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Prospectos"
+    },
+    {
+      "file": "TabletPagos.dc.html",
+      "page": "page-2",
+      "x": 2604,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Pagos"
+    },
+    {
+      "file": "TabletPaciente.dc.html",
+      "page": "page-2",
+      "x": 3472,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "TabletRegistrarPago.dc.html",
+      "page": "page-2",
+      "x": 4340,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Registrar pago"
+    },
+    {
+      "file": "MobileHome.dc.html",
+      "page": "page-3",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Inicio"
+    },
+    {
+      "file": "MobilePacientes.dc.html",
+      "page": "page-3",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Pacientes"
+    },
+    {
+      "file": "MobileProspectos.dc.html",
+      "page": "page-3",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Prospectos"
+    },
+    {
+      "file": "MobileVacio.dc.html",
+      "page": "page-3",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Prospectos · vacío"
+    },
+    {
+      "file": "MobilePagos.dc.html",
+      "page": "page-3",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Pagos"
+    },
+    {
+      "file": "MobilePaciente.dc.html",
+      "page": "page-3",
+      "x": 2350,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "MobileRegistrarPago.dc.html",
+      "page": "page-3",
+      "x": 2820,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Registrar pago"
+    },
+    {
+      "file": "FlujoProspecto.dc.html",
+      "page": "page-4",
+      "x": 0,
+      "y": 0,
+      "w": 1560,
+      "h": 760,
+      "title": "Flujo · prospecto a paciente"
+    },
+    {
+      "file": "FlujoPago.dc.html",
+      "page": "page-4",
+      "x": 0,
+      "y": 880,
+      "w": 1560,
+      "h": 780,
+      "title": "Flujo · pagos"
+    },
+    {
+      "file": "ModeloDatos.dc.html",
+      "page": "page-4",
+      "x": 0,
+      "y": 1780,
+      "w": 1560,
+      "h": 900,
+      "title": "Modelo de datos"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "nota-escritorio",
+      "page": "page-1",
+      "x": 0,
+      "y": -160,
+      "w": 660,
+      "text": "1440x900. Sidebar fijo de 248px con las 4 secciones.\nHoy /admin solo tiene barra superior y una vista: el sidebar es la propuesta.\nPaleta, radios, chips y sombras salen tal cual de global.css y admin.css."
+    },
+    {
+      "id": "nota-tablet",
+      "page": "page-2",
+      "x": 0,
+      "y": -180,
+      "w": 700,
+      "text": "768x1024 (iPad vertical). El sidebar se reduce a un rail de 84px con icono y etiqueta:\nun sidebar de 248px dejaria solo 520px de contenido y las tablas no caben.\nLas tablas pierden las columnas prescindibles (Inicio, Metodo) y las meten como\nsegunda linea bajo la celda principal. Controles a 44px porque tambien es tactil."
+    },
+    {
+      "id": "nota-movil",
+      "page": "page-3",
+      "x": 0,
+      "y": -190,
+      "w": 700,
+      "text": "390x844. Barra de pestanas abajo, con indicador de seccion activa y contador de prospectos nuevos.\nLas tablas se vuelven listas de tarjetas: a 390px una tabla de 7 columnas no se lee.\nTodo lo tocable mide 44px o mas; los campos del formulario, 50px. Sin barra de estado ni teclado falsos.\nLas barras fijas reservan safe-area con env(safe-area-inset-*).\nIncluye estado vacio y un esqueleto de carga al final de la lista de pacientes."
+    },
+    {
+      "id": "nota-datos",
+      "page": "page-4",
+      "x": 1680,
+      "y": 1780,
+      "w": 380,
+      "text": "Las 4 tablas nuevas son propuesta.\nNada de esto existe todavia en Supabase:\nhay que aprobarlo antes de migrar."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-2"
+  }
+}

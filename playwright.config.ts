@@ -37,6 +37,18 @@ export default defineConfig({
     timezoneId: 'America/Mexico_City',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    /**
+     * Vídeo de todas las corridas, no solo de las que fallan: un `✓` en la
+     * terminal no dice si el panel se ve bien, y esto es lo que permite
+     * revisarlo a ojo sin abrir el navegador a mano.
+     *
+     * Cuesta: cada spec deja un .webm en test-results/ y la corrida se alarga.
+     * `PW_VIDEO=0 pnpm test:e2e` lo apaga cuando estorbe.
+     */
+    video:
+      process.env.PW_VIDEO === '0'
+        ? 'off'
+        : { mode: 'on', size: { width: 1280, height: 800 } },
   },
 
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
@@ -54,6 +66,8 @@ export default defineConfig({
       // deja el servidor en primer plano, que es lo que Playwright necesita
       // para poder pararlo al terminar.
       ASTRO_DEV_BACKGROUND: '0',
+      // Tapa la barra de pestañas del panel en anchos de teléfono.
+      ASTRO_DEV_TOOLBAR: '0',
     },
     url: BASE_URL,
     // Nunca reutilizar: el limitador por IP de /api/contact vive en memoria del

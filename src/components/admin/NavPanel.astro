@@ -1,0 +1,87 @@
+---
+/**
+ * Navegación del panel. Un solo marcado para las tres formas:
+ *
+ *   ≥940px  barra lateral de 248px con icono y etiqueta
+ *   720–939 raíl de 84px: un sidebar de 248px dejaría 520px de contenido y las
+ *           tablas no caben
+ *   <720px  barra de pestañas abajo, con las áreas táctiles a 44px
+ *
+ * Las tres las decide `admin.css`; aquí no hay ninguna rama por tamaño.
+ */
+import type { SeccionPanel } from '@/lib/panel';
+
+interface Props {
+  seccion: SeccionPanel;
+  /** Prospectos sin atender. `null` si no se pudo contar: entonces no se dibuja. */
+  nuevas: number | null;
+}
+
+// El cast es explícito porque aquí `astro check` no enlaza `Props` con
+// `Astro.props` por su cuenta y marca la interfaz como no usada.
+const { seccion, nuevas } = Astro.props as Props;
+
+const enlaces = [
+  { id: 'inicio', texto: 'Inicio', href: '/admin' },
+  { id: 'pacientes', texto: 'Pacientes', href: '/admin/pacientes' },
+  { id: 'prospectos', texto: 'Prospectos', href: '/admin/prospectos' },
+  { id: 'pagos', texto: 'Pagos', href: '/admin/pagos' },
+] as const;
+---
+
+<nav class="nav-panel" aria-label="Secciones del panel">
+  <ul class="nav-panel__lista">
+    {
+      enlaces.map(({ id, texto, href }) => (
+        <li>
+          <a
+            class="nav-panel__enlace"
+            href={href}
+            aria-current={id === seccion ? 'page' : undefined}
+            aria-label={
+              id === 'prospectos' && nuevas !== null && nuevas > 0
+                ? `Prospectos, ${nuevas} sin atender`
+                : undefined
+            }
+          >
+            <span class="nav-panel__icono">
+              {id === 'inicio' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+                </svg>
+              )}
+              {id === 'pacientes' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8" r="3.4" />
+                  <path d="M5 20c.6-3.7 3.4-5.6 7-5.6s6.4 1.9 7 5.6" />
+                </svg>
+              )}
+              {id === 'prospectos' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                  <path d="M8 11h8M8 15h5" />
+                </svg>
+              )}
+              {id === 'pagos' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="6" width="18" height="12" rx="2" />
+                  <path d="M3 10h18M6.5 14.5h3" />
+                </svg>
+              )}
+              {/* El contador va dentro del icono para poder colgarlo de su esquina
+                  en el raíl y en la barra de pestañas, donde no hay sitio al lado.
+                  `aria-hidden` porque el número ya va en el aria-label del enlace:
+                  repetirlo lo haría sonar dos veces. */}
+              {id === 'prospectos' && nuevas !== null && nuevas > 0 && (
+                <span class="nav-panel__cuenta" aria-hidden="true">
+                  {nuevas}
+                </span>
+              )}
+            </span>
+            <span class="nav-panel__texto">{texto}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

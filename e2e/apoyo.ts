@@ -76,14 +76,21 @@ export async function limpiar(nombre?: string): Promise<void> {
   if (error) throw new Error(`No se pudo limpiar: ${error.message}`);
 }
 
-/** Entra al panel por la interfaz, como lo haría la doctora. */
-export async function entrarAlPanel(page: Page): Promise<void> {
+/**
+ * Entra al panel por la interfaz, como lo haría la doctora.
+ *
+ * Tras el acceso siempre se aterriza en /admin (el inicio); `destino` lleva de
+ * ahí a la sección que la prueba quiera. Por defecto Prospectos, que es donde
+ * está la tabla que mira la mayoría de las pruebas.
+ */
+export async function entrarAlPanel(page: Page, destino = '/admin/prospectos'): Promise<void> {
   const { email, password } = credencialesAdmin();
   await page.goto('/admin/login');
   await page.getByLabel('Correo').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await page.waitForURL('**/admin');
+  if (destino !== '/admin') await page.goto(destino);
 }
 
 /**

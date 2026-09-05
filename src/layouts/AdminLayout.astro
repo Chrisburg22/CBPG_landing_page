@@ -1,15 +1,31 @@
 ---
 import '@/styles/global.css';
 import '@/styles/admin.css';
+import NavPanel from '@/components/admin/NavPanel.astro';
+import { contarNuevasParaNavegacion, type SeccionPanel } from '@/lib/panel';
 
 interface Props {
   title: string;
-  /** La pantalla de acceso no lleva barra de navegación ni botón de salir. */
+  /** Sección activa en la navegación. Ausente en la pantalla de acceso. */
+  seccion?: SeccionPanel | undefined;
+  /** La pantalla de acceso no lleva navegación ni botón de salir. */
   conBarra?: boolean;
+  /**
+   * Prospectos sin atender, si la página ya lo calculó. Pasarlo evita repetir
+   * la consulta; omitirlo hace que el layout la haga por su cuenta.
+   */
+  nuevas?: number | null | undefined;
 }
 
-const { title, conBarra = true } = Astro.props;
+const { title, seccion, conBarra = true, nuevas } = Astro.props;
 const email = Astro.locals.user?.email ?? '';
+
+const sinAtender =
+  nuevas !== undefined
+    ? nuevas
+    : conBarra
+      ? await contarNuevasParaNavegacion(Astro.locals.supabase)
+      : null;
 ---
 
 <!doctype html>
@@ -26,23 +42,35 @@ const email = Astro.locals.user?.email ?? '';
   </head>
   <body class="admin">
     {
-      conBarra && (
-        <header class="admin-barra">
-          <div class="wrap admin-barra__interior">
-            <a class="admin-barra__marca" href="/admin">Solicitudes</a>
-            <div class="admin-barra__derecha">
-              {email && <span class="admin-barra__email">{email}</span>}
-              <form method="post" action="/admin/auth/salir">
-                <button class="btn btn--ghost btn--chico" type="submit">Salir</button>
-              </form>
-            </div>
+      conBarra ? (
+        <div class="marco">
+          <NavPanel seccion={seccion ?? 'inicio'} nuevas={sinAtender} />
+
+          <div class="marco__col">
+            <header class="admin-barra">
+              <div class="admin-barra__interior">
+                <span class="admin-barra__marca">{title}</span>
+                <div class="admin-barra__derecha">
+                  {email && <span class="admin-barra__email">{email}</span>}
+                  <form method="post" action="/admin/auth/salir">
+                    <button class="btn btn--ghost btn--chico" type="submit">
+                      Salir
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </header>
+
+            <main class="admin-main" id="contenido">
+              <slot />
+            </main>
           </div>
-        </header>
+        </div>
+      ) : (
+        <main class="wrap admin-main" id="contenido">
+          <slot />
+        </main>
       )
     }
-
-    <main class="wrap admin-main" id="contenido">
-      <slot />
-    </main>
   </body>
 </html>

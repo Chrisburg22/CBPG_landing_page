@@ -10,6 +10,7 @@
     "astro": "astro",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:sin-video": "PW_VIDEO=0 playwright test",
     "verify:build": "node scripts/verificar-build.mjs",
     "test": "astro check && astro build && node scripts/verificar-build.mjs && playwright test",
     "demo": "playwright test --config playwright.demo.config.ts",

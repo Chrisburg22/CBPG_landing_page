@@ -1,0 +1,188 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import AvisoContactado from '@/components/admin/AvisoContactado.astro';
+import { aWhatsapp } from '@/lib/contacto-directo';
+import {
+  cambiarEstado,
+  contarNuevas,
+  contarTodas,
+  esEstado,
+  fecha,
+  listar,
+  type SolicitudListado,
+} from '@/lib/solicitudes';
+import { ESTADOS, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+// Cambio rápido de estado desde el aviso que aparece al volver de WhatsApp.
+// POST-Redirect-GET: sin el redirect, recargar repetiría la escritura. Astro
+// valida la cabecera Origin por su cuenta (security.checkOrigin), y por eso
+// esto es un formulario nativo y no un fetch con JSON.
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const id = String(datos.get('id') ?? '');
+  const nuevoEstado = String(datos.get('estado') ?? '');
+  try {
+    if (id && esEstado(nuevoEstado)) {
+      await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
+    }
+  } catch (e) {
+    console.error('[admin] no se pudo cambiar el estado:', e instanceof Error ? e.message : 'desconocido');
+  }
+  // Conservar la querystring: perder el filtro al marcar sería desconcertante.
+  return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
+}
+
+const params = Astro.url.searchParams;
+const estadoParam = params.get('estado');
+const estado = esEstado(estadoParam) ? estadoParam : undefined;
+const busqueda = params.get('q')?.trim() ?? '';
+
+let solicitudes: SolicitudListado[] = [];
+let nuevas = 0;
+// Total sin filtrar: es lo que permite distinguir "no hay nada" de
+// "hay cosas pero tu filtro las esconde", que son problemas muy distintos.
+let total = 0;
+let fallo: string | null = null;
+
+try {
+  [solicitudes, nuevas, total] = await Promise.all([
+    listar(Astro.locals.supabase, { estado, busqueda }),
+    contarNuevas(Astro.locals.supabase),
+    contarTodas(Astro.locals.supabase),
+  ]);
+} catch (e) {
+  // Un fallo de base de datos no debe dar un 500 en blanco: la doctora tiene que
+  // ver qué pasó y poder reintentar.
+  console.error('[admin] listado falló:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar las solicitudes. Vuelve a intentarlo en un momento.';
+}
+
+const hayFiltro = !!estado || !!busqueda;
+---
+
+<AdminLayout title="Prospectos" seccion="prospectos" nuevas={fallo ? null : nuevas}>
+  <div class="admin-head">
+    <div>
+      <h1>Prospectos</h1>
+      <p>
+        {
+          fallo
+            ? 'Sin datos'
+            : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender`
+        }
+        {
+          /* Con un filtro puesto es fácil quedarse mirando una tabla vacía sin
+             caer en que hay datos detrás. La salida tiene que estar a un clic. */
+          hayFiltro && (
+            <>
+              {' · '}
+              <a class="admin-head__quitar" href="/admin/prospectos">
+                Quitar filtro
+              </a>
+            </>
+          )
+        }
+      </p>
+    </div>
+
+    <form class="filtros" method="get" action="/admin/prospectos">
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="">Todos</option>
+          {
+            ESTADOS.map((valor) => (
+              <option value={valor} selected={valor === estado}>
+                {ETIQUETA_ESTADO[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="q">Buscar</label>
+        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
+      </div>
+      <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+
+  <AvisoContactado modo="listado" />
+
+  <div class="panel panel--lista">
+    {
+      solicitudes.length === 0 && !fallo ? (
+        <div class="vacio">
+          <strong>{hayFiltro ? 'Nada con ese filtro' : 'Todavía no hay solicitudes'}</strong>
+          <p>
+            {hayFiltro
+              ? total > 0
+                ? `Hay ${total} ${total === 1 ? 'solicitud' : 'solicitudes'} en total, pero ninguna coincide con lo que estás filtrando.`
+                : 'Prueba a quitar el filtro o a buscar otra cosa.'
+              : 'Cuando alguien llene el formulario de la página, aparecerá aquí.'}
+          </p>
+          {hayFiltro && (
+            <a class="btn btn--primary btn--chico" href="/admin/prospectos" style="margin-top: 20px">
+              Ver todas las solicitudes
+            </a>
+          )}
+        </div>
+      ) : (
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Prospecto</th>
+                <th>Tratamiento</th>
+                <th>Recibida</th>
+                <th>Estado</th>
+                <th><span class="visualmente-oculto">Contactar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {solicitudes.map((s) => (
+                <tr>
+                  <td>
+                    <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
+                      {s.nombre}
+                    </a>
+                    <span class="tabla__sec">{s.telefono}</span>
+                  </td>
+                  <td class="tabla__meta">{s.tratamiento}</td>
+                  <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
+                  <td class="tabla__estado">
+                    <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
+                  </td>
+                  <td class="tabla__accion">
+                    <a
+                      class="btn btn--primary btn--chico"
+                      href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-wa-id={s.id}
+                      data-wa-nombre={s.nombre}
+                      data-wa-estado={s.estado}
+                    >
+                      WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+
+  {/* Con JS, cambiar el estado filtra al vuelo. Sin JS, queda el botón Filtrar. */}
+  <script is:inline>
+    document.getElementById('estado')?.addEventListener('change', (e) => {
+      e.target.form.submit();
+    });
+  </script>
+</AdminLayout>

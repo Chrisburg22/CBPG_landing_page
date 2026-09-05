@@ -13,13 +13,127 @@ body.admin {
 
 .admin-main { padding-block: 36px 80px; }
 
-/* ---------- Barra ---------- */
+/* ============================================================
+   Marco: navegación + columna de contenido.
+
+   Una sola estructura para las tres formas. Los cortes son 940 y 720 porque
+   son los que ya usa global.css; no se inventan puntos nuevos.
+   ============================================================ */
+.marco { display: flex; align-items: stretch; min-height: 100dvh; }
+.marco__col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.marco__col > .admin-main {
+  width: 100%;
+  max-width: 1400px;
+  padding-inline: clamp(20px, 3vw, 30px);
+  padding-block: 30px 80px;
+}
+
+/* ---------- Navegación ---------- */
+.nav-panel {
+  flex: none;
+  width: 248px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100dvh;
+  overflow-y: auto;
+  z-index: 20;
+}
+.nav-panel__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.nav-panel__enlace {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  transition: background .25s cubic-bezier(.2,.8,.2,1), color .2s;
+}
+.nav-panel__enlace:hover { background: var(--bg); }
+.nav-panel__enlace[aria-current='page'] {
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+.nav-panel__icono { position: relative; flex: none; width: 20px; height: 20px; }
+.nav-panel__icono svg {
+  width: 20px; height: 20px; display: block;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+/* Colgado de la esquina del icono y no al lado del texto: en el raíl y en la
+   barra de pestañas no hay sitio a la derecha, y así no hace falta moverlo. */
+.nav-panel__cuenta {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  min-width: 17px;
+  height: 17px;
+  padding-inline: 4px;
+  border-radius: 100px;
+  border: 2px solid var(--surface);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 13px;
+  text-align: center;
+}
+
+/* Raíl: un sidebar de 248px dejaría 520px de contenido y las tablas no caben. */
+@media (max-width: 939px) {
+  .nav-panel { width: 84px; padding: 14px 8px; }
+  .nav-panel__enlace {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 60px;
+    padding: 8px 4px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+  }
+}
+
+/* Barra de pestañas. `env(safe-area-inset-*)` para que en un teléfono con
+   gesto inferior no quede nada bajo la franja del sistema. */
+@media (max-width: 719px) {
+  .marco { flex-direction: column; }
+  /* `fixed` y no `sticky`: pegada con sticky, la barra se desplaza mientras la
+     página hace scroll y un toque sobre ella puede caer en el sitio
+     equivocado —Playwright directamente se queda esperando a que pare—.
+     Fija no se mueve nunca, y `.admin-main` le reserva su altura abajo. */
+  .nav-panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: auto;
+    height: auto;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    overflow: visible;
+  }
+  .nav-panel__lista { flex-direction: row; gap: 4px; }
+  .nav-panel__lista > li { flex: 1; min-width: 0; }
+  .nav-panel__enlace { min-height: 52px; }
+  .marco__col > .admin-main { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Barra superior ---------- */
 .admin-barra {
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 10;
+  padding-inline: clamp(20px, 3vw, 30px);
+  padding-top: env(safe-area-inset-top);
 }
 .admin-barra__interior {
   display: flex;
@@ -28,15 +142,83 @@ body.admin {
   gap: 16px;
   min-height: 62px;
 }
+/* Una sola línea: el nombre de un prospecto largo parte la barra en dos y se
+   come 40px de una pantalla de teléfono, repitiendo además el <h1> de debajo. */
 .admin-barra__marca {
   font-family: var(--font-display);
   font-size: 21px;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.admin-barra__derecha { display: flex; align-items: center; gap: 14px; }
+.admin-barra__derecha { display: flex; align-items: center; gap: 14px; flex: none; }
 .admin-barra__email { font-size: 13.5px; color: var(--ink-soft); }
 
 @media (max-width: 560px) {
   .admin-barra__email { display: none; }
+}
+
+/* ---------- Métricas del inicio ---------- */
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.metrica {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.metrica__k {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.metrica__v {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.metrica__d { font-size: 13px; color: var(--ink-soft); }
+/* Color más texto, nunca color solo: el número ya dice qué pasa. */
+.metrica__d--alta { color: #b4452e; font-weight: 600; }
+.metrica__d--ok { color: #3f6b32; font-weight: 600; }
+
+@media (max-width: 939px) {
+  .metricas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .metrica { padding: 15px 16px; gap: 3px; }
+  .metrica__v { font-size: 30px; }
+}
+
+/* ---------- Cabecera de panel ---------- */
+.panel__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.panel__cabecera .panel__titulo { margin-bottom: 0; font-size: 19px; }
+/* 44px de área táctil sin engordar el texto. */
+.panel__cabecera a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 4px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* ---------- Botón pequeño ---------- */
@@ -106,6 +288,73 @@ body.admin {
 .tabla__sec { color: var(--ink-soft); font-size: 13px; display: block; margin-top: 3px; }
 .tabla__fecha { white-space: nowrap; color: var(--ink-soft); }
 .tabla__accion { text-align: right; white-space: nowrap; }
+.tabla__num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Tablet: la tabla sigue siendo tabla —a 768px se lee— pero con el ancho
+   mínimo de escritorio se sale del panel y el estado y el botón quedan fuera de
+   vista. Menos aire por celda y la fecha partida en dos líneas es suficiente
+   para que quepan las cinco columnas sin scroll horizontal. */
+@media (min-width: 720px) and (max-width: 939px) {
+  .tabla { font-size: 14px; }
+  .tabla th, .tabla td { padding: 12px 16px; }
+  .tabla-scroll { margin-inline: -16px; }
+  .tabla-scroll > .tabla { min-width: 0; }
+  .tabla__fecha { white-space: normal; }
+}
+
+/* Bajo 720px la tabla se vuelve una lista de tarjetas: siete columnas no se
+   leen en un teléfono. Un solo marcado —la tabla semántica— y esto lo
+   reestructura; duplicar el DOM saldría más caro de mantener que este bloque.
+   El panel pierde su propia caja para que las tarjetas queden a sangre. */
+@media (max-width: 719px) {
+  .panel--lista {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  .panel--lista .tabla-scroll { overflow-x: visible; margin-inline: 0; }
+  .panel--lista .tabla-scroll > .tabla { min-width: 0; }
+
+  .panel--lista .tabla,
+  .panel--lista .tabla tbody { display: block; }
+  .panel--lista .tabla thead { display: none; }
+
+  .panel--lista .tabla tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 14px 16px;
+  }
+  .panel--lista .tabla tbody tr + tr { margin-top: 10px; }
+  .panel--lista .tabla tbody tr:hover { background: var(--surface); }
+
+  .panel--lista .tabla td {
+    display: block;
+    grid-column: 1;
+    padding: 0;
+    border-bottom: 0;
+  }
+  /* Estado y cifra suben a la derecha de la primera línea. */
+  .panel--lista .tabla td.tabla__estado,
+  .panel--lista .tabla td.tabla__num {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    align-self: start;
+  }
+  .panel--lista .tabla td.tabla__meta { font-size: 13px; color: var(--ink-soft); }
+  .panel--lista .tabla td.tabla__accion {
+    grid-column: 1 / -1;
+    text-align: left;
+    margin-top: 9px;
+  }
+  .panel--lista .tabla td.tabla__accion .btn { min-height: 44px; }
+}
 
 /* Visible para lectores de pantalla, no para la vista: la columna de acción no
    necesita encabezado dibujado, pero sí necesita nombre. */

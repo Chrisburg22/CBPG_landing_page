@@ -122,7 +122,7 @@ test.describe('Panel de solicitudes', () => {
     );
 
     // Y el listado refleja el cambio.
-    await page.goto('/admin');
+    await page.goto('/admin/prospectos');
     await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Agendada');
   });
 
@@ -134,10 +134,10 @@ test.describe('Panel de solicitudes', () => {
     await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
 
     // Filtrada por un estado que no tiene, desaparece.
-    await page.goto('/admin?estado=descartada');
+    await page.goto('/admin/prospectos?estado=descartada');
     await expect(page.locator('tr', { hasText: nombre })).toHaveCount(0);
 
-    await page.goto('/admin?estado=nueva');
+    await page.goto('/admin/prospectos?estado=nueva');
     await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
   });
 
@@ -150,13 +150,13 @@ test.describe('Panel de solicitudes', () => {
   test('un filtro que no encuentra nada avisa de que hay datos detrás', async ({ page }) => {
     await entrarAlPanel(page);
     // La solicitud sembrada es 'nueva'; este filtro no la alcanza.
-    await page.goto('/admin?estado=descartada');
+    await page.goto('/admin/prospectos?estado=descartada');
 
     await expect(page.getByText('Nada con ese filtro')).toBeVisible();
     await expect(page.getByText(/Hay \d+ solicitudes? en total/)).toBeVisible();
 
     await page.getByRole('link', { name: 'Ver todas las solicitudes' }).click();
-    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page).toHaveURL(/\/admin\/prospectos$/);
     await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
   });
 
@@ -236,7 +236,7 @@ test.describe('Panel de solicitudes', () => {
 
   test('una solicitud que no existe da 404, no un error del servidor', async ({ page }) => {
     await entrarAlPanel(page);
-    const respuesta = await page.goto('/admin/solicitudes/00000000-0000-4000-8000-000000000000');
+    const respuesta = await page.goto('/admin/prospectos/00000000-0000-4000-8000-000000000000');
     expect(respuesta?.status()).toBe(404);
   });
 });

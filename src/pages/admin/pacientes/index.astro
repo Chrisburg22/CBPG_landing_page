@@ -1,0 +1,27 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+export const prerender = false;
+---
+
+<AdminLayout title="Pacientes" seccion="pacientes">
+  <div class="admin-head">
+    <div>
+      <h1>Pacientes</h1>
+      <p>Quienes ya empezaron tratamiento</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="vacio">
+      <strong>Todavía no hay pacientes</strong>
+      <p>
+        Un prospecto se convierte en paciente desde su ficha, cuando acepta el tratamiento.
+        Aquí aparecerán con su plan, su avance y su saldo.
+      </p>
+      <a class="btn btn--primary btn--chico" href="/admin/prospectos" style="margin-top: 20px">
+        Ver prospectos
+      </a>
+    </div>
+  </div>
+</AdminLayout>

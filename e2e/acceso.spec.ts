@@ -41,8 +41,8 @@ test.describe('Acceso al panel', () => {
   });
 
   test('entra con las credenciales correctas y puede salir', async ({ page }) => {
-    await entrarAlPanel(page);
-    await expect(page.getByRole('heading', { name: 'Solicitudes' })).toBeVisible();
+    await entrarAlPanel(page, '/admin');
+    await expect(page.getByRole('heading', { name: /doctora/ })).toBeVisible();
     await expect(page.getByText(credencialesAdmin().email)).toBeVisible();
 
     // Con sesión, la pantalla de acceso rebota al panel en vez de hacer bucle.

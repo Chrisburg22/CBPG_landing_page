@@ -11,14 +11,14 @@ import {
   listar,
   type SolicitudListado,
 } from '@/lib/solicitudes';
-import { ESTADOS, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
-// Cambio rápido de estado desde el aviso que aparece al volver de WhatsApp.
-// POST-Redirect-GET: sin el redirect, recargar repetiría la escritura. Astro
-// valida la cabecera Origin por su cuenta (security.checkOrigin), y por eso
-// esto es un formulario nativo y no un fetch con JSON.
+/** Cuántas caben en el resumen antes de que deje de ser un resumen. */
+const TOPE_PENDIENTES = 5;
+
+// Mismo manejador que el listado: el aviso de "¿le escribiste?" aparece también
+// aquí. POST-Redirect-GET, como en el resto del panel.
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
   const id = String(datos.get('id') ?? '');
@@ -28,161 +28,150 @@ if (Astro.request.method === 'POST') {
       await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
     }
   } catch (e) {
-    console.error('[admin] no se pudo cambiar el estado:', e instanceof Error ? e.message : 'desconocido');
+    console.error(
+      '[admin] no se pudo cambiar el estado:',
+      e instanceof Error ? e.message : 'desconocido'
+    );
   }
-  // Conservar la querystring: perder el filtro al marcar sería desconcertante.
-  return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
+  return Astro.redirect(Astro.url.pathname, 303);
 }
 
-const params = Astro.url.searchParams;
-const estadoParam = params.get('estado');
-const estado = esEstado(estadoParam) ? estadoParam : undefined;
-const busqueda = params.get('q')?.trim() ?? '';
-
-let solicitudes: SolicitudListado[] = [];
+let pendientes: SolicitudListado[] = [];
 let nuevas = 0;
-// Total sin filtrar: es lo que permite distinguir "no hay nada" de
-// "hay cosas pero tu filtro las esconde", que son problemas muy distintos.
 let total = 0;
 let fallo: string | null = null;
 
 try {
-  [solicitudes, nuevas, total] = await Promise.all([
-    listar(Astro.locals.supabase, { estado, busqueda }),
+  const [sinAtender, cuentaNuevas, cuentaTotal] = await Promise.all([
+    listar(Astro.locals.supabase, { estado: 'nueva' }),
     contarNuevas(Astro.locals.supabase),
     contarTodas(Astro.locals.supabase),
   ]);
+  pendientes = sinAtender.slice(0, TOPE_PENDIENTES);
+  nuevas = cuentaNuevas;
+  total = cuentaTotal;
 } catch (e) {
-  // Un fallo de base de datos no debe dar un 500 en blanco: la doctora tiene que
-  // ver qué pasó y poder reintentar.
-  console.error('[admin] listado falló:', e instanceof Error ? e.message : 'desconocido');
-  fallo = 'No pudimos cargar las solicitudes. Vuelve a intentarlo en un momento.';
+  console.error('[admin] no se pudo cargar el inicio:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar el resumen. Vuelve a intentarlo en un momento.';
 }
 
-const hayFiltro = !!estado || !!busqueda;
+/**
+ * Saludo por hora de Ciudad de México, no por la del servidor: en Vercel el
+ * servidor puede estar en cualquier sitio y darle los buenos días a las once
+ * de la noche.
+ */
+const hora = Number(
+  new Date().toLocaleString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    hour: '2-digit',
+    hour12: false,
+  })
+);
+const saludo = hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+const hoy = new Date().toLocaleDateString('es-MX', {
+  timeZone: 'America/Mexico_City',
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
 ---
 
-<AdminLayout title="Solicitudes">
+<AdminLayout title="Inicio" seccion="inicio" nuevas={fallo ? null : nuevas}>
   <div class="admin-head">
     <div>
-      <h1>Solicitudes</h1>
-      <p>
-        {
-          fallo
-            ? 'Sin datos'
-            : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender`
-        }
-        {
-          /* Con un filtro puesto es fácil quedarse mirando una tabla vacía sin
-             caer en que hay datos detrás. La salida tiene que estar a un clic. */
-          hayFiltro && (
-            <>
-              {' · '}
-              <a class="admin-head__quitar" href="/admin">
-                Quitar filtro
-              </a>
-            </>
-          )
-        }
-      </p>
+      <h1>{saludo}, doctora</h1>
+      <p>{hoy.charAt(0).toLocaleUpperCase('es-MX') + hoy.slice(1)}</p>
     </div>
-
-    <form class="filtros" method="get" action="/admin">
-      <div class="field">
-        <label for="estado">Estado</label>
-        <select id="estado" name="estado">
-          <option value="">Todos</option>
-          {
-            ESTADOS.map((valor) => (
-              <option value={valor} selected={valor === estado}>
-                {ETIQUETA_ESTADO[valor]}
-              </option>
-            ))
-          }
-        </select>
-      </div>
-      <div class="field">
-        <label for="q">Buscar</label>
-        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
-      </div>
-      <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
-    </form>
   </div>
 
   {fallo && <p class="aviso aviso--error">{fallo}</p>}
 
   <AvisoContactado modo="listado" />
 
-  <div class="panel">
-    {
-      solicitudes.length === 0 && !fallo ? (
-        <div class="vacio">
-          <strong>{hayFiltro ? 'Nada con ese filtro' : 'Todavía no hay solicitudes'}</strong>
-          <p>
-            {hayFiltro
-              ? total > 0
-                ? `Hay ${total} ${total === 1 ? 'solicitud' : 'solicitudes'} en total, pero ninguna coincide con lo que estás filtrando.`
-                : 'Prueba a quitar el filtro o a buscar otra cosa.'
-              : 'Cuando alguien llene el formulario de la página, aparecerá aquí.'}
-          </p>
-          {hayFiltro && (
-            <a class="btn btn--primary btn--chico" href="/admin" style="margin-top: 20px">
-              Ver todas las solicitudes
-            </a>
-          )}
+  {
+    !fallo && (
+      <div class="metricas">
+        <div class="metrica">
+          <span class="metrica__k">Sin atender</span>
+          <span class="metrica__v">{nuevas}</span>
+          <span class={nuevas > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
+            {nuevas > 0
+              ? nuevas === 1
+                ? 'Prospecto por contactar'
+                : 'Prospectos por contactar'
+              : 'Todo contestado'}
+          </span>
         </div>
-      ) : (
-        <div class="tabla-scroll">
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>Prospecto</th>
-                <th>Tratamiento</th>
-                <th>Recibida</th>
-                <th>Estado</th>
-                <th><span class="visualmente-oculto">Contactar</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {solicitudes.map((s) => (
-                <tr>
-                  <td>
-                    <a class="tabla__nombre" href={`/admin/solicitudes/${s.id}`}>
-                      {s.nombre}
-                    </a>
-                    <span class="tabla__sec">{s.telefono}</span>
-                  </td>
-                  <td>{s.tratamiento}</td>
-                  <td class="tabla__fecha">{fecha(s.creado_en)}</td>
-                  <td>
-                    <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
-                  </td>
-                  <td class="tabla__accion">
-                    <a
-                      class="btn btn--primary btn--chico"
-                      href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-wa-id={s.id}
-                      data-wa-nombre={s.nombre}
-                      data-wa-estado={s.estado}
-                    >
-                      WhatsApp
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div class="metrica">
+          <span class="metrica__k">Solicitudes</span>
+          <span class="metrica__v">{total}</span>
+          <span class="metrica__d">Desde que abrió el formulario</span>
         </div>
-      )
-    }
-  </div>
+      </div>
+    )
+  }
 
-  {/* Con JS, cambiar el estado filtra al vuelo. Sin JS, queda el botón Filtrar. */}
-  <script is:inline>
-    document.getElementById('estado')?.addEventListener('change', (e) => {
-      e.target.form.submit();
-    });
-  </script>
+  {
+    !fallo && (
+      <div class="panel panel--lista">
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo">Sin contactar</h2>
+          <a href="/admin/prospectos">Ver todos</a>
+        </div>
+
+        {pendientes.length === 0 ? (
+          <div class="vacio">
+            <strong>Todo contestado</strong>
+            <p>
+              No hay solicitudes nuevas. Las que lleguen por el formulario de la página
+              aparecerán aquí.
+            </p>
+          </div>
+        ) : (
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Prospecto</th>
+                  <th>Tratamiento</th>
+                  <th>Recibida</th>
+                  <th>
+                    <span class="visualmente-oculto">Contactar</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendientes.map((s) => (
+                  <tr>
+                    <td>
+                      <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
+                        {s.nombre}
+                      </a>
+                      <span class="tabla__sec">{s.telefono}</span>
+                    </td>
+                    <td class="tabla__meta">{s.tratamiento}</td>
+                    <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
+                    <td class="tabla__accion">
+                      <a
+                        class="btn btn--primary btn--chico"
+                        href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-wa-id={s.id}
+                        data-wa-nombre={s.nombre}
+                        data-wa-estado={s.estado}
+                      >
+                        WhatsApp
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )
+  }
 </AdminLayout>
