@@ -17,9 +17,20 @@
  * conservando esas dos divergencias.
  */
 
-export type EstadoSolicitud = 'nueva' | 'contactada' | 'agendada' | 'descartada';
+export type EstadoSolicitud =
+  | 'nueva'
+  | 'contactada'
+  | 'agendada'
+  | 'descartada'
+  | 'terminado';
 
-export const ESTADOS = ['nueva', 'contactada', 'agendada', 'descartada'] as const;
+export const ESTADOS = [
+  'nueva',
+  'contactada',
+  'agendada',
+  'descartada',
+  'terminado',
+] as const;
 
 /** Etiquetas para la interfaz. El valor en base de datos es la clave. */
 export const ETIQUETA_ESTADO: Record<EstadoSolicitud, string> = {
@@ -27,6 +38,26 @@ export const ETIQUETA_ESTADO: Record<EstadoSolicitud, string> = {
   contactada: 'Contactada',
   agendada: 'Agendada',
   descartada: 'Descartada',
+  terminado: 'Terminado',
+};
+
+/**
+ * `terminado` no se ofrece a mano en ningún selector: lo pone la conversión a
+ * paciente y nada más. Dejarlo elegible permitiría marcar como terminado un
+ * prospecto sin ficha de paciente detrás, que es justo la incoherencia que la
+ * conversión existe para evitar. Sí aparece como filtro y como etiqueta.
+ */
+export const ESTADOS_MANUALES = ESTADOS.filter((valor) => valor !== 'terminado');
+
+export type EstadoPaciente = 'activo' | 'retencion' | 'alta' | 'pausado';
+
+export const ESTADOS_PACIENTE = ['activo', 'retencion', 'alta', 'pausado'] as const;
+
+export const ETIQUETA_ESTADO_PACIENTE: Record<EstadoPaciente, string> = {
+  activo: 'Activo',
+  retencion: 'En retención',
+  alta: 'Alta',
+  pausado: 'Pausado',
 };
 
 /**
@@ -35,6 +66,28 @@ export const ETIQUETA_ESTADO: Record<EstadoSolicitud, string> = {
  * implícito. Con una interface aquí, la resolución del esquema entero colapsa y
  * hasta un `.select()` devuelve `never`.
  */
+type PacienteFila = {
+  id: string;
+  creado_en: string;
+  actualizado_en: string;
+  /** Solicitud de la que salió. `null` si llegó por recomendación, sin formulario. */
+  solicitud_id: string | null;
+  nombre: string;
+  telefono: string;
+  tratamiento: string;
+  estado: EstadoPaciente;
+  /** `date` de Postgres, no `timestamptz`: llega como 'AAAA-MM-DD'. */
+  inicio: string;
+  /** PUEDE CONTENER DATOS DE SALUD, igual que `solicitudes.mensaje`. */
+  notas: string;
+};
+
+/** Lo que la doctora puede escribir. Espejo del GRANT por columna de 0002. */
+type PacienteEscribible = Pick<
+  PacienteFila,
+  'solicitud_id' | 'nombre' | 'telefono' | 'tratamiento' | 'estado' | 'inicio' | 'notas'
+>;
+
 type SolicitudFila = {
   id: string;
   creado_en: string;
@@ -67,6 +120,13 @@ export type Database = {
         Update: Partial<Pick<SolicitudFila, 'estado' | 'notas'>>;
         Relationships: [];
       };
+      pacientes: {
+        Row: PacienteFila;
+        // `nombre` es lo único imprescindible: el resto tiene default en la base.
+        Insert: Partial<PacienteEscribible> & Pick<PacienteFila, 'nombre'>;
+        Update: Partial<PacienteEscribible>;
+        Relationships: [];
+      };
       admins: {
         Row: { user_id: string; email: string; creado_en: string };
         Insert: { user_id: string; email: string; creado_en?: string };
@@ -85,3 +145,4 @@ export type Database = {
 }
 
 export type Solicitud = SolicitudFila;
+export type Paciente = PacienteFila;

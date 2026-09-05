@@ -1,0 +1,191 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
+import { actualizar, esEstadoPaciente, fechaCorta, guardarNotas, obtener } from '@/lib/pacientes';
+import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE, type Paciente } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/pacientes', 302);
+
+const supabase = Astro.locals.supabase;
+
+// POST-Redirect-GET, igual que en la ficha del prospecto: sin el redirect,
+// recargar repetiría la escritura. Astro valida `Origin` por su cuenta.
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const accion = String(datos.get('accion') ?? '');
+
+  try {
+    if (accion === 'datos') {
+      const nombre = String(datos.get('nombre') ?? '').trim();
+      const estado = String(datos.get('estado') ?? '');
+      if (!nombre) return Astro.redirect(`${Astro.url.pathname}?error=nombre`, 303);
+      if (!esEstadoPaciente(estado)) return Astro.redirect(`${Astro.url.pathname}?error=estado`, 303);
+
+      await actualizar(supabase, id, {
+        nombre: nombre.slice(0, 120),
+        telefono: String(datos.get('telefono') ?? '').trim().slice(0, 30),
+        tratamiento: String(datos.get('tratamiento') ?? '').trim().slice(0, 120),
+        estado,
+        inicio: String(datos.get('inicio') ?? ''),
+      });
+    } else if (accion === 'notas') {
+      await guardarNotas(supabase, id, String(datos.get('notas') ?? ''));
+    }
+    return Astro.redirect(`${Astro.url.pathname}?guardado=1`, 303);
+  } catch (e) {
+    console.error('[admin] no se pudo guardar:', e instanceof Error ? e.message : 'desconocido');
+    return Astro.redirect(`${Astro.url.pathname}?error=guardar`, 303);
+  }
+}
+
+let paciente: Paciente | null = null;
+let fallo: string | null = null;
+
+try {
+  paciente = await obtener(supabase, id);
+} catch (e) {
+  console.error('[admin] no se pudo cargar el paciente:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar este paciente. Vuelve a intentarlo en un momento.';
+}
+
+if (!paciente && !fallo) return new Response('No encontrado', { status: 404 });
+
+const params = Astro.url.searchParams;
+const guardado = params.get('guardado') === '1';
+const creado = params.get('creado') === '1';
+const error = params.get('error');
+---
+
+<AdminLayout title={paciente?.nombre ?? 'Paciente'} seccion="pacientes">
+  <div class="admin-head">
+    <div>
+      <h1>{paciente?.nombre ?? 'Paciente'}</h1>
+      {paciente && <p>Desde el {fechaCorta(paciente.inicio)} · {paciente.tratamiento}</p>}
+    </div>
+    <a class="btn btn--ghost btn--chico" href="/admin/pacientes">← Todos los pacientes</a>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {creado && <p class="aviso aviso--ok">Ficha creada. El prospecto quedó como terminado.</p>}
+  {guardado && !creado && <p class="aviso aviso--ok">Guardado.</p>}
+  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
+  {error === 'nombre' && <p class="aviso aviso--error">El nombre no puede quedar vacío.</p>}
+  {error === 'estado' && <p class="aviso aviso--error">Ese estado no es válido.</p>}
+
+  {
+    paciente && (
+      <div class="detalle-grid">
+        <div>
+          <form class="panel" method="post">
+            <h2 class="panel__titulo">Datos</h2>
+            <input type="hidden" name="accion" value="datos" />
+
+            <div class="campos">
+              <div class="field">
+                <label for="nombre">Nombre completo</label>
+                <input id="nombre" name="nombre" type="text" maxlength="120" required value={paciente.nombre} />
+              </div>
+              <div class="field">
+                <label for="telefono">Teléfono</label>
+                <input id="telefono" name="telefono" type="tel" maxlength="30" value={paciente.telefono} />
+              </div>
+              <div class="field">
+                <label for="tratamiento">Tratamiento</label>
+                <input
+                  id="tratamiento"
+                  name="tratamiento"
+                  type="text"
+                  maxlength="120"
+                  value={paciente.tratamiento}
+                />
+              </div>
+              <div class="field">
+                <label for="inicio">Inicio</label>
+                <input id="inicio" name="inicio" type="date" value={paciente.inicio} />
+              </div>
+              <div class="field">
+                <label for="estado">Estado del tratamiento</label>
+                <select id="estado" name="estado">
+                  {ESTADOS_PACIENTE.map((valor) => (
+                    <option value={valor} selected={valor === paciente?.estado}>
+                      {ETIQUETA_ESTADO_PACIENTE[valor]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div class="acciones acciones--fin" style="margin-top: 20px">
+              <button class="btn btn--primary btn--chico" type="submit">
+                Guardar cambios
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div>
+          <div class="panel">
+            <h2 class="panel__titulo">Contacto</h2>
+            <dl class="datos">
+              <dt>Teléfono</dt>
+              <dd>{paciente.telefono || '—'}</dd>
+              <dt>Estado</dt>
+              <dd>
+                <span class={`chip chip--${paciente.estado}`}>
+                  {ETIQUETA_ESTADO_PACIENTE[paciente.estado]}
+                </span>
+              </dd>
+              <dt>Origen</dt>
+              <dd>
+                {paciente.solicitud_id ? (
+                  <a href={`/admin/prospectos/${paciente.solicitud_id}`}>Solicitud del sitio</a>
+                ) : (
+                  'Alta directa'
+                )}
+              </dd>
+            </dl>
+
+            {paciente.telefono && (
+              <div class="acciones" style="margin-top: 22px">
+                <a
+                  class="btn btn--primary btn--chico"
+                  href={aWhatsapp(paciente.telefono, paciente.nombre, paciente.tratamiento)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </a>
+                <a class="btn btn--ghost btn--chico" href={aTelefono(paciente.telefono)}>
+                  Llamar
+                </a>
+              </div>
+            )}
+          </div>
+
+          <form class="panel" method="post">
+            <h2 class="panel__titulo">Notas</h2>
+            <input type="hidden" name="accion" value="notas" />
+            <div class="field">
+              <label for="notas">Solo para ti. El paciente no las ve.</label>
+              {/* Interpolación normal, nunca set:html: puede llevar datos de salud. */}
+              <textarea id="notas" name="notas" rows="7" maxlength="4000">{paciente.notas}</textarea>
+            </div>
+            <button class="btn btn--ghost btn--block btn--chico" type="submit">
+              Guardar notas
+            </button>
+          </form>
+
+          <div class="panel">
+            <h2 class="panel__titulo">Pagos</h2>
+            <p class="panel__texto">
+              El plan de tratamiento y el historial de pagos llegan en la siguiente entrega.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+</AdminLayout>

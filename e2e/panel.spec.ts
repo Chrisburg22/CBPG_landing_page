@@ -51,7 +51,7 @@ test.describe('Panel de solicitudes', () => {
     await expect(fila).toBeVisible();
     await expect(fila).toContainText('33 9988 7766');
     await expect(fila).toContainText('Brackets metálicos');
-    await expect(fila.locator('.chip')).toHaveText('Nueva');
+    await expect(fila.locator('select')).toHaveValue('nueva');
 
     // Y el mensaje que escribió llega íntegro al detalle.
     await page.getByRole('link', { name: delFormulario }).click();
@@ -67,7 +67,7 @@ test.describe('Panel de solicitudes', () => {
     await expect(fila).toBeVisible();
     await expect(fila).toContainText(telefono);
     await expect(fila).toContainText('Alineadores invisibles');
-    await expect(fila.locator('.chip')).toHaveText('Nueva');
+    await expect(fila.locator('select')).toHaveValue('nueva');
 
     // El contador de la cabecera cuenta exactamente las filas que hay en la tabla.
     const filas = await page.locator('tbody tr').count();
@@ -123,7 +123,9 @@ test.describe('Panel de solicitudes', () => {
 
     // Y el listado refleja el cambio.
     await page.goto('/admin/prospectos');
-    await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Agendada');
+    await expect(page.locator('tr', { hasText: nombre }).locator('select')).toHaveValue(
+      'agendada'
+    );
   });
 
   test('el filtro por estado y la búsqueda encuentran la solicitud', async ({ page }) => {
@@ -224,7 +226,9 @@ test.describe('Panel de solicitudes', () => {
     await expect(aviso).toContainText(nombre);
 
     await aviso.getByRole('button', { name: 'Marcar como contactada' }).click();
-    await expect(page.locator('tr', { hasText: nombre }).locator('.chip')).toHaveText('Contactada');
+    await expect(page.locator('tr', { hasText: nombre }).locator('select')).toHaveValue(
+      'contactada'
+    );
 
     const { data } = await clienteAdmin()
       .from('solicitudes')

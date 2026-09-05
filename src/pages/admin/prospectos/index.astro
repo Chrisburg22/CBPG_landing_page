@@ -11,7 +11,7 @@ import {
   listar,
   type SolicitudListado,
 } from '@/lib/solicitudes';
-import { ESTADOS, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
+import { ESTADOS, ESTADOS_MANUALES, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
@@ -24,7 +24,10 @@ if (Astro.request.method === 'POST') {
   const id = String(datos.get('id') ?? '');
   const nuevoEstado = String(datos.get('estado') ?? '');
   try {
-    if (id && esEstado(nuevoEstado)) {
+    // `terminado` queda fuera a propósito: solo lo pone la conversión a
+    // paciente, que además crea la ficha. Ponerlo desde aquí dejaría un
+    // prospecto marcado como convertido sin paciente al que enlazar.
+    if (id && esEstado(nuevoEstado) && nuevoEstado !== 'terminado') {
       await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
     }
   } catch (e) {
@@ -155,7 +158,32 @@ const hayFiltro = !!estado || !!busqueda;
                   <td class="tabla__meta">{s.tratamiento}</td>
                   <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
                   <td class="tabla__estado">
-                    <span class={`chip chip--${s.estado}`}>{ETIQUETA_ESTADO[s.estado]}</span>
+                    {/* Ya convertido: el estado deja de ser editable aquí. Volver
+                        a «contactada» un prospecto que ya tiene ficha de paciente
+                        solo desincronizaría las dos tablas. */}
+                    {s.estado === 'terminado' ? (
+                      <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
+                    ) : (
+                      <form method="post" class="estado-rapido">
+                        <input type="hidden" name="id" value={s.id} />
+                        <label class="visualmente-oculto" for={`estado-${s.id}`}>
+                          Estado de {s.nombre}
+                        </label>
+                        <select
+                          class={`estado-rapido__select chip chip--${s.estado}`}
+                          id={`estado-${s.id}`}
+                          name="estado"
+                        >
+                          {ESTADOS_MANUALES.map((valor) => (
+                            <option value={valor} selected={valor === s.estado}>
+                              {ETIQUETA_ESTADO[valor]}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Sin JavaScript el select no envía solo; este botón sí. */}
+                        <button class="estado-rapido__ok" type="submit">Guardar</button>
+                      </form>
+                    )}
                   </td>
                   <td class="tabla__accion">
                     <a
@@ -184,5 +212,15 @@ const hayFiltro = !!estado || !!busqueda;
     document.getElementById('estado')?.addEventListener('change', (e) => {
       e.target.form.submit();
     });
+
+    // Lo mismo para el estado de cada fila: con JS se guarda al soltar el
+    // selector y su botón «Guardar» sobra, así que se esconde. Sin JS el botón
+    // sigue ahí y la tabla se opera igual, solo que con un clic más.
+    for (const form of document.querySelectorAll('.estado-rapido')) {
+      form.classList.add('estado-rapido--auto');
+      form.querySelector('select')?.addEventListener('change', (e) => {
+        e.target.form.submit();
+      });
+    }
   </script>
 </AdminLayout>

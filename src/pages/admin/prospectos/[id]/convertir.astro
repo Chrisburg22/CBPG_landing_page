@@ -1,0 +1,165 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { fecha, obtener } from '@/lib/solicitudes';
+import { crearDesdeSolicitud, esEstadoPaciente, porSolicitud } from '@/lib/pacientes';
+import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE, type Solicitud } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/prospectos', 302);
+
+const supabase = Astro.locals.supabase;
+
+/** Hoy en México, como 'AAAA-MM-DD' para el `value` de un `<input type="date">`. */
+function hoyEnMexico(): string {
+  // `en-CA` da exactamente el formato ISO corto, y la zona la fija `timeZone`.
+  // Sin esto, un alta a las 22:00 se registraría con la fecha del día siguiente.
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+}
+
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const estado = String(datos.get('estado') ?? '');
+  const nombre = String(datos.get('nombre') ?? '').trim();
+
+  if (!nombre) {
+    error = 'El nombre no puede quedar vacío.';
+  } else if (!esEstadoPaciente(estado)) {
+    error = 'Ese estado de tratamiento no es válido.';
+  } else {
+    let creado: string | null = null;
+    try {
+      creado = await crearDesdeSolicitud(supabase, id, {
+        nombre: nombre.slice(0, 120),
+        telefono: String(datos.get('telefono') ?? '').trim().slice(0, 30),
+        tratamiento: String(datos.get('tratamiento') ?? '').trim().slice(0, 120),
+        estado,
+        inicio: String(datos.get('inicio') ?? '') || hoyEnMexico(),
+        notas: String(datos.get('notas') ?? '').slice(0, 4000),
+      });
+    } catch (e) {
+      // El mensaje de `crearDesdeSolicitud` ya está redactado para leerse: el
+      // caso más probable es que la solicitud ya se hubiera convertido.
+      console.error('[admin] conversión falló:', e instanceof Error ? e.message : 'desconocido');
+      error = e instanceof Error ? e.message : 'No se pudo crear el paciente.';
+    }
+    // Fuera del try: si el redirect estuviera dentro y fallara, su error
+    // acabaría en el catch de arriba y se reportaría como si la ficha no se
+    // hubiera creado, cuando sí lo hizo.
+    if (creado) return Astro.redirect(`/admin/pacientes/${creado}?creado=1`, 303);
+  }
+}
+
+let solicitud: Solicitud | null = null;
+let yaConvertida: { id: string; nombre: string } | null = null;
+let fallo: string | null = null;
+
+try {
+  [solicitud, yaConvertida] = await Promise.all([obtener(supabase, id), porSolicitud(supabase, id)]);
+} catch (e) {
+  console.error('[admin] no se pudo cargar:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar esta solicitud. Vuelve a intentarlo en un momento.';
+}
+
+if (!solicitud && !fallo) return new Response('No encontrada', { status: 404 });
+
+// Llegar aquí con la conversión ya hecha solo puede acabar en un error de la
+// base. Mejor mandar a la ficha que ya existe.
+if (yaConvertida) return Astro.redirect(`/admin/pacientes/${yaConvertida.id}`, 302);
+---
+
+<AdminLayout title={`Convertir a ${solicitud?.nombre ?? 'paciente'}`} seccion="prospectos">
+  <div class="admin-head">
+    <div>
+      <h1>Convertir en paciente</h1>
+      {solicitud && <p>Solicitud recibida el {fecha(solicitud.creado_en, true)}</p>}
+    </div>
+    <a class="btn btn--ghost btn--chico" href={`/admin/prospectos/${id}`}>← Volver al prospecto</a>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {error && <p class="aviso aviso--error">{error}</p>}
+
+  {
+    solicitud && (
+      <form class="panel panel--formulario" method="post">
+        <p class="panel__texto">
+          Los datos vienen de la solicitud. Corrige lo que haga falta antes de crear la
+          ficha: a partir de aquí, esto es lo que verás en Pacientes.
+        </p>
+
+        <div class="campos">
+          <div class="field">
+            <label for="nombre">Nombre completo</label>
+            <input id="nombre" name="nombre" type="text" maxlength="120" required value={solicitud.nombre} />
+          </div>
+
+          <div class="field">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" name="telefono" type="tel" maxlength="30" value={solicitud.telefono} />
+          </div>
+
+          <div class="field">
+            <label for="tratamiento">Tratamiento</label>
+            <input
+              id="tratamiento"
+              name="tratamiento"
+              type="text"
+              maxlength="120"
+              value={solicitud.tratamiento}
+            />
+            <span class="field__ayuda">
+              Lo que pidió en el formulario. Cámbialo si al final acordaron otro.
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="inicio">Inicio del tratamiento</label>
+            <input id="inicio" name="inicio" type="date" value={hoyEnMexico()} />
+          </div>
+
+          <div class="field">
+            <label for="estado">Estado del tratamiento</label>
+            <select id="estado" name="estado">
+              {ESTADOS_PACIENTE.map((valor) => (
+                <option value={valor} selected={valor === 'activo'}>
+                  {ETIQUETA_ESTADO_PACIENTE[valor]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div class="field field--ancho">
+            <label for="notas">Notas</label>
+            <textarea id="notas" name="notas" rows="4" maxlength="4000" />
+            <span class="field__ayuda">
+              Solo para ti. Las notas de la solicitud se quedan en la solicitud.
+            </span>
+          </div>
+        </div>
+
+        {/* El mensaje del formulario no se copia a la ficha: puede llevar datos
+            de salud y su sitio es la solicitud, que no se borra. Se muestra aquí
+            solo como referencia mientras se decide el tratamiento. */}
+        {solicitud.mensaje && (
+          <div class="convertir-mensaje">
+            <h2 class="panel__titulo">Lo que escribió</h2>
+            <p class="mensaje">{solicitud.mensaje}</p>
+          </div>
+        )}
+
+        <div class="acciones acciones--fin">
+          <a class="btn btn--ghost btn--chico" href={`/admin/prospectos/${id}`}>
+            Cancelar
+          </a>
+          <button class="btn btn--primary btn--chico" type="submit">
+            Crear ficha de paciente
+          </button>
+        </div>
+      </form>
+    )
+  }
+</AdminLayout>

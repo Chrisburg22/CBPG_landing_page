@@ -67,13 +67,46 @@ export async function sembrarSolicitud(datos: {
   return data.id as string;
 }
 
-/** Borra las filas de esta corrida (o todas las de prueba si no se pasa nombre). */
+/**
+ * Borra las filas de esta corrida (o todas las de prueba si no se pasa nombre).
+ *
+ * Los pacientes van primero: `pacientes.solicitud_id` apunta a `solicitudes`, y
+ * aunque la FK es ON DELETE SET NULL y no impediría el borrado, dejaría
+ * pacientes de prueba huérfanos que ningún filtro por nombre volvería a
+ * encontrar si su nombre se hubiera editado.
+ */
 export async function limpiar(nombre?: string): Promise<void> {
-  const consulta = clienteAdmin().from('solicitudes').delete();
-  const { error } = nombre
-    ? await consulta.eq('nombre', nombre)
-    : await consulta.like('nombre', `${PREFIJO_PRUEBA} %`);
-  if (error) throw new Error(`No se pudo limpiar: ${error.message}`);
+  const cliente = clienteAdmin();
+
+  for (const tabla of ['pacientes', 'solicitudes'] as const) {
+    const consulta = cliente.from(tabla).delete();
+    const { error } = nombre
+      ? await consulta.eq('nombre', nombre)
+      : await consulta.like('nombre', `${PREFIJO_PRUEBA} %`);
+    if (error) throw new Error(`No se pudo limpiar ${tabla}: ${error.message}`);
+  }
+}
+
+/** El paciente que salió de una solicitud, leído sin pasar por la interfaz. */
+export async function pacienteDeSolicitud(solicitudId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('pacientes')
+    .select('id, nombre, telefono, tratamiento, estado, inicio')
+    .eq('solicitud_id', solicitudId)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el paciente: ${error.message}`);
+  return data;
+}
+
+/** El estado en que quedó una solicitud, leído sin pasar por la interfaz. */
+export async function estadoDeSolicitud(id: string): Promise<string | null> {
+  const { data, error } = await clienteAdmin()
+    .from('solicitudes')
+    .select('estado')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el estado: ${error.message}`);
+  return (data?.estado as string | undefined) ?? null;
 }
 
 /**
