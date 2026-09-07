@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sin conexión · Panel</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#fffdf9" />
+    <!--
+      Los colores van copiados a mano en vez de con var(): esta página la sirve
+      el service worker desde su caché cuando no hay red, y la hoja de estilos
+      del panel vive en /_astro/ con un hash en el nombre que un archivo
+      estático de public/ no puede conocer.
+
+      Sin JavaScript de ninguna clase, y verificado por scripts/verificar-build.mjs: es la
+      única página del panel que se sirve sin pasar por el middleware.
+    -->
+    <style>
+      :root { color-scheme: light; }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: #efe9df;
+        color: #26221d;
+        font-family: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      .caja {
+        max-width: 30rem;
+        text-align: center;
+        background: #fffdf9;
+        border: 1px solid #e3dccf;
+        border-radius: 18px;
+        padding: clamp(28px, 6vw, 48px);
+      }
+      .marca {
+        width: 56px; height: 56px;
+        margin: 0 auto 20px;
+        border-radius: 14px;
+        background: #2f7d75;
+        color: #fbfaf6;
+        display: grid;
+        place-items: center;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 26px;
+        letter-spacing: 0.5px;
+      }
+      h1 { margin: 0 0 12px; font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: clamp(1.5rem, 4vw, 1.9rem); }
+      p { margin: 0 0 24px; color: #6f675c; }
+      a {
+        display: inline-block;
+        padding: 12px 28px;
+        min-height: 44px;
+        box-sizing: border-box;
+        border-radius: 12px;
+        background: #2f7d75;
+        color: #fbfaf6;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a:hover, a:focus-visible { background: #245f59; }
+    </style>
+  </head>
+  <body>
+    <main class="caja">
+      <div class="marca" aria-hidden="true">BP</div>
+      <h1>Sin conexión</h1>
+      <p>
+        No se pudo llegar al servidor. La información no se guarda en este
+        teléfono, así que hace falta señal para consultarla.
+      </p>
+      <a href="/admin">Reintentar</a>
+    </main>
+  </body>
+</html>

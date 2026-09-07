@@ -14,7 +14,8 @@
     "verify:build": "node scripts/verificar-build.mjs",
     "test": "astro check && astro build && node scripts/verificar-build.mjs && playwright test",
     "demo": "playwright test --config playwright.demo.config.ts",
-    "admin": "node scripts/admin.mjs"
+    "admin": "node scripts/admin.mjs",
+    "iconos": "node scripts/generar-iconos.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.5",
@@ -33,6 +34,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "dotenv": "^17.4.2",
+    "sharp": "^0.35.4",
     "typescript": "^5.6.0"
   }
 }

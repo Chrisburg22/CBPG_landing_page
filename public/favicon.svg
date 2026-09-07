@@ -1,6 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#2f7d75"/>
+  <!-- `DejaVu Serif` no es decorativa: scripts/generar-iconos.mjs rasteriza este
+       archivo con sharp, que usa resvg y NO trae fuentes propias. En un contenedor
+       de Linux sin Georgia el monograma desaparecería y el icono saldría como un
+       cuadrado teal liso, sin error ni aviso. DejaVu está en casi cualquier Linux. -->
   <text x="32" y="43" text-anchor="middle"
-        font-family="Georgia, 'Times New Roman', serif" font-size="30"
+        font-family="Georgia, 'Times New Roman', 'DejaVu Serif', serif" font-size="30"
         fill="#fbfaf6" letter-spacing="0.5">BP</text>
 </svg>

@@ -39,6 +39,28 @@ const sinAtender =
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {/* Sin fuentes de Google, sin JSON-LD, sin canonical: nada de esto tiene
         sentido en una pantalla privada, y quitarlo la hace cargar antes. */}
+
+    {/* Instalable como app. Solo el panel: la landing no enlaza el manifest, y
+        verificar-build.mjs comprueba que siga siendo así.
+
+        El manifest y el worker viven FUERA de /admin a propósito. El navegador
+        los pide sin credenciales, así que dentro de /admin el middleware los
+        redirigiría a /admin/login y la app dejaría de ser instalable. */}
+    <link rel="manifest" href="/panel.webmanifest" />
+    {/* Crema, no el teal de la marca: .admin-barra es var(--surface) y en
+        Android el theme_color pinta la barra de estado justo encima. */}
+    <meta name="theme-color" content="#fffdf9" />
+    {/* iOS toma el icono del <link> de la página que estaba abierta al tocar
+        «Añadir a pantalla de inicio», y el manifest no lo sustituye. */}
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    {/* iOS < 16.4 no lee el manifest: sin esto no hay modo standalone en un
+        iPhone que no esté al día. En 16.4+ es redundante pero inofensivo. */}
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    {/* `default` y no `black-translucent`: con translucent el texto de la barra
+        de estado sale blanco sobre la barra crema del panel. Con `default` iOS
+        rellena esa zona con el theme-color y el texto queda legible. */}
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Panel BP" />
   </head>
   <body class="admin">
     {
@@ -72,5 +94,33 @@ const sinAtender =
         </main>
       )
     }
+
+    {/* Fuera del ternario: /admin/login también registra el worker, porque es
+        la primera pantalla que ve la doctora al instalar la app.
+
+        Sin condicionar a import.meta.env.PROD, a propósito. En `astro dev` Vite
+        sirve los módulos desde /@fs/ y /src/, nunca desde /_astro/, así que la
+        lista blanca del worker no reconoce casi nada y en desarrollo queda
+        prácticamente inerte. A cambio, las pruebas e2e ejercitan el código de
+        verdad y no una rama muerta. */}
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/panel-sw.js', {
+              // Sin barra final: el scope se compara como prefijo de cadena,
+              // así que '/admin' cubre '/admin' (el start_url del manifest) y
+              // '/admin/*'. Con '/admin/' la portada quedaría sin controlar.
+              scope: '/admin',
+              // Salta la caché HTTP en cada comprobación de actualización. Es
+              // lo que hace determinista el interruptor de emergencia sin
+              // depender de las cabeceras de Vercel, que con la Build Output
+              // API no son fiables.
+              updateViaCache: 'none',
+            })
+            .catch((e) => console.warn('[panel] no se pudo registrar el worker:', e));
+        });
+      }
+    </script>
   </body>
 </html>

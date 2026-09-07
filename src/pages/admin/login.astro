@@ -50,4 +50,29 @@ const error = params.get('error');
       <button class="btn btn--primary btn--block" type="submit">Entrar</button>
     </form>
   </div>
+
+  {/* La purga de la caché va aquí y no en el botón «Salir» de AdminLayout: ese
+      botón es un <form method="post">, y la página que lo envía está siendo
+      desmontada, así que un caches.delete() disparado desde el submit compite
+      con la navegación sin garantía de completarse. Convertirlo en fetch
+      rompería el flujo sin JS y la postura de CSRF, que cubre formularios y no
+      JSON (probado en e2e/seguridad.spec.ts).
+
+      /admin/auth/salir siempre redirige aquí con ?salir=1, así que este es el
+      único punto por el que pasa todo cierre de sesión, y es idempotente.
+
+      Lo que se borra son activos de compilación e iconos: el worker no guarda
+      datos de paciente nunca. Esto es higiene y red de seguridad ante un cambio
+      futuro, no confidencialidad. */}
+  <script is:inline>
+    if (new URLSearchParams(location.search).get('salir') === '1' && 'caches' in window) {
+      // No se toca `panel-respaldo-*` ni se desregistra el worker: eso dejaría
+      // el panel sin modo sin conexión hasta el siguiente registro.
+      caches.keys().then((nombres) =>
+        Promise.all(
+          nombres.filter((n) => n.startsWith('panel-runtime-')).map((n) => caches.delete(n))
+        )
+      );
+    }
+  </script>
 </AdminLayout>

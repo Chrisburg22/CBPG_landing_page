@@ -8,4 +8,9 @@ Disallow: /api/
 # el candado real son el middleware y las policies de la base de datos.
 Disallow: /admin/
 
+# Respaldo que sirve el service worker del panel cuando no hay red. Es el único
+# archivo del panel que se sirve sin pasar por el middleware, así que se pide
+# explícitamente que no se indexe.
+Disallow: /panel-sin-conexion.html
+
 Sitemap: https://www.drabereniceparadaortodoncista.com.mx/sitemap-index.xml
