@@ -98,6 +98,47 @@ export async function pacienteDeSolicitud(solicitudId: string) {
   return data;
 }
 
+/** Da de alta un paciente sin pasar por la interfaz. */
+export async function sembrarPaciente(datos: {
+  nombre: string;
+  telefono?: string;
+  tratamiento?: string;
+}): Promise<string> {
+  const { data, error } = await clienteAdmin()
+    .from('pacientes')
+    .insert({
+      nombre: datos.nombre,
+      telefono: datos.telefono ?? '33 0000 0000',
+      tratamiento: datos.tratamiento ?? 'Brackets metálicos',
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`No se pudo sembrar el paciente: ${error.message}`);
+  return data.id as string;
+}
+
+/** El saldo calculado por la vista, para contrastarlo con lo que pinta el panel. */
+export async function saldoDePaciente(pacienteId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('vista_saldo_paciente')
+    .select('costo_total, pagado, saldo, cuotas_vencidas, cuotas_pagadas, num_cuotas')
+    .eq('paciente_id', pacienteId)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el saldo: ${error.message}`);
+  return data;
+}
+
+/** Las cuotas generadas para un paciente, con su estado derivado. */
+export async function cuotasDePaciente(pacienteId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('vista_cuotas')
+    .select('numero, monto, restante, vence_el, estado')
+    .eq('paciente_id', pacienteId)
+    .order('numero');
+  if (error) throw new Error(`No se pudieron leer las cuotas: ${error.message}`);
+  return data ?? [];
+}
+
 /** El estado en que quedó una solicitud, leído sin pasar por la interfaz. */
 export async function estadoDeSolicitud(id: string): Promise<string | null> {
   const { data, error } = await clienteAdmin()

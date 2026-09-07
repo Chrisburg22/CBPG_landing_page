@@ -1,7 +1,78 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { dinero, dineroCorto, fechaCorta, hoyEnMexico, sumar } from '@/lib/formato';
+import {
+  borrar,
+  esTipoPago,
+  limitesDelMes,
+  listarMovimientos,
+  porCobrar,
+  type MovimientoPago,
+} from '@/lib/pagos';
+import { ETIQUETA_METODO_PAGO, ETIQUETA_TIPO_PAGO, TIPOS_PAGO } from '@/lib/supabase/tipos';
 
 export const prerender = false;
+
+// Borrar un pago mal registrado. POST-Redirect-GET como el resto del panel.
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const id = String(datos.get('id') ?? '');
+  try {
+    if (id) await borrar(Astro.locals.supabase, id);
+  } catch (e) {
+    console.error('[admin] no se pudo borrar el pago:', e instanceof Error ? e.message : 'desconocido');
+    return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
+  }
+  return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
+}
+
+const params = Astro.url.searchParams;
+
+/** 'AAAA-MM' del selector de periodo; por defecto, el mes en curso. */
+const mesParam = params.get('mes');
+const mes = /^\d{4}-\d{2}$/.test(mesParam ?? '') ? mesParam! : hoyEnMexico().slice(0, 7);
+const { desde, hasta } = limitesDelMes(`${mes}-01`);
+
+const tipoParam = params.get('tipo');
+const tipo = esTipoPago(tipoParam) ? tipoParam : undefined;
+
+let movimientos: MovimientoPago[] = [];
+let pendientes: Awaited<ReturnType<typeof porCobrar>> = [];
+let nombresPaciente = new Map<string, string>();
+let fallo: string | null = null;
+
+try {
+  [movimientos, pendientes] = await Promise.all([
+    listarMovimientos(Astro.locals.supabase, { desde, hasta, tipo }),
+    porCobrar(Astro.locals.supabase, 20),
+  ]);
+
+  const ids = [...new Set(pendientes.map((c) => c.paciente_id))];
+  if (ids.length > 0) {
+    const { data } = await Astro.locals.supabase
+      .from('pacientes')
+      .select('id, nombre')
+      .in('id', ids);
+    nombresPaciente = new Map((data ?? []).map((p) => [p.id, p.nombre]));
+  }
+} catch (e) {
+  console.error('[admin] no se pudieron cargar los pagos:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar los pagos. Vuelve a intentarlo en un momento.';
+}
+
+const cobrado = sumar(movimientos.map((m) => m.monto));
+const vencidas = pendientes.filter((c) => c.estado === 'vencida');
+const montoVencido = sumar(vencidas.map((c) => c.restante));
+
+/** Los últimos doce meses para el selector, con su etiqueta legible. */
+const meses = Array.from({ length: 12 }, (_, i) => {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - i);
+  const valor = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const etiqueta = d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+  return { valor, etiqueta: etiqueta.charAt(0).toLocaleUpperCase('es-MX') + etiqueta.slice(1) };
+});
 ---
 
 <AdminLayout title="Pagos" seccion="pagos">
@@ -10,18 +81,183 @@ export const prerender = false;
       <h1>Pagos</h1>
       <p>Mensualidades del plan y cargos sueltos</p>
     </div>
-  </div>
-
-  <div class="panel">
-    <div class="vacio">
-      <strong>Todavía no hay pagos</strong>
-      <p>
-        Los pagos se registran sobre el plan de tratamiento de cada paciente. En cuanto haya
-        pacientes con plan, aquí se verá lo cobrado del mes y lo que queda por cobrar.
-      </p>
-      <a class="btn btn--primary btn--chico" href="/admin/pacientes" style="margin-top: 20px">
-        Ver pacientes
+    <div class="admin-head__derecha">
+      <form class="filtros" method="get" action="/admin/pagos">
+      <div class="field">
+        <label for="mes">Periodo</label>
+        <select id="mes" name="mes">
+          {meses.map((m) => <option value={m.valor} selected={m.valor === mes}>{m.etiqueta}</option>)}
+        </select>
+      </div>
+      <div class="field">
+        <label for="tipo">Tipo</label>
+        <select id="tipo" name="tipo">
+          <option value="">Todos</option>
+          {
+            TIPOS_PAGO.map((valor) => (
+              <option value={valor} selected={valor === tipo}>
+                {ETIQUETA_TIPO_PAGO[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+        <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+      </form>
+      <a class="btn btn--primary btn--chico admin-head__accion" href="/admin/pagos/nuevo">
+      + Registrar pago
       </a>
     </div>
   </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+
+  {
+    !fallo && (
+      <div class="metricas">
+        <div class="metrica">
+          <span class="metrica__k">Cobrado</span>
+          <span class="metrica__v">{dineroCorto(cobrado)}</span>
+          <span class="metrica__d">
+            {movimientos.length} {movimientos.length === 1 ? 'movimiento' : 'movimientos'}
+          </span>
+        </div>
+        <div class="metrica">
+          <span class="metrica__k">Vencido</span>
+          <span class="metrica__v">{montoVencido > 0 ? dineroCorto(montoVencido) : '—'}</span>
+          <span class={vencidas.length > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
+            {vencidas.length > 0
+              ? `${vencidas.length} ${vencidas.length === 1 ? 'cuota' : 'cuotas'}`
+              : 'Nada vencido'}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    !fallo && pendientes.length > 0 && (
+      <div class="panel panel--lista">
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo">Por cobrar</h2>
+        </div>
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Concepto</th>
+                <th>Vence</th>
+                <th class="tabla__num">Falta</th>
+                <th><span class="visualmente-oculto">Registrar</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendientes.map((c) => (
+                <tr>
+                  <td>
+                    <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
+                      {nombresPaciente.get(c.paciente_id) ?? 'Paciente'}
+                    </a>
+                  </td>
+                  <td class="tabla__meta">Mensualidad {c.numero}</td>
+                  <td class="tabla__fecha tabla__meta">
+                    {c.estado === 'vencida' ? (
+                      <span class="chip chip--vencida">Venció {fechaCorta(c.vence_el)}</span>
+                    ) : (
+                      fechaCorta(c.vence_el)
+                    )}
+                  </td>
+                  <td class="tabla__num">{dinero(c.restante)}</td>
+                  <td class="tabla__accion">
+                    <a
+                      class="btn btn--ghost btn--chico"
+                      href={`/admin/pagos/nuevo?cuota=${c.id}`}
+                    >
+                      Registrar
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    !fallo && (
+      <div class="panel panel--lista">
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo">Movimientos</h2>
+        </div>
+
+        {movimientos.length === 0 ? (
+          <div class="vacio">
+            <strong>Sin movimientos en este periodo</strong>
+            <p>
+              Los pagos que registres aparecerán aquí, agrupados por el mes en que se
+              cobraron.
+            </p>
+            <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo" style="margin-top: 20px">
+              + Registrar pago
+            </a>
+          </div>
+        ) : (
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  <th>Concepto</th>
+                  <th>Fecha</th>
+                  <th class="tabla__num">Monto</th>
+                  <th><span class="visualmente-oculto">Quitar</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {movimientos.map((m) => (
+                  <tr>
+                    <td>
+                      <a class="tabla__nombre" href={`/admin/pacientes/${m.paciente_id}`}>
+                        {m.pacientes?.nombre ?? 'Paciente'}
+                      </a>
+                      <span class="tabla__sec">{ETIQUETA_TIPO_PAGO[m.tipo]}</span>
+                    </td>
+                    <td class="tabla__meta">
+                      {m.concepto || '—'}
+                      <span class="tabla__sec">{ETIQUETA_METODO_PAGO[m.metodo]}</span>
+                    </td>
+                    <td class="tabla__fecha tabla__meta">{fechaCorta(m.pagado_el)}</td>
+                    <td class="tabla__num">{dinero(m.monto)}</td>
+                    <td class="tabla__accion">
+                      {/* Un pago mal tecleado hay que poder quitarlo. La confirmación
+                          la pide el navegador; sin JavaScript el botón borra directo,
+                          que es preferible a no poder corregir nada. */}
+                      <form method="post" data-confirmar={`Quitar el pago de ${dinero(m.monto)}?`}>
+                        <input type="hidden" name="id" value={m.id} />
+                        <button class="estado-rapido__ok" type="submit">Quitar</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  <script is:inline>
+    document.getElementById('mes')?.addEventListener('change', (e) => e.target.form.submit());
+    document.getElementById('tipo')?.addEventListener('change', (e) => e.target.form.submit());
+
+    for (const form of document.querySelectorAll('[data-confirmar]')) {
+      form.addEventListener('submit', (e) => {
+        if (!confirm(form.dataset.confirmar)) e.preventDefault();
+      });
+    }
+  </script>
 </AdminLayout>

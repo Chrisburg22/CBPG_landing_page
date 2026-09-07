@@ -57,7 +57,8 @@ const hayFiltro = !!estado || !!busqueda;
       </p>
     </div>
 
-    <form class="filtros" method="get" action="/admin/pacientes">
+    <div class="admin-head__derecha">
+      <form class="filtros" method="get" action="/admin/pacientes">
       <div class="field">
         <label for="estado">Estado</label>
         <select id="estado" name="estado">
@@ -75,8 +76,12 @@ const hayFiltro = !!estado || !!busqueda;
         <label for="q">Buscar</label>
         <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
       </div>
-      <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
-    </form>
+        <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+      </form>
+      <a class="btn btn--primary btn--chico admin-head__accion" href="/admin/pacientes/nuevo">
+      + Nuevo paciente
+      </a>
+    </div>
   </div>
 
   {fallo && <p class="aviso aviso--error">{fallo}</p>}
@@ -93,13 +98,22 @@ const hayFiltro = !!estado || !!busqueda;
                 : 'Prueba a quitar el filtro o a buscar otra cosa.'
               : 'Un prospecto se convierte en paciente desde su ficha, cuando acepta el tratamiento.'}
           </p>
-          <a
-            class="btn btn--primary btn--chico"
-            href={hayFiltro ? '/admin/pacientes' : '/admin/prospectos'}
-            style="margin-top: 20px"
-          >
-            {hayFiltro ? 'Ver todos los pacientes' : 'Ver prospectos'}
-          </a>
+          <div class="acciones" style="margin-top: 20px; justify-content: center">
+            {hayFiltro ? (
+              <a class="btn btn--primary btn--chico" href="/admin/pacientes">
+                Ver todos los pacientes
+              </a>
+            ) : (
+              <>
+                <a class="btn btn--primary btn--chico" href="/admin/pacientes/nuevo">
+                  + Nuevo paciente
+                </a>
+                <a class="btn btn--ghost btn--chico" href="/admin/prospectos">
+                  Ver prospectos
+                </a>
+              </>
+            )}
+          </div>
         </div>
       ) : (
         <div class="tabla-scroll">

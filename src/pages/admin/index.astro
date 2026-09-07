@@ -2,6 +2,9 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import AvisoContactado from '@/components/admin/AvisoContactado.astro';
 import { aWhatsapp } from '@/lib/contacto-directo';
+import { contarActivos } from '@/lib/pacientes';
+import { porCobrar } from '@/lib/pagos';
+import { dineroCorto, fechaCorta, sumar } from '@/lib/formato';
 import {
   cambiarEstado,
   contarNuevas,
@@ -11,6 +14,7 @@ import {
   listar,
   type SolicitudListado,
 } from '@/lib/solicitudes';
+import { ESTADOS_MANUALES, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
@@ -24,7 +28,8 @@ if (Astro.request.method === 'POST') {
   const id = String(datos.get('id') ?? '');
   const nuevoEstado = String(datos.get('estado') ?? '');
   try {
-    if (id && esEstado(nuevoEstado)) {
+    // `terminado` fuera: lo pone solo la conversión, que además crea la ficha.
+    if (id && esEstado(nuevoEstado) && nuevoEstado !== 'terminado') {
       await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
     }
   } catch (e) {
@@ -39,17 +44,36 @@ if (Astro.request.method === 'POST') {
 let pendientes: SolicitudListado[] = [];
 let nuevas = 0;
 let total = 0;
+let activos = 0;
+let cobros: Awaited<ReturnType<typeof porCobrar>> = [];
+let nombresPaciente = new Map<string, string>();
 let fallo: string | null = null;
 
 try {
-  const [sinAtender, cuentaNuevas, cuentaTotal] = await Promise.all([
-    listar(Astro.locals.supabase, { estado: 'nueva' }),
-    contarNuevas(Astro.locals.supabase),
-    contarTodas(Astro.locals.supabase),
-  ]);
+  const [sinAtender, cuentaNuevas, cuentaTotal, cuentaActivos, pendientesDeCobro] =
+    await Promise.all([
+      listar(Astro.locals.supabase, { estado: 'nueva' }),
+      contarNuevas(Astro.locals.supabase),
+      contarTodas(Astro.locals.supabase),
+      contarActivos(Astro.locals.supabase),
+      porCobrar(Astro.locals.supabase, TOPE_PENDIENTES),
+    ]);
   pendientes = sinAtender.slice(0, TOPE_PENDIENTES);
   nuevas = cuentaNuevas;
   total = cuentaTotal;
+  activos = cuentaActivos;
+  cobros = pendientesDeCobro;
+
+  // Los nombres de quienes deben algo. La vista de cuotas solo trae ids, y
+  // pedir cada nombre por separado serían tantas consultas como filas.
+  const ids = [...new Set(cobros.map((c) => c.paciente_id))];
+  if (ids.length > 0) {
+    const { data } = await Astro.locals.supabase
+      .from('pacientes')
+      .select('id, nombre')
+      .in('id', ids);
+    nombresPaciente = new Map((data ?? []).map((p) => [p.id, p.nombre]));
+  }
 } catch (e) {
   console.error('[admin] no se pudo cargar el inicio:', e instanceof Error ? e.message : 'desconocido');
   fallo = 'No pudimos cargar el resumen. Vuelve a intentarlo en un momento.';
@@ -69,6 +93,9 @@ const hora = Number(
 );
 const saludo = hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
 
+const vencidas = cobros.filter((c) => c.estado === 'vencida');
+const montoVencido = sumar(vencidas.map((c) => c.restante));
+
 const hoy = new Date().toLocaleDateString('es-MX', {
   timeZone: 'America/Mexico_City',
   weekday: 'long',
@@ -82,6 +109,10 @@ const hoy = new Date().toLocaleDateString('es-MX', {
     <div>
       <h1>{saludo}, doctora</h1>
       <p>{hoy.charAt(0).toLocaleUpperCase('es-MX') + hoy.slice(1)}</p>
+    </div>
+    <div class="acciones">
+      <a class="btn btn--ghost btn--chico" href="/admin/pacientes/nuevo">+ Nuevo paciente</a>
+      <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo">+ Registrar pago</a>
     </div>
   </div>
 
@@ -102,6 +133,20 @@ const hoy = new Date().toLocaleDateString('es-MX', {
                 : 'Prospectos por contactar'
               : 'Todo contestado'}
           </span>
+        </div>
+        <div class="metrica">
+          <span class="metrica__k">Vencido</span>
+          <span class="metrica__v">{montoVencido > 0 ? dineroCorto(montoVencido) : '—'}</span>
+          <span class={vencidas.length > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
+            {vencidas.length > 0
+              ? `${vencidas.length} ${vencidas.length === 1 ? 'cuota vencida' : 'cuotas vencidas'}`
+              : 'Nada vencido'}
+          </span>
+        </div>
+        <div class="metrica">
+          <span class="metrica__k">Pacientes</span>
+          <span class="metrica__v">{activos}</span>
+          <span class="metrica__d">En tratamiento</span>
         </div>
         <div class="metrica">
           <span class="metrica__k">Solicitudes</span>
@@ -136,6 +181,7 @@ const hoy = new Date().toLocaleDateString('es-MX', {
                   <th>Prospecto</th>
                   <th>Tratamiento</th>
                   <th>Recibida</th>
+                  <th>Estado</th>
                   <th>
                     <span class="visualmente-oculto">Contactar</span>
                   </th>
@@ -152,6 +198,29 @@ const hoy = new Date().toLocaleDateString('es-MX', {
                     </td>
                     <td class="tabla__meta">{s.tratamiento}</td>
                     <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
+                    <td class="tabla__estado">
+                      {/* El mismo selector que el listado: marcar a alguien como
+                          contactado es lo primero que se hace tras escribirle, y
+                          obligar a cambiar de pantalla para eso sobra. */}
+                      <form method="post" class="estado-rapido">
+                        <input type="hidden" name="id" value={s.id} />
+                        <label class="visualmente-oculto" for={`estado-${s.id}`}>
+                          Estado de {s.nombre}
+                        </label>
+                        <select
+                          class={`estado-rapido__select chip chip--${s.estado}`}
+                          id={`estado-${s.id}`}
+                          name="estado"
+                        >
+                          {ESTADOS_MANUALES.map((valor) => (
+                            <option value={valor} selected={valor === s.estado}>
+                              {ETIQUETA_ESTADO[valor]}
+                            </option>
+                          ))}
+                        </select>
+                        <button class="estado-rapido__ok" type="submit">Guardar</button>
+                      </form>
+                    </td>
                     <td class="tabla__accion">
                       <a
                         class="btn btn--primary btn--chico"
@@ -174,4 +243,56 @@ const hoy = new Date().toLocaleDateString('es-MX', {
       </div>
     )
   }
+
+  {
+    !fallo && cobros.length > 0 && (
+      <div class="panel panel--lista">
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo">Por cobrar</h2>
+          <a href="/admin/pagos">Ir a pagos</a>
+        </div>
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Concepto</th>
+                <th>Vence</th>
+                <th class="tabla__num">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cobros.map((c) => (
+                <tr>
+                  <td>
+                    <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
+                      {nombresPaciente.get(c.paciente_id) ?? 'Paciente'}
+                    </a>
+                  </td>
+                  <td class="tabla__meta">Mensualidad {c.numero}</td>
+                  <td class="tabla__fecha tabla__meta">
+                    {c.estado === 'vencida' ? (
+                      <span class="chip chip--vencida">Venció {fechaCorta(c.vence_el)}</span>
+                    ) : (
+                      fechaCorta(c.vence_el)
+                    )}
+                  </td>
+                  <td class="tabla__num">{dineroCorto(c.restante)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  <script is:inline>
+    for (const form of document.querySelectorAll('.estado-rapido')) {
+      form.classList.add('estado-rapido--auto');
+      form.querySelector('select')?.addEventListener('change', (e) => {
+        e.target.form.submit();
+      });
+    }
+  </script>
 </AdminLayout>

@@ -1,8 +1,19 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
-import { actualizar, esEstadoPaciente, fechaCorta, guardarNotas, obtener } from '@/lib/pacientes';
-import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE, type Paciente } from '@/lib/supabase/tipos';
+import { actualizar, esEstadoPaciente, guardarNotas, obtener } from '@/lib/pacientes';
+import { cuotasDe, historialDe, saldoDe } from '@/lib/pagos';
+import { dinero, fechaCorta } from '@/lib/formato';
+import {
+  ESTADOS_PACIENTE,
+  ETIQUETA_ESTADO_PACIENTE,
+  ETIQUETA_ESTADO_CUOTA,
+  ETIQUETA_METODO_PAGO,
+  type CuotaConEstado,
+  type Paciente,
+  type Pago,
+  type SaldoPaciente,
+} from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
@@ -42,10 +53,18 @@ if (Astro.request.method === 'POST') {
 }
 
 let paciente: Paciente | null = null;
+let saldo: SaldoPaciente | null = null;
+let cuotas: CuotaConEstado[] = [];
+let pagos: Pago[] = [];
 let fallo: string | null = null;
 
 try {
-  paciente = await obtener(supabase, id);
+  [paciente, saldo, cuotas, pagos] = await Promise.all([
+    obtener(supabase, id),
+    saldoDe(supabase, id),
+    cuotasDe(supabase, id),
+    historialDe(supabase, id),
+  ]);
 } catch (e) {
   console.error('[admin] no se pudo cargar el paciente:', e instanceof Error ? e.message : 'desconocido');
   fallo = 'No pudimos cargar este paciente. Vuelve a intentarlo en un momento.';
@@ -56,7 +75,35 @@ if (!paciente && !fallo) return new Response('No encontrado', { status: 404 });
 const params = Astro.url.searchParams;
 const guardado = params.get('guardado') === '1';
 const creado = params.get('creado') === '1';
+const planGuardado = params.get('plan') === '1';
+const pagoGuardado = params.get('pago') === '1';
 const error = params.get('error');
+
+/**
+ * Qué mensualidades se ven al abrir la ficha.
+ *
+ * Todo lo vencido o abonado a medias —eso es lo que hay que resolver— más las
+ * cuatro siguientes por venir. El resto del calendario se pliega: en un plan de
+ * dieciocho meses, pintarlo entero empuja el historial de pagos fuera de la
+ * pantalla y convierte la ficha en una agenda de 2027.
+ */
+const PROXIMAS_VISIBLES = 4;
+
+const cuotasPendientes = cuotas.filter((c) => c.estado !== 'pagada');
+const urgentes = cuotasPendientes.filter((c) => c.estado === 'vencida' || c.estado === 'parcial');
+const proximas = cuotasPendientes
+  .filter((c) => c.estado === 'pendiente')
+  .slice(0, PROXIMAS_VISIBLES);
+
+const cuotasVisibles = [...urgentes, ...proximas];
+const visiblesIds = new Set(cuotasVisibles.map((c) => c.id));
+/** Lo que queda: el calendario lejano y las ya pagadas. */
+const cuotasPlegadas = cuotas.filter((c) => !visiblesIds.has(c.id));
+
+/** Cuánto del plan lleva cubierto, para la barra de avance. */
+const avance = saldo && Number(saldo.costo_total) > 0
+  ? Math.min(100, Math.round((Number(saldo.pagado) / Number(saldo.costo_total)) * 100))
+  : 0;
 ---
 
 <AdminLayout title={paciente?.nombre ?? 'Paciente'} seccion="pacientes">
@@ -70,6 +117,8 @@ const error = params.get('error');
 
   {fallo && <p class="aviso aviso--error">{fallo}</p>}
   {creado && <p class="aviso aviso--ok">Ficha creada. El prospecto quedó como terminado.</p>}
+  {planGuardado && <p class="aviso aviso--ok">Plan guardado.</p>}
+  {pagoGuardado && <p class="aviso aviso--ok">Pago registrado.</p>}
   {guardado && !creado && <p class="aviso aviso--ok">Guardado.</p>}
   {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
   {error === 'nombre' && <p class="aviso aviso--error">El nombre no puede quedar vacío.</p>}
@@ -77,6 +126,7 @@ const error = params.get('error');
 
   {
     paciente && (
+    <>
       <div class="detalle-grid">
         <div>
           <form class="panel" method="post">
@@ -124,6 +174,7 @@ const error = params.get('error');
               </button>
             </div>
           </form>
+
         </div>
 
         <div>
@@ -178,14 +229,201 @@ const error = params.get('error');
             </button>
           </form>
 
-          <div class="panel">
-            <h2 class="panel__titulo">Pagos</h2>
-            <p class="panel__texto">
-              El plan de tratamiento y el historial de pagos llegan en la siguiente entrega.
-            </p>
-          </div>
+
         </div>
       </div>
+
+        <div class="panel">
+          <div class="panel__cabecera">
+            <h2 class="panel__titulo">Plan de tratamiento</h2>
+            <a href={`/admin/pacientes/${id}/plan`}>{saldo ? 'Editar plan' : 'Crear plan'}</a>
+          </div>
+
+          {saldo ? (
+            <>
+              <div class="metricas metricas--compacta">
+                <div class="metrica">
+                  <span class="metrica__k">Costo total</span>
+                  <span class="metrica__v">{dinero(saldo.costo_total)}</span>
+                </div>
+                <div class="metrica">
+                  <span class="metrica__k">Pagado</span>
+                  <span class="metrica__v">{dinero(saldo.pagado)}</span>
+                </div>
+                <div class="metrica">
+                  <span class="metrica__k">Saldo</span>
+                  <span class="metrica__v">{dinero(saldo.saldo)}</span>
+                  {saldo.cuotas_vencidas > 0 && (
+                    <span class="metrica__d metrica__d--alta">
+                      {saldo.cuotas_vencidas}{' '}
+                      {saldo.cuotas_vencidas === 1 ? 'cuota vencida' : 'cuotas vencidas'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {saldo.num_cuotas > 0 && (
+                <div style="margin-top: 18px">
+                  <div class="avance__etiquetas">
+                    <span>
+                      Mensualidad {saldo.cuotas_pagadas} de {saldo.num_cuotas}
+                    </span>
+                    <span>{avance}% pagado</span>
+                  </div>
+                  <div class="avance">
+                    <i style={`width: ${avance}%`} />
+                  </div>
+                </div>
+              )}
+
+              <div class="acciones" style="margin-top: 20px">
+                <a class="btn btn--primary btn--chico" href={`/admin/pagos/nuevo?paciente=${id}`}>
+                  + Registrar pago
+                </a>
+              </div>
+            </>
+          ) : (
+            <div class="vacio vacio--chico">
+              <strong>Sin plan todavía</strong>
+              <p>
+                Define el costo del tratamiento y, si hay mensualidades, cuántas y qué día
+                vencen. También puedes dejarlo sin calendario.
+              </p>
+              <a
+                class="btn btn--primary btn--chico"
+                href={`/admin/pacientes/${id}/plan`}
+                style="margin-top: 16px"
+              >
+                Crear plan
+              </a>
+            </div>
+          )}
+        </div>
+
+        {cuotas.length > 0 && (
+          <div class="panel panel--lista">
+            <div class="panel__cabecera">
+              <h2 class="panel__titulo">Mensualidades</h2>
+              <span class="panel__cuenta">
+                {cuotasPendientes.length} por cobrar de {cuotas.length}
+              </span>
+            </div>
+
+            {cuotasVisibles.length > 0 && (
+              <div class="tabla-scroll">
+                <table class="tabla">
+                  <thead>
+                    <tr>
+                      <th>N.º</th>
+                      <th>Vence</th>
+                      <th class="tabla__num">Monto</th>
+                      <th class="tabla__num">Falta</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cuotasVisibles.map((c) => (
+                      <tr>
+                        <td>{c.numero}</td>
+                        <td class="tabla__fecha tabla__meta">{fechaCorta(c.vence_el)}</td>
+                        <td class="tabla__num">{dinero(c.monto)}</td>
+                        <td class="tabla__num">{dinero(c.restante)}</td>
+                        <td class="tabla__estado">
+                          <span class={`chip chip--${c.estado}`}>
+                            {ETIQUETA_ESTADO_CUOTA[c.estado]}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {cuotasVisibles.length === 0 && (
+              <div class="vacio vacio--chico">
+                <strong>Todo cobrado</strong>
+                <p>No queda ninguna mensualidad pendiente.</p>
+              </div>
+            )}
+
+            {/* `details` nativo: funciona sin JavaScript y el navegador ya sabe
+                manejarlo con teclado y con la búsqueda en página. */}
+            {cuotasPlegadas.length > 0 && (
+              <details class="plegable">
+                <summary>
+                  Ver el resto del calendario ({cuotasPlegadas.length}{' '}
+                  {cuotasPlegadas.length === 1 ? 'mensualidad' : 'mensualidades'})
+                </summary>
+                <div class="tabla-scroll">
+                  <table class="tabla">
+                    <thead>
+                      <tr>
+                        <th>N.º</th>
+                        <th>Vence</th>
+                        <th class="tabla__num">Monto</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cuotasPlegadas.map((c) => (
+                        <tr>
+                          <td>{c.numero}</td>
+                          <td class="tabla__fecha tabla__meta">{fechaCorta(c.vence_el)}</td>
+                          <td class="tabla__num">{dinero(c.monto)}</td>
+                          <td class="tabla__estado">
+                            <span class={`chip chip--${c.estado}`}>
+                              {ETIQUETA_ESTADO_CUOTA[c.estado]}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
+        <div class="panel panel--lista">
+          <div class="panel__cabecera">
+            <h2 class="panel__titulo">Historial de pagos</h2>
+            <a href={`/admin/pagos/nuevo?paciente=${id}`}>Registrar</a>
+          </div>
+
+          {pagos.length === 0 ? (
+            <div class="vacio vacio--chico">
+              <strong>Todavía no hay pagos</strong>
+              <p>Lo que vaya cobrando aparecerá aquí, de lo más reciente a lo más antiguo.</p>
+            </div>
+          ) : (
+            <div class="tabla-scroll">
+              <table class="tabla">
+                <thead>
+                  <tr>
+                    <th>Concepto</th>
+                    <th>Fecha</th>
+                    <th class="tabla__num">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagos.map((g) => (
+                    <tr>
+                      <td>
+                        {g.concepto || '—'}
+                        <span class="tabla__sec">{ETIQUETA_METODO_PAGO[g.metodo]}</span>
+                      </td>
+                      <td class="tabla__fecha tabla__meta">{fechaCorta(g.pagado_el)}</td>
+                      <td class="tabla__num">{dinero(g.monto)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+    </>
     )
   }
 </AdminLayout>

@@ -484,6 +484,55 @@ body.admin {
 
 .convertir-mensaje { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
 
+/* ---------- Dinero y avance ---------- */
+/* Los importes van en cifras tabulares y alineados a la derecha: así los millares
+   quedan en la misma columna y una cantidad se compara con la de arriba de un
+   vistazo, sin leerla entera. */
+.tabla__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tabla th.tabla__num { text-align: right; }
+
+.metrica__v { font-variant-numeric: tabular-nums; }
+
+/* Dentro de un panel, las métricas van más apretadas que en el resumen. */
+.metricas--compacta { gap: 12px; }
+.metricas--compacta .metrica { padding: 14px 16px; box-shadow: none; background: var(--bg); }
+.metricas--compacta .metrica__v { font-size: 23px; }
+
+.avance {
+  height: 6px;
+  border-radius: 100px;
+  background: var(--bg-deep);
+  overflow: hidden;
+}
+.avance i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 100px;
+}
+.avance__etiquetas {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+/* Estados de cuota. Mismo código de color que el resto: verde bien, ámbar
+   atención, rojo problema, gris neutro. */
+.chip--pagada    { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
+.chip--parcial   { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
+.chip--pendiente { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
+.chip--vencida   { background: #f8e7e2; color: #b4452e; border-color: #eccfc6; }
+
+/* Un vacío dentro de un panel que ya tiene cabecera no necesita tanto aire. */
+.vacio--chico { padding: 28px 20px; }
+
 /* Separación real entre el último bloque de contenido y los botones. Sin esto,
    «Crear ficha» queda pegado al mensaje del prospecto y parece pertenecerle. */
 .panel--formulario .acciones--fin {
@@ -534,3 +583,44 @@ body.admin {
 .acceso { max-width: 420px; margin: clamp(48px, 12vh, 120px) auto; }
 .acceso h1 { font-size: 30px; margin-bottom: 8px; }
 .acceso p.acceso__desc { color: var(--ink-soft); font-size: 15px; margin-bottom: 24px; }
+
+/* ---------- Plegable ---------- */
+/* `details` nativo: sin JavaScript y con el comportamiento que ya conoce el
+   navegador (teclado, buscar en página al expandir). */
+.plegable { border-top: 1px solid var(--line); }
+.plegable > summary {
+  padding: 14px clamp(20px, 3vw, 30px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-deep);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.plegable > summary::-webkit-details-marker { display: none; }
+.plegable > summary::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+}
+.plegable[open] > summary::before { transform: rotate(45deg); }
+.plegable > summary:hover { background: var(--bg); }
+
+.panel__cuenta { font-size: 13.5px; color: var(--ink-soft); }
+
+/* El botón principal y los filtros comparten el lado derecho de la cabecera:
+   con el botón suelto en medio, quedaba entre el título y los filtros sin
+   pertenecer a ninguno de los dos. */
+.admin-head__derecha {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}

@@ -163,6 +163,37 @@ export async function crearDesdeSolicitud(
   return data.id;
 }
 
+/**
+ * Alta directa, sin solicitud detrás.
+ *
+ * No todo paciente llega por el formulario: los hay por recomendación, o que ya
+ * estaban en tratamiento antes de que el panel existiera. `solicitud_id` se
+ * queda en nulo, y la ficha lo muestra como «Alta directa».
+ */
+export async function crear(supabase: Cliente, datos: DatosPaciente): Promise<string> {
+  const { data, error } = await supabase
+    .from('pacientes')
+    .insert({ ...datos, solicitud_id: null })
+    .select('id')
+    .single();
+  if (error) throw new Error(`No se pudo crear el paciente: ${error.message}`);
+  return data.id;
+}
+
+/** Para el selector de paciente al registrar un pago. */
+export async function paraSelector(
+  supabase: Cliente
+): Promise<Pick<Paciente, 'id' | 'nombre' | 'tratamiento'>[]> {
+  const { data, error } = await supabase
+    .from('pacientes')
+    .select('id, nombre, tratamiento')
+    // Alfabético: en un desplegable se busca por nombre, no por fecha de alta.
+    .order('nombre', { ascending: true })
+    .limit(LIMITE_LISTADO);
+  if (error) throw new Error(`No se pudo cargar la lista de pacientes: ${error.message}`);
+  return data ?? [];
+}
+
 export async function actualizar(
   supabase: Cliente,
   id: string,
@@ -180,19 +211,5 @@ export async function guardarNotas(supabase: Cliente, id: string, notas: string)
   if (error) throw new Error(`No se pudieron guardar las notas: ${error.message}`);
 }
 
-/**
- * Formatea un `date` de Postgres ('AAAA-MM-DD') sin pasar por `new Date()`.
- *
- * `new Date('2026-09-05')` lo interpreta como medianoche UTC, que en México es
- * el día anterior por la tarde: la fecha de inicio se mostraría un día antes.
- * Partir la cadena evita el viaje por UTC entero.
- */
-export function fechaCorta(iso: string): string {
-  const [anio, mes, dia] = iso.split('-').map(Number);
-  if (!anio || !mes || !dia) return iso;
-  return new Date(anio, mes - 1, dia).toLocaleDateString('es-MX', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+/** Vive en `formato.ts`: la usan también pagos y cuotas. */
+export { fechaCorta } from './formato';

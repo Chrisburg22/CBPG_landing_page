@@ -155,6 +155,21 @@ test.describe('Estado del prospecto desde el listado', () => {
     expect(await estadoDeSolicitud(solicitudId)).toBe('contactada');
   });
 
+  test('también se cambia desde el resumen del inicio', async ({ page }) => {
+    // El Inicio lista las que están sin contactar. Marcar a alguien como
+    // contactado es lo primero que se hace tras escribirle, y es justo donde
+    // está mirando la doctora al abrir el panel.
+    await entrarAlPanel(page, '/admin');
+    const fila = page.locator('tr', { hasText: nombre });
+    await fila.locator('select').selectOption('contactada');
+
+    // El Inicio solo lista las que siguen sin contactar, así que la fila se va
+    // al guardarse. Eso es lo que mantiene la lista siendo de pendientes — y de
+    // paso es la señal de que la escritura terminó.
+    await expect(fila).toHaveCount(0);
+    expect(await estadoDeSolicitud(solicitudId)).toBe('contactada');
+  });
+
   test('«terminado» no se ofrece como opción manual', async ({ page }) => {
     await entrarAlPanel(page, '/admin/prospectos');
     const opciones = page.locator('tr', { hasText: nombre }).locator('select option');
