@@ -1,0 +1,86 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import CamposPaciente from '@/components/admin/CamposPaciente.astro';
+import { crear, esEstadoPaciente } from '@/lib/pacientes';
+import { hoyEnMexico } from '@/lib/formato';
+
+export const prerender = false;
+
+/**
+ * A dónde volver tras crear. Solo se admiten rutas internas del panel: un
+ * `?volver=https://otro-sitio` convertiría esto en un redirector abierto.
+ */
+function destinoSeguro(bruto: string | null): string | null {
+  if (!bruto || !bruto.startsWith('/admin/')) return null;
+  // `//evil.com` también empieza por barra y el navegador lo trata como dominio.
+  if (bruto.startsWith('//')) return null;
+  return bruto;
+}
+
+const volver = destinoSeguro(Astro.url.searchParams.get('volver'));
+
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const nombre = String(datos.get('nombre') ?? '').trim();
+  const estado = String(datos.get('estado') ?? '');
+
+  if (!nombre) {
+    error = 'El nombre no puede quedar vacío.';
+  } else if (!esEstadoPaciente(estado)) {
+    error = 'Ese estado de tratamiento no es válido.';
+  } else {
+    let creado: string | null = null;
+    try {
+      creado = await crear(Astro.locals.supabase, {
+        nombre: nombre.slice(0, 120),
+        telefono: String(datos.get('telefono') ?? '').trim().slice(0, 30),
+        tratamiento: String(datos.get('tratamiento') ?? '').trim().slice(0, 120),
+        estado,
+        inicio: String(datos.get('inicio') ?? '') || hoyEnMexico(),
+        notas: String(datos.get('notas') ?? '').slice(0, 4000),
+      });
+    } catch (e) {
+      console.error('[admin] alta de paciente falló:', e instanceof Error ? e.message : 'desconocido');
+      error = 'No se pudo crear el paciente. Inténtalo otra vez.';
+    }
+
+    // Si veníamos de registrar un pago, se vuelve allí con el paciente ya
+    // elegido, para no perder lo que se estuviera haciendo.
+    if (creado) {
+      return Astro.redirect(
+        volver
+          ? `${volver}${volver.includes('?') ? '&' : '?'}paciente=${creado}`
+          : `/admin/pacientes/${creado}?creado=1`,
+        303
+      );
+    }
+  }
+}
+---
+
+<AdminLayout title="Nuevo paciente" seccion="pacientes">
+  <div class="admin-head">
+    <div>
+      <h1>Nuevo paciente</h1>
+      <p>Para quien no llegó por el formulario de la página</p>
+    </div>
+    <a class="btn btn--ghost btn--chico" href={volver ?? '/admin/pacientes'}>← Cancelar</a>
+  </div>
+
+  {error && <p class="aviso aviso--error">{error}</p>}
+
+  <form class="panel panel--formulario" method="post">
+    <p class="panel__texto">
+      El plan de pagos se define después, desde la ficha. Aquí solo hace falta el nombre.
+    </p>
+
+    <CamposPaciente />
+
+    <div class="acciones acciones--fin">
+      <a class="btn btn--ghost btn--chico" href={volver ?? '/admin/pacientes'}>Cancelar</a>
+      <button class="btn btn--primary btn--chico" type="submit">Crear paciente</button>
+    </div>
+  </form>
+</AdminLayout>

@@ -3,7 +3,8 @@ import AdminLayout from '@/layouts/AdminLayout.astro';
 import AvisoContactado from '@/components/admin/AvisoContactado.astro';
 import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
 import { cambiarEstado, esEstado, fecha, guardarNotas, obtener } from '@/lib/solicitudes';
-import { ESTADOS, ETIQUETA_ESTADO, type Solicitud } from '@/lib/supabase/tipos';
+import { porSolicitud } from '@/lib/pacientes';
+import { ESTADOS_MANUALES, ETIQUETA_ESTADO, type Solicitud } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
@@ -22,7 +23,11 @@ if (Astro.request.method === 'POST') {
   try {
     if (accion === 'estado') {
       const nuevo = String(datos.get('estado') ?? '');
-      if (!esEstado(nuevo)) return Astro.redirect(`${Astro.url.pathname}?error=estado`, 303);
+      // `terminado` no se pone a mano: lo pone la conversión, que además crea
+      // la ficha del paciente. Ver el selector más abajo.
+      if (!esEstado(nuevo) || nuevo === 'terminado') {
+        return Astro.redirect(`${Astro.url.pathname}?error=estado`, 303);
+      }
       await cambiarEstado(supabase, id, nuevo);
     } else if (accion === 'notas') {
       await guardarNotas(supabase, id, String(datos.get('notas') ?? ''));
@@ -35,10 +40,12 @@ if (Astro.request.method === 'POST') {
 }
 
 let solicitud: Solicitud | null = null;
+/** El paciente que salió de esta solicitud, si ya se convirtió. */
+let paciente: { id: string; nombre: string } | null = null;
 let fallo: string | null = null;
 
 try {
-  solicitud = await obtener(supabase, id);
+  [solicitud, paciente] = await Promise.all([obtener(supabase, id), porSolicitud(supabase, id)]);
 } catch (e) {
   console.error('[admin] no se pudo cargar:', e instanceof Error ? e.message : 'desconocido');
   fallo = 'No pudimos cargar esta solicitud. Vuelve a intentarlo en un momento.';
@@ -116,23 +123,55 @@ const error = params.get('error');
         </div>
 
         <div>
-          <form class="panel" method="post">
-            <h2 class="panel__titulo">Estado</h2>
-            <input type="hidden" name="accion" value="estado" />
-            <div class="field">
-              <label for="estado">Situación de este prospecto</label>
-              <select id="estado" name="estado">
-                {ESTADOS.map((valor) => (
-                  <option value={valor} selected={valor === solicitud?.estado}>
-                    {ETIQUETA_ESTADO[valor]}
-                  </option>
-                ))}
-              </select>
+          {paciente ? (
+            /* Ya convertido. El estado deja de editarse: esta solicitud es
+               historia, y lo que cambia a partir de aquí es la ficha del
+               paciente. */
+            <div class="panel">
+              <h2 class="panel__titulo">Estado</h2>
+              <p class="convertido">
+                <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
+                <span>Ya es paciente.</span>
+              </p>
+              <a class="btn btn--primary btn--block btn--chico" href={`/admin/pacientes/${paciente.id}`}>
+                Ver ficha de {paciente.nombre}
+              </a>
             </div>
-            <button class="btn btn--primary btn--block btn--chico" type="submit">
-              Guardar estado
-            </button>
-          </form>
+          ) : (
+            <>
+              <form class="panel" method="post">
+                <h2 class="panel__titulo">Estado</h2>
+                <input type="hidden" name="accion" value="estado" />
+                <div class="field">
+                  <label for="estado">Situación de este prospecto</label>
+                  <select id="estado" name="estado">
+                    {ESTADOS_MANUALES.map((valor) => (
+                      <option value={valor} selected={valor === solicitud?.estado}>
+                        {ETIQUETA_ESTADO[valor]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button class="btn btn--primary btn--block btn--chico" type="submit">
+                  Guardar estado
+                </button>
+              </form>
+
+              <div class="panel">
+                <h2 class="panel__titulo">Convertir en paciente</h2>
+                <p class="panel__texto">
+                  Cuando acepte el tratamiento. Se crea su ficha con estos datos y esta
+                  solicitud queda como terminada, sin perder el mensaje ni el consentimiento.
+                </p>
+                <a
+                  class="btn btn--primary btn--block btn--chico"
+                  href={`/admin/prospectos/${id}/convertir`}
+                >
+                  Convertir en paciente
+                </a>
+              </div>
+            </>
+          )}
 
           <form class="panel" method="post">
             <h2 class="panel__titulo">Notas</h2>

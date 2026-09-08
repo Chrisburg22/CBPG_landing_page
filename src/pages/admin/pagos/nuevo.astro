@@ -1,0 +1,243 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { paraSelector } from '@/lib/pacientes';
+import { aImporte, cuotasDe, esMetodoPago, esTipoPago, registrar } from '@/lib/pagos';
+import { dinero, fechaCorta, hoyEnMexico } from '@/lib/formato';
+import {
+  ETIQUETA_METODO_PAGO,
+  ETIQUETA_TIPO_PAGO,
+  METODOS_PAGO,
+  TIPOS_PAGO,
+  type CuotaConEstado,
+} from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const pacienteId = String(datos.get('paciente_id') ?? '');
+  const tipo = String(datos.get('tipo') ?? '');
+  const metodo = String(datos.get('metodo') ?? '');
+  const monto = aImporte(String(datos.get('monto') ?? ''));
+  // Cadena vacía = ningún vínculo con una mensualidad concreta.
+  const cuotaId = String(datos.get('cuota_id') ?? '') || null;
+
+  if (!pacienteId) {
+    error = 'Elige a quién corresponde el pago.';
+  } else if (monto === null) {
+    error = 'El monto tiene que ser un número mayor que cero.';
+  } else if (!esTipoPago(tipo)) {
+    error = 'Ese tipo de pago no es válido.';
+  } else if (!esMetodoPago(metodo)) {
+    error = 'Ese método de pago no es válido.';
+  } else {
+    let creado: string | null = null;
+    try {
+      creado = await registrar(supabase, {
+        paciente_id: pacienteId,
+        // Un cargo suelto o un enganche no cuelgan de ninguna mensualidad,
+        // aunque el formulario traiga una cuota preseleccionada de antes.
+        cuota_id: tipo === 'mensualidad' ? cuotaId : null,
+        tipo,
+        concepto: String(datos.get('concepto') ?? '').trim().slice(0, 160),
+        monto,
+        metodo,
+        pagado_el: String(datos.get('pagado_el') ?? '') || hoyEnMexico(),
+        nota: String(datos.get('nota') ?? '').slice(0, 1000),
+      });
+    } catch (e) {
+      console.error('[admin] no se pudo registrar el pago:', e instanceof Error ? e.message : 'desconocido');
+      error = 'No se pudo registrar el pago. Inténtalo otra vez.';
+    }
+    if (creado) return Astro.redirect(`/admin/pacientes/${pacienteId}?pago=1`, 303);
+  }
+}
+
+const params = Astro.url.searchParams;
+
+let pacientes: Awaited<ReturnType<typeof paraSelector>> = [];
+let fallo: string | null = null;
+
+try {
+  pacientes = await paraSelector(supabase);
+} catch (e) {
+  console.error('[admin] no se pudo cargar la lista:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar la lista de pacientes. Vuelve a intentarlo en un momento.';
+}
+
+/**
+ * De dónde sale el paciente preseleccionado, por orden:
+ *   ?cuota=… cuando se viene de «Registrar» en una cuota concreta
+ *   ?paciente=… al volver de crear un paciente sin salir del flujo
+ */
+let cuotaElegida: CuotaConEstado | null = null;
+const cuotaParam = params.get('cuota');
+if (cuotaParam) {
+  const { data } = await supabase
+    .from('vista_cuotas')
+    .select('*')
+    .eq('id', cuotaParam)
+    .maybeSingle();
+  cuotaElegida = (data as CuotaConEstado | null) ?? null;
+}
+
+const pacienteId = cuotaElegida?.paciente_id ?? params.get('paciente') ?? '';
+
+// Las cuotas del paciente elegido, para poder decir a cuál corresponde el pago.
+let cuotas: CuotaConEstado[] = [];
+if (pacienteId) {
+  try {
+    cuotas = (await cuotasDe(supabase, pacienteId)).filter((c) => c.estado !== 'pagada');
+  } catch (e) {
+    console.error('[admin] no se pudieron cargar las cuotas:', e instanceof Error ? e.message : 'desconocido');
+  }
+}
+
+const volverAqui = encodeURIComponent(`/admin/pagos/nuevo`);
+---
+
+<AdminLayout title="Registrar pago" seccion="pagos">
+  <div class="admin-head">
+    <div>
+      <h1>Registrar pago</h1>
+      <p>Queda en la ficha del paciente y en el listado de pagos</p>
+    </div>
+    <a class="btn btn--ghost btn--chico" href="/admin/pagos">← Cancelar</a>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {error && <p class="aviso aviso--error">{error}</p>}
+
+  {
+    pacientes.length === 0 && !fallo ? (
+      <div class="panel">
+        <div class="vacio">
+          <strong>Todavía no hay pacientes</strong>
+          <p>Un pago se registra siempre a nombre de alguien. Empieza por dar de alta al paciente.</p>
+          <a
+            class="btn btn--primary btn--chico"
+            href={`/admin/pacientes/nuevo?volver=${volverAqui}`}
+            style="margin-top: 20px"
+          >
+            + Nuevo paciente
+          </a>
+        </div>
+      </div>
+    ) : (
+      <form class="panel panel--formulario" method="post">
+        <div class="campos">
+          <div class="field field--ancho">
+            <label for="paciente_id">Paciente</label>
+            <select id="paciente_id" name="paciente_id" required>
+              <option value="">Elige un paciente…</option>
+              {pacientes.map((p) => (
+                <option value={p.id} selected={p.id === pacienteId}>
+                  {p.nombre}
+                  {p.tratamiento ? ` · ${p.tratamiento}` : ''}
+                </option>
+              ))}
+            </select>
+            <span class="field__ayuda">
+              ¿No está en la lista?{' '}
+              <a href={`/admin/pacientes/nuevo?volver=${volverAqui}`}>Crear paciente</a> y vuelves
+              aquí con él ya elegido.
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="tipo">Tipo</label>
+            <select id="tipo" name="tipo">
+              {TIPOS_PAGO.map((valor) => (
+                <option value={valor} selected={valor === (cuotaElegida ? 'mensualidad' : 'mensualidad')}>
+                  {ETIQUETA_TIPO_PAGO[valor]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="cuota_id">Mensualidad</label>
+            <select id="cuota_id" name="cuota_id" disabled={cuotas.length === 0}>
+              <option value="">Sin mensualidad concreta</option>
+              {cuotas.map((c) => (
+                <option value={c.id} selected={c.id === cuotaElegida?.id}>
+                  Mensualidad {c.numero} · vence {fechaCorta(c.vence_el)} · falta{' '}
+                  {dinero(c.restante)}
+                </option>
+              ))}
+            </select>
+            <span class="field__ayuda">
+              {cuotas.length === 0
+                ? 'Este paciente no tiene mensualidades pendientes. El pago contará contra su saldo igual.'
+                : 'Solo aplica a los pagos de tipo mensualidad.'}
+            </span>
+          </div>
+
+          <div class="field">
+            <label for="monto">Monto</label>
+            <input
+              id="monto"
+              name="monto"
+              type="text"
+              inputmode="decimal"
+              required
+              value={cuotaElegida ? Number(cuotaElegida.restante).toFixed(2) : ''}
+              placeholder="0.00"
+            />
+            <span class="field__ayuda">En pesos. Puedes abonar menos que la mensualidad.</span>
+          </div>
+
+          <div class="field">
+            <label for="pagado_el">Fecha del pago</label>
+            <input id="pagado_el" name="pagado_el" type="date" value={hoyEnMexico()} />
+          </div>
+
+          <div class="field">
+            <label for="metodo">Método</label>
+            <select id="metodo" name="metodo">
+              {METODOS_PAGO.map((valor) => (
+                <option value={valor}>{ETIQUETA_METODO_PAGO[valor]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="concepto">Concepto</label>
+            <input
+              id="concepto"
+              name="concepto"
+              type="text"
+              maxlength="160"
+              value={cuotaElegida ? `Mensualidad ${cuotaElegida.numero}` : ''}
+              placeholder="Retenedor, radiografía…"
+            />
+          </div>
+
+          <div class="field field--ancho">
+            <label for="nota">Nota</label>
+            <textarea id="nota" name="nota" rows="3" maxlength="1000" />
+          </div>
+        </div>
+
+        <div class="acciones acciones--fin">
+          <a class="btn btn--ghost btn--chico" href="/admin/pagos">Cancelar</a>
+          <button class="btn btn--primary btn--chico" type="submit">Guardar pago</button>
+        </div>
+      </form>
+    )
+  }
+
+  {/* Cambiar de paciente recarga para traer sus mensualidades. Sin JavaScript el
+      selector de mensualidad se queda vacío y el pago se registra igual: cuenta
+      contra el saldo, solo que sin vincularse a una cuota concreta. */}
+  <script is:inline>
+    document.getElementById('paciente_id')?.addEventListener('change', (e) => {
+      const id = e.target.value;
+      if (id) location.href = `/admin/pagos/nuevo?paciente=${encodeURIComponent(id)}`;
+    });
+  </script>
+</AdminLayout>

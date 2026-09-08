@@ -1,27 +1,172 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import { aWhatsapp } from '@/lib/contacto-directo';
+import {
+  contarTodos,
+  esEstadoPaciente,
+  fechaCorta,
+  listar,
+  type PacienteListado,
+} from '@/lib/pacientes';
+import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE } from '@/lib/supabase/tipos';
 
 export const prerender = false;
+
+const params = Astro.url.searchParams;
+const estadoParam = params.get('estado');
+const estado = esEstadoPaciente(estadoParam) ? estadoParam : undefined;
+const busqueda = params.get('q')?.trim() ?? '';
+
+let pacientes: PacienteListado[] = [];
+let total = 0;
+let fallo: string | null = null;
+
+try {
+  [pacientes, total] = await Promise.all([
+    listar(Astro.locals.supabase, { estado, busqueda }),
+    contarTodos(Astro.locals.supabase),
+  ]);
+} catch (e) {
+  console.error('[admin] listado de pacientes falló:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar los pacientes. Vuelve a intentarlo en un momento.';
+}
+
+const hayFiltro = !!estado || !!busqueda;
 ---
 
 <AdminLayout title="Pacientes" seccion="pacientes">
   <div class="admin-head">
     <div>
       <h1>Pacientes</h1>
-      <p>Quienes ya empezaron tratamiento</p>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div class="vacio">
-      <strong>Todavía no hay pacientes</strong>
       <p>
-        Un prospecto se convierte en paciente desde su ficha, cuando acepta el tratamiento.
-        Aquí aparecerán con su plan, su avance y su saldo.
+        {
+          fallo
+            ? 'Sin datos'
+            : `${pacientes.length} ${pacientes.length === 1 ? 'paciente' : 'pacientes'}${hayFiltro ? ' con este filtro' : ''}`
+        }
+        {
+          hayFiltro && (
+            <>
+              {' · '}
+              <a class="admin-head__quitar" href="/admin/pacientes">
+                Quitar filtro
+              </a>
+            </>
+          )
+        }
       </p>
-      <a class="btn btn--primary btn--chico" href="/admin/prospectos" style="margin-top: 20px">
-        Ver prospectos
+    </div>
+
+    <div class="admin-head__derecha">
+      <form class="filtros" method="get" action="/admin/pacientes">
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="">Todos</option>
+          {
+            ESTADOS_PACIENTE.map((valor) => (
+              <option value={valor} selected={valor === estado}>
+                {ETIQUETA_ESTADO_PACIENTE[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="q">Buscar</label>
+        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
+      </div>
+        <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+      </form>
+      <a class="btn btn--primary btn--chico admin-head__accion" href="/admin/pacientes/nuevo">
+      + Nuevo paciente
       </a>
     </div>
   </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+
+  <div class="panel panel--lista">
+    {
+      pacientes.length === 0 && !fallo ? (
+        <div class="vacio">
+          <strong>{hayFiltro ? 'Nada con ese filtro' : 'Todavía no hay pacientes'}</strong>
+          <p>
+            {hayFiltro
+              ? total > 0
+                ? `Hay ${total} ${total === 1 ? 'paciente' : 'pacientes'} en total, pero ninguno coincide con lo que estás filtrando.`
+                : 'Prueba a quitar el filtro o a buscar otra cosa.'
+              : 'Un prospecto se convierte en paciente desde su ficha, cuando acepta el tratamiento.'}
+          </p>
+          <div class="acciones" style="margin-top: 20px; justify-content: center">
+            {hayFiltro ? (
+              <a class="btn btn--primary btn--chico" href="/admin/pacientes">
+                Ver todos los pacientes
+              </a>
+            ) : (
+              <>
+                <a class="btn btn--primary btn--chico" href="/admin/pacientes/nuevo">
+                  + Nuevo paciente
+                </a>
+                <a class="btn btn--ghost btn--chico" href="/admin/prospectos">
+                  Ver prospectos
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Tratamiento</th>
+                <th>Inicio</th>
+                <th>Estado</th>
+                <th>
+                  <span class="visualmente-oculto">Contactar</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {pacientes.map((p) => (
+                <tr>
+                  <td>
+                    <a class="tabla__nombre" href={`/admin/pacientes/${p.id}`}>
+                      {p.nombre}
+                    </a>
+                    <span class="tabla__sec">{p.telefono}</span>
+                  </td>
+                  <td class="tabla__meta">{p.tratamiento}</td>
+                  <td class="tabla__fecha tabla__meta">{fechaCorta(p.inicio)}</td>
+                  <td class="tabla__estado">
+                    <span class={`chip chip--${p.estado}`}>
+                      {ETIQUETA_ESTADO_PACIENTE[p.estado]}
+                    </span>
+                  </td>
+                  <td class="tabla__accion">
+                    <a
+                      class="btn btn--primary btn--chico"
+                      href={aWhatsapp(p.telefono, p.nombre, p.tratamiento)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+    }
+  </div>
+
+  <script is:inline>
+    document.getElementById('estado')?.addEventListener('change', (e) => {
+      e.target.form.submit();
+    });
+  </script>
 </AdminLayout>

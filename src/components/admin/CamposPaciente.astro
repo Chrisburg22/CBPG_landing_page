@@ -1,0 +1,84 @@
+---
+/**
+ * Los campos de una ficha de paciente.
+ *
+ * Existe como componente porque se usan en tres sitios —alta directa, conversión
+ * desde un prospecto y edición— y en los tres tienen que pedir exactamente lo
+ * mismo. Duplicarlos garantizaba que tarde o temprano uno pediría un campo que
+ * los otros no.
+ */
+import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE, type EstadoPaciente } from '@/lib/supabase/tipos';
+import { hoyEnMexico } from '@/lib/formato';
+
+interface Props {
+  nombre?: string;
+  telefono?: string;
+  tratamiento?: string;
+  inicio?: string;
+  estado?: EstadoPaciente;
+  notas?: string;
+  /** El alta desde un prospecto explica de dónde salió el tratamiento. */
+  ayudaTratamiento?: string;
+  /** La edición no muestra notas aquí: tienen su propio panel. */
+  conNotas?: boolean;
+}
+
+const {
+  nombre = '',
+  telefono = '',
+  tratamiento = '',
+  inicio = hoyEnMexico(),
+  estado = 'activo',
+  notas = '',
+  ayudaTratamiento,
+  conNotas = true,
+} = Astro.props;
+---
+
+<div class="campos">
+  <div class="field">
+    <label for="nombre">Nombre completo</label>
+    <input id="nombre" name="nombre" type="text" maxlength="120" required value={nombre} />
+  </div>
+
+  <div class="field">
+    <label for="telefono">Teléfono</label>
+    <input id="telefono" name="telefono" type="tel" maxlength="30" value={telefono} />
+  </div>
+
+  <div class="field">
+    <label for="tratamiento">Tratamiento</label>
+    <input id="tratamiento" name="tratamiento" type="text" maxlength="120" value={tratamiento} />
+    {ayudaTratamiento && <span class="field__ayuda">{ayudaTratamiento}</span>}
+  </div>
+
+  <div class="field">
+    <label for="inicio">Inicio del tratamiento</label>
+    <input id="inicio" name="inicio" type="date" value={inicio} />
+  </div>
+
+  <div class="field">
+    <label for="estado">Estado del tratamiento</label>
+    <select id="estado" name="estado">
+      {
+        ESTADOS_PACIENTE.map((valor) => (
+          <option value={valor} selected={valor === estado}>
+            {ETIQUETA_ESTADO_PACIENTE[valor]}
+          </option>
+        ))
+      }
+    </select>
+  </div>
+
+  {
+    conNotas && (
+      <div class="field field--ancho">
+        <label for="notas">Notas</label>
+        <textarea id="notas" name="notas" rows="4" maxlength="4000">
+          {notas}
+        </textarea>
+        <span class="field__ayuda">Solo para ti. El paciente no las ve.</span>
+      </div>
+    )
+  }
+</div>

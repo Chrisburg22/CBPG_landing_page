@@ -28,7 +28,12 @@ export default defineConfig({
   // Un fallo aquí es un fallo, no ruido que se arregle repitiendo.
   retries: 0,
   reporter: process.env.CI ? 'list' : [['list']],
-  timeout: 30_000,
+  // 45 y no 30 por cómo funciona `astro dev`: Vite compila cada ruta la primera
+  // vez que se visita, así que la prueba que estrena una ruta paga la
+  // compilación entera y las siguientes no. Con 30 s, estrenar dos rutas en la
+  // misma prueba se salía del presupuesto y fallaba de forma intermitente según
+  // el orden de ejecución — un fallo que no dice nada del producto.
+  timeout: 45_000,
   expect: { timeout: 10_000 },
 
   use: {

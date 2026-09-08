@@ -1,0 +1,183 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { obtener } from '@/lib/pacientes';
+import { aImporte, guardarPlan, obtenerPlan } from '@/lib/pagos';
+import { hoyEnMexico } from '@/lib/formato';
+import type { Paciente, Plan } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/pacientes', 302);
+
+const supabase = Astro.locals.supabase;
+
+let error: string | null = null;
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const costoTotal = aImporte(String(datos.get('costo_total') ?? ''));
+  // El enganche sí puede ser cero, así que no vale `aImporte`, que lo rechaza.
+  const engancheBruto = String(datos.get('enganche') ?? '0').replace(/[$\s,]/g, '');
+  const enganche = engancheBruto === '' ? 0 : Number(engancheBruto);
+  const numCuotas = Number(datos.get('num_cuotas') ?? 0);
+  const diaCorte = Number(datos.get('dia_corte') ?? 1);
+
+  if (costoTotal === null) {
+    error = 'El costo total tiene que ser un número mayor que cero.';
+  } else if (!Number.isFinite(enganche) || enganche < 0) {
+    error = 'El enganche no puede ser negativo.';
+  } else if (enganche > costoTotal) {
+    error = 'El enganche no puede ser mayor que el costo total.';
+  } else if (!Number.isInteger(numCuotas) || numCuotas < 0 || numCuotas > 120) {
+    error = 'El número de mensualidades tiene que estar entre 0 y 120.';
+  } else if (!Number.isInteger(diaCorte) || diaCorte < 1 || diaCorte > 28) {
+    error = 'El día de corte tiene que estar entre 1 y 28.';
+  } else {
+    let ok = false;
+    try {
+      await guardarPlan(supabase, id, {
+        tratamiento: String(datos.get('tratamiento') ?? '').trim().slice(0, 120),
+        costo_total: costoTotal,
+        enganche: Math.round(enganche * 100) / 100,
+        num_cuotas: numCuotas,
+        dia_corte: diaCorte,
+        inicio: String(datos.get('inicio') ?? '') || hoyEnMexico(),
+      });
+      ok = true;
+    } catch (e) {
+      console.error('[admin] no se pudo guardar el plan:', e instanceof Error ? e.message : 'desconocido');
+      error = 'No se pudo guardar el plan. Inténtalo otra vez.';
+    }
+    if (ok) return Astro.redirect(`/admin/pacientes/${id}?plan=1`, 303);
+  }
+}
+
+let paciente: Paciente | null = null;
+let plan: Plan | null = null;
+let fallo: string | null = null;
+
+try {
+  [paciente, plan] = await Promise.all([obtener(supabase, id), obtenerPlan(supabase, id)]);
+} catch (e) {
+  console.error('[admin] no se pudo cargar:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar el plan. Vuelve a intentarlo en un momento.';
+}
+
+if (!paciente && !fallo) return new Response('No encontrado', { status: 404 });
+---
+
+<AdminLayout title={`Plan de ${paciente?.nombre ?? 'paciente'}`} seccion="pacientes">
+  <div class="admin-head">
+    <div>
+      <h1>{plan ? 'Editar plan' : 'Plan de tratamiento'}</h1>
+      {paciente && <p>{paciente.nombre}</p>}
+    </div>
+    <a class="btn btn--ghost btn--chico" href={`/admin/pacientes/${id}`}>← Volver a la ficha</a>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {error && <p class="aviso aviso--error">{error}</p>}
+
+  {
+    plan && (
+      <p class="aviso aviso--info">
+        Al guardar se rehace el calendario de mensualidades. Los pagos ya registrados no se
+        pierden: siguen contando contra el saldo.
+      </p>
+    )
+  }
+
+  {
+    paciente && (
+      <form class="panel panel--formulario" method="post">
+        <p class="panel__texto">
+          Con 0 mensualidades no se genera calendario: es un tratamiento con precio cerrado
+          que se va pagando sin fechas, y el saldo se calcula igual.
+        </p>
+
+        <div class="campos">
+          <div class="field field--ancho">
+            <label for="tratamiento">Tratamiento</label>
+            <input
+              id="tratamiento"
+              name="tratamiento"
+              type="text"
+              maxlength="120"
+              value={plan?.tratamiento || paciente.tratamiento}
+            />
+          </div>
+
+          <div class="field">
+            <label for="costo_total">Costo total</label>
+            <input
+              id="costo_total"
+              name="costo_total"
+              type="text"
+              inputmode="decimal"
+              required
+              value={plan ? Number(plan.costo_total).toFixed(2) : ''}
+              placeholder="0.00"
+            />
+            <span class="field__ayuda">[PRECIO REAL DEL TRATAMIENTO]</span>
+          </div>
+
+          <div class="field">
+            <label for="enganche">Enganche</label>
+            <input
+              id="enganche"
+              name="enganche"
+              type="text"
+              inputmode="decimal"
+              value={plan ? Number(plan.enganche).toFixed(2) : '0.00'}
+            />
+            <span class="field__ayuda">Se resta antes de repartir las mensualidades.</span>
+          </div>
+
+          <div class="field">
+            <label for="num_cuotas">Mensualidades</label>
+            <input
+              id="num_cuotas"
+              name="num_cuotas"
+              type="number"
+              min="0"
+              max="120"
+              value={plan?.num_cuotas ?? 0}
+            />
+          </div>
+
+          <div class="field">
+            <label for="dia_corte">Día de corte</label>
+            <input
+              id="dia_corte"
+              name="dia_corte"
+              type="number"
+              min="1"
+              max="28"
+              value={plan?.dia_corte ?? 1}
+            />
+            <span class="field__ayuda">Del 1 al 28, para que la fecha exista también en febrero.</span>
+          </div>
+
+          <div class="field">
+            <label for="inicio">Inicio del plan</label>
+            <input
+              id="inicio"
+              name="inicio"
+              type="date"
+              value={plan?.inicio ?? paciente.inicio}
+            />
+            <span class="field__ayuda">La primera mensualidad vence el mes siguiente.</span>
+          </div>
+        </div>
+
+        <div class="acciones acciones--fin">
+          <a class="btn btn--ghost btn--chico" href={`/admin/pacientes/${id}`}>Cancelar</a>
+          <button class="btn btn--primary btn--chico" type="submit">
+            {plan ? 'Rehacer plan' : 'Crear plan'}
+          </button>
+        </div>
+      </form>
+    )
+  }
+</AdminLayout>

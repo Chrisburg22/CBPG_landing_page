@@ -67,13 +67,87 @@ export async function sembrarSolicitud(datos: {
   return data.id as string;
 }
 
-/** Borra las filas de esta corrida (o todas las de prueba si no se pasa nombre). */
+/**
+ * Borra las filas de esta corrida (o todas las de prueba si no se pasa nombre).
+ *
+ * Los pacientes van primero: `pacientes.solicitud_id` apunta a `solicitudes`, y
+ * aunque la FK es ON DELETE SET NULL y no impediría el borrado, dejaría
+ * pacientes de prueba huérfanos que ningún filtro por nombre volvería a
+ * encontrar si su nombre se hubiera editado.
+ */
 export async function limpiar(nombre?: string): Promise<void> {
-  const consulta = clienteAdmin().from('solicitudes').delete();
-  const { error } = nombre
-    ? await consulta.eq('nombre', nombre)
-    : await consulta.like('nombre', `${PREFIJO_PRUEBA} %`);
-  if (error) throw new Error(`No se pudo limpiar: ${error.message}`);
+  const cliente = clienteAdmin();
+
+  for (const tabla of ['pacientes', 'solicitudes'] as const) {
+    const consulta = cliente.from(tabla).delete();
+    const { error } = nombre
+      ? await consulta.eq('nombre', nombre)
+      : await consulta.like('nombre', `${PREFIJO_PRUEBA} %`);
+    if (error) throw new Error(`No se pudo limpiar ${tabla}: ${error.message}`);
+  }
+}
+
+/** El paciente que salió de una solicitud, leído sin pasar por la interfaz. */
+export async function pacienteDeSolicitud(solicitudId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('pacientes')
+    .select('id, nombre, telefono, tratamiento, estado, inicio')
+    .eq('solicitud_id', solicitudId)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el paciente: ${error.message}`);
+  return data;
+}
+
+/** Da de alta un paciente sin pasar por la interfaz. */
+export async function sembrarPaciente(datos: {
+  nombre: string;
+  telefono?: string;
+  tratamiento?: string;
+}): Promise<string> {
+  const { data, error } = await clienteAdmin()
+    .from('pacientes')
+    .insert({
+      nombre: datos.nombre,
+      telefono: datos.telefono ?? '33 0000 0000',
+      tratamiento: datos.tratamiento ?? 'Brackets metálicos',
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`No se pudo sembrar el paciente: ${error.message}`);
+  return data.id as string;
+}
+
+/** El saldo calculado por la vista, para contrastarlo con lo que pinta el panel. */
+export async function saldoDePaciente(pacienteId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('vista_saldo_paciente')
+    .select('costo_total, pagado, saldo, cuotas_vencidas, cuotas_pagadas, num_cuotas')
+    .eq('paciente_id', pacienteId)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el saldo: ${error.message}`);
+  return data;
+}
+
+/** Las cuotas generadas para un paciente, con su estado derivado. */
+export async function cuotasDePaciente(pacienteId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('vista_cuotas')
+    .select('numero, monto, restante, vence_el, estado')
+    .eq('paciente_id', pacienteId)
+    .order('numero');
+  if (error) throw new Error(`No se pudieron leer las cuotas: ${error.message}`);
+  return data ?? [];
+}
+
+/** El estado en que quedó una solicitud, leído sin pasar por la interfaz. */
+export async function estadoDeSolicitud(id: string): Promise<string | null> {
+  const { data, error } = await clienteAdmin()
+    .from('solicitudes')
+    .select('estado')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo leer el estado: ${error.message}`);
+  return (data?.estado as string | undefined) ?? null;
 }
 
 /**

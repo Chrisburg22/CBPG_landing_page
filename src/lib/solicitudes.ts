@@ -106,11 +106,9 @@ export async function guardarNotas(supabase: Cliente, id: string, notas: string)
   if (error) throw new Error(`No se pudieron guardar las notas: ${error.message}`);
 }
 
-/** Formato corto para la tabla; largo para el detalle. Siempre hora de Ciudad de México. */
-export function fecha(iso: string, largo = false): string {
-  return new Date(iso).toLocaleString('es-MX', {
-    timeZone: 'America/Mexico_City',
-    dateStyle: largo ? 'long' : 'medium',
-    timeStyle: 'short',
-  });
-}
+/**
+ * Vive en `formato.ts` desde que el panel tiene más de una tabla: las fechas se
+ * escriben igual en solicitudes, pacientes y pagos. Se reexporta aquí para no
+ * tocar los sitios que ya la importaban de este módulo.
+ */
+export { fecha } from './formato';
