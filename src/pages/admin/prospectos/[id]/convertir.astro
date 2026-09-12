@@ -2,6 +2,7 @@
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { fecha, obtener } from '@/lib/solicitudes';
 import { crearDesdeSolicitud, esEstadoPaciente, porSolicitud } from '@/lib/pacientes';
+import { limpiarProximaAccion, registrar } from '@/lib/seguimiento';
 import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE, type Solicitud } from '@/lib/supabase/tipos';
 
 export const prerender = false;
@@ -45,6 +46,18 @@ if (Astro.request.method === 'POST') {
       // caso más probable es que la solicitud ya se hubiera convertido.
       console.error('[admin] conversión falló:', e instanceof Error ? e.message : 'desconocido');
       error = e instanceof Error ? e.message : 'No se pudo crear el paciente.';
+    }
+    if (creado) {
+      // La conversión cierra el seguimiento de captación: ya no hay a quién
+      // perseguir. Aquí sí se limpia sin preguntar —a diferencia de un cambio
+      // de estado— porque convertir es un acto explícito y terminal.
+      await limpiarProximaAccion(supabase, id).catch((e: unknown) => {
+        console.error(
+          '[admin] no se pudo cerrar el seguimiento:',
+          e instanceof Error ? e.message : 'desconocido'
+        );
+      });
+      await registrar(supabase, id, 'conversion');
     }
     // Fuera del try: si el redirect estuviera dentro y fallara, su error
     // acabaría en el catch de arriba y se reportaría como si la ficha no se

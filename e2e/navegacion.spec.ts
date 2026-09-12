@@ -42,11 +42,10 @@ test.describe('Navegación del panel', () => {
   test('el inicio resume los prospectos y lleva al listado', async ({ page }) => {
     await entrarAlPanel(page, '/admin');
 
-    // La solicitud recién sembrada es 'nueva', así que hay al menos una sin atender.
-    await expect(page.locator('.metrica__k', { hasText: 'Sin atender' })).toBeVisible();
-    await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
+    // La solicitud recién sembrada es 'nueva', así que cae en la cola de hoy.
+    await expect(page.locator('.cola__fila', { hasText: nombre })).toBeVisible();
 
-    await page.getByRole('link', { name: 'Ver todos' }).click();
+    await page.getByRole('link', { name: 'Ver todos los prospectos' }).click();
     await expect(page).toHaveURL(/\/admin\/prospectos$/);
     await expect(page.locator('tr', { hasText: nombre })).toBeVisible();
   });

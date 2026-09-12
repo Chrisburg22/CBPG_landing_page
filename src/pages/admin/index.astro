@@ -1,82 +1,113 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import AvisoContactado from '@/components/admin/AvisoContactado.astro';
+import FilaCita from '@/components/admin/FilaCita.astro';
 import { aWhatsapp } from '@/lib/contacto-directo';
-import { contarActivos } from '@/lib/pacientes';
+import { aWhatsappCobro, ultimoPorCuota } from '@/lib/cobranza';
+import { listarDelDia } from '@/lib/citas';
+import { calcular, esPeriodo, ETIQUETA_PERIODO, PERIODOS, type Metricas } from '@/lib/metricas';
 import { porCobrar } from '@/lib/pagos';
-import { dineroCorto, fechaCorta, sumar } from '@/lib/formato';
-import {
-  cambiarEstado,
-  contarNuevas,
-  contarTodas,
-  esEstado,
-  fecha,
-  listar,
-  type SolicitudListado,
-} from '@/lib/solicitudes';
-import { ESTADOS_MANUALES, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
+import { limpiarProximaAccion, registrar, vencidosOHoy, type SeguimientoVencido } from '@/lib/seguimiento';
+import { cambiarEstado, esEstado, listar, type SolicitudListado } from '@/lib/solicitudes';
+import { dineroCorto, fechaCorta } from '@/lib/formato';
+import { diaEnMexico, fechaHora, limitesDelDia } from '@/lib/tiempo';
+import { ETIQUETA_ACCION_PENDIENTE, type Cita } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
-/** Cuántas caben en el resumen antes de que deje de ser un resumen. */
-const TOPE_PENDIENTES = 5;
+/** Cuántas caben en cada bloque antes de que deje de ser una cola y sea un listado. */
+const TOPE = 6;
 
-// Mismo manejador que el listado: el aviso de "¿le escribiste?" aparece también
-// aquí. POST-Redirect-GET, como en el resto del panel.
+const supabase = Astro.locals.supabase;
+const esDoctora = Astro.locals.rol === 'doctora';
+
+// POST-Redirect-GET, como en el resto del panel.
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
+  const accion = String(datos.get('accion') ?? '');
   const id = String(datos.get('id') ?? '');
-  const nuevoEstado = String(datos.get('estado') ?? '');
+
   try {
-    // `terminado` fuera: lo pone solo la conversión, que además crea la ficha.
-    if (id && esEstado(nuevoEstado) && nuevoEstado !== 'terminado') {
-      await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
+    if (accion === 'seguimiento-hecho' && id) {
+      // «Hecho» cierra la acción pendiente y deja constancia de que se hizo:
+      // sin el apunte, la fila desaparecería de la cola sin dejar rastro.
+      await limpiarProximaAccion(supabase, id);
+      await registrar(supabase, id, 'nota', { nota: 'Seguimiento marcado como hecho' });
+    } else {
+      const nuevoEstado = String(datos.get('estado') ?? '');
+      // `terminado` fuera: lo pone solo la conversión, que además crea la ficha.
+      if (id && esEstado(nuevoEstado) && nuevoEstado !== 'terminado') {
+        await cambiarEstado(supabase, id, nuevoEstado);
+        // Marcar «contactada» desde el aviso que aparece al volver de WhatsApp
+        // es, literalmente, haber contactado. Es lo que alimenta la métrica.
+        if (nuevoEstado === 'contactada') {
+          await registrar(supabase, id, 'whatsapp');
+        }
+      }
     }
   } catch (e) {
-    console.error(
-      '[admin] no se pudo cambiar el estado:',
-      e instanceof Error ? e.message : 'desconocido'
-    );
+    console.error('[admin] no se pudo guardar:', e instanceof Error ? e.message : 'desconocido');
   }
-  return Astro.redirect(Astro.url.pathname, 303);
+  return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
 }
 
+const params = Astro.url.searchParams;
+const periodoParam = params.get('periodo');
+const periodo = esPeriodo(periodoParam) ? periodoParam : '30d';
+const denegado = params.get('acceso') === 'denegado';
+
+const hoy = diaEnMexico(new Date());
+const { hasta: finDelDia } = limitesDelDia(hoy);
+
 let pendientes: SolicitudListado[] = [];
-let nuevas = 0;
-let total = 0;
-let activos = 0;
+let seguimientos: SeguimientoVencido[] = [];
+let citasHoy: Cita[] = [];
 let cobros: Awaited<ReturnType<typeof porCobrar>> = [];
 let nombresPaciente = new Map<string, string>();
+let recordatorios = new Map<string, { creado_en: string }>();
+let telefonos = new Map<string, string>();
+let metricas: Metricas | null = null;
 let fallo: string | null = null;
 
 try {
-  const [sinAtender, cuentaNuevas, cuentaTotal, cuentaActivos, pendientesDeCobro] =
-    await Promise.all([
-      listar(Astro.locals.supabase, { estado: 'nueva' }),
-      contarNuevas(Astro.locals.supabase),
-      contarTodas(Astro.locals.supabase),
-      contarActivos(Astro.locals.supabase),
-      porCobrar(Astro.locals.supabase, TOPE_PENDIENTES),
-    ]);
-  pendientes = sinAtender.slice(0, TOPE_PENDIENTES);
-  nuevas = cuentaNuevas;
-  total = cuentaTotal;
-  activos = cuentaActivos;
-  cobros = pendientesDeCobro;
+  const [sinAtender, seguimiento, delDia, numeros] = await Promise.all([
+    listar(supabase, { estado: 'nueva' }),
+    vencidosOHoy(supabase, finDelDia, TOPE),
+    listarDelDia(supabase, hoy),
+    calcular(supabase, periodo, esDoctora),
+  ]);
+  seguimientos = seguimiento;
+  // Cada pendiente aparece UNA vez. Un prospecto sin contestar al que además se
+  // le puso una próxima acción cae en los dos bloques, y verlo dos veces hace
+  // dudar de si son dos personas. Gana el seguimiento: dice qué toca hacer, no
+  // solo que hay algo que hacer.
+  const conSeguimiento = new Set(seguimiento.map((s) => s.id));
+  pendientes = sinAtender.filter((s) => !conSeguimiento.has(s.id)).slice(0, TOPE);
+  // Las canceladas no son trabajo de hoy; las no asistidas tampoco ocupan hueco.
+  citasHoy = delDia.filter((c) => c.estado !== 'cancelada');
+  metricas = numeros;
 
-  // Los nombres de quienes deben algo. La vista de cuotas solo trae ids, y
-  // pedir cada nombre por separado serían tantas consultas como filas.
-  const ids = [...new Set(cobros.map((c) => c.paciente_id))];
-  if (ids.length > 0) {
-    const { data } = await Astro.locals.supabase
-      .from('pacientes')
-      .select('id, nombre')
-      .in('id', ids);
-    nombresPaciente = new Map((data ?? []).map((p) => [p.id, p.nombre]));
+  if (esDoctora) {
+    cobros = await porCobrar(supabase, TOPE);
+    const ids = [...new Set(cobros.map((c) => c.paciente_id))];
+    if (ids.length > 0) {
+      // La vista de cuotas solo trae ids: pedir nombre y teléfono de cada uno
+      // por separado serían tantas consultas como filas.
+      const { data } = await supabase
+        .from('pacientes')
+        .select('id, nombre, telefono')
+        .in('id', ids);
+      nombresPaciente = new Map((data ?? []).map((p) => [p.id, p.nombre]));
+      telefonos = new Map((data ?? []).map((p) => [p.id, p.telefono]));
+      recordatorios = await ultimoPorCuota(
+        supabase,
+        cobros.map((c) => c.id)
+      );
+    }
   }
 } catch (e) {
   console.error('[admin] no se pudo cargar el inicio:', e instanceof Error ? e.message : 'desconocido');
-  fallo = 'No pudimos cargar el resumen. Vuelve a intentarlo en un momento.';
+  fallo = 'No pudimos cargar el tablero. Vuelve a intentarlo en un momento.';
 }
 
 /**
@@ -93,206 +124,313 @@ const hora = Number(
 );
 const saludo = hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
 
-const vencidas = cobros.filter((c) => c.estado === 'vencida');
-const montoVencido = sumar(vencidas.map((c) => c.restante));
-
-const hoy = new Date().toLocaleDateString('es-MX', {
+const fechaDeHoy = new Date().toLocaleDateString('es-MX', {
   timeZone: 'America/Mexico_City',
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 });
+
+const vencidas = cobros.filter((c) => c.estado === 'vencida');
+const pendientesHoy =
+  pendientes.length + seguimientos.length + citasHoy.length + vencidas.length;
+
+/** Enlace que cambia el periodo sin perder el resto de la querystring. */
+function enlacePeriodo(valor: string): string {
+  const nuevos = new URLSearchParams(params);
+  nuevos.set('periodo', valor);
+  return `/admin?${nuevos.toString()}`;
+}
 ---
 
-<AdminLayout title="Inicio" seccion="inicio" nuevas={fallo ? null : nuevas}>
+<AdminLayout title="Inicio" seccion="inicio">
   <div class="admin-head">
     <div>
-      <h1>{saludo}, doctora</h1>
-      <p>{hoy.charAt(0).toLocaleUpperCase('es-MX') + hoy.slice(1)}</p>
+      <h1>{saludo}{esDoctora ? ', doctora' : ''}</h1>
+      <p>{fechaDeHoy.charAt(0).toLocaleUpperCase('es-MX') + fechaDeHoy.slice(1)}</p>
     </div>
     <div class="acciones">
-      <a class="btn btn--ghost btn--chico" href="/admin/pacientes/nuevo">+ Nuevo paciente</a>
-      <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo">+ Registrar pago</a>
+      <a class="btn btn--ghost btn--chico" href="/admin/agenda/nueva">+ Nueva cita</a>
+      {
+        esDoctora && (
+          <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo">
+            + Registrar pago
+          </a>
+        )
+      }
     </div>
   </div>
+
+  {
+    denegado && (
+      <p class="aviso aviso--aviso">
+        Esa sección es solo de la doctora. Con tu cuenta puedes trabajar prospectos, seguimiento
+        y agenda.
+      </p>
+    )
+  }
 
   {fallo && <p class="aviso aviso--error">{fallo}</p>}
 
   <AvisoContactado modo="listado" />
 
-  {
-    !fallo && (
-      <div class="metricas">
-        <div class="metrica">
-          <span class="metrica__k">Sin atender</span>
-          <span class="metrica__v">{nuevas}</span>
-          <span class={nuevas > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
-            {nuevas > 0
-              ? nuevas === 1
-                ? 'Prospecto por contactar'
-                : 'Prospectos por contactar'
-              : 'Todo contestado'}
-          </span>
-        </div>
-        <div class="metrica">
-          <span class="metrica__k">Vencido</span>
-          <span class="metrica__v">{montoVencido > 0 ? dineroCorto(montoVencido) : '—'}</span>
-          <span class={vencidas.length > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
-            {vencidas.length > 0
-              ? `${vencidas.length} ${vencidas.length === 1 ? 'cuota vencida' : 'cuotas vencidas'}`
-              : 'Nada vencido'}
-          </span>
-        </div>
-        <div class="metrica">
-          <span class="metrica__k">Pacientes</span>
-          <span class="metrica__v">{activos}</span>
-          <span class="metrica__d">En tratamiento</span>
-        </div>
-        <div class="metrica">
-          <span class="metrica__k">Solicitudes</span>
-          <span class="metrica__v">{total}</span>
-          <span class="metrica__d">Desde que abrió el formulario</span>
-        </div>
-      </div>
-    )
-  }
+  {/* ------------------------------------------------------------ Hoy */}
+  <div class="panel panel--lista">
+    <div class="panel__cabecera">
+      <h2 class="panel__titulo">Hoy</h2>
+      <span class="tabla__sec">
+        {pendientesHoy === 0 ? 'Nada pendiente' : `${pendientesHoy} por atender`}
+      </span>
+    </div>
 
-  {
-    !fallo && (
-      <div class="panel panel--lista">
-        <div class="panel__cabecera">
-          <h2 class="panel__titulo">Sin contactar</h2>
-          <a href="/admin/prospectos">Ver todos</a>
+    {
+      !fallo && pendientesHoy === 0 && (
+        <div class="vacio">
+          <strong>Al día</strong>
+          <p>
+            No hay prospectos sin contestar, seguimientos vencidos, citas de hoy ni cuotas
+            vencidas.
+          </p>
         </div>
+      )
+    }
 
-        {pendientes.length === 0 ? (
-          <div class="vacio">
-            <strong>Todo contestado</strong>
-            <p>
-              No hay solicitudes nuevas. Las que lleguen por el formulario de la página
-              aparecerán aquí.
-            </p>
-          </div>
-        ) : (
-          <div class="tabla-scroll">
-            <table class="tabla">
-              <thead>
-                <tr>
-                  <th>Prospecto</th>
-                  <th>Tratamiento</th>
-                  <th>Recibida</th>
-                  <th>Estado</th>
-                  <th>
-                    <span class="visualmente-oculto">Contactar</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendientes.map((s) => (
-                  <tr>
-                    <td>
-                      <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
-                        {s.nombre}
-                      </a>
-                      <span class="tabla__sec">{s.telefono}</span>
-                    </td>
-                    <td class="tabla__meta">{s.tratamiento}</td>
-                    <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
-                    <td class="tabla__estado">
-                      {/* El mismo selector que el listado: marcar a alguien como
-                          contactado es lo primero que se hace tras escribirle, y
-                          obligar a cambiar de pantalla para eso sobra. */}
-                      <form method="post" class="estado-rapido">
-                        <input type="hidden" name="id" value={s.id} />
-                        <label class="visualmente-oculto" for={`estado-${s.id}`}>
-                          Estado de {s.nombre}
-                        </label>
-                        <select
-                          class={`estado-rapido__select chip chip--${s.estado}`}
-                          id={`estado-${s.id}`}
-                          name="estado"
-                        >
-                          {ESTADOS_MANUALES.map((valor) => (
-                            <option value={valor} selected={valor === s.estado}>
-                              {ETIQUETA_ESTADO[valor]}
-                            </option>
-                          ))}
-                        </select>
-                        <button class="estado-rapido__ok" type="submit">Guardar</button>
-                      </form>
-                    </td>
-                    <td class="tabla__accion">
+    {/* 1. Prospectos sin atender. Una sola acción: escribirle. */}
+    {
+      pendientes.length > 0 && (
+        <div class="cola">
+          <h3 class="cola__titulo">Sin contestar</h3>
+          <ul class="cola__lista">
+            {pendientes.map((s) => (
+              <li class="cola__fila">
+                <div class="cola__quien">
+                  <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
+                    {s.nombre}
+                  </a>
+                  <span class="tabla__sec">
+                    {s.tratamiento} · {fechaHora(s.creado_en)}
+                  </span>
+                </div>
+                <div class="cola__accion">
+                  <a
+                    class="btn btn--primary btn--chico"
+                    href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-wa-id={s.id}
+                    data-wa-nombre={s.nombre}
+                    data-wa-estado={s.estado}
+                  >
+                    Contactar
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <a class="cola__mas" href="/admin/prospectos">
+            Ver todos los prospectos
+          </a>
+        </div>
+      )
+    }
+
+    {/* 2. Seguimientos vencidos o de hoy. */}
+    {
+      seguimientos.length > 0 && (
+        <div class="cola">
+          <h3 class="cola__titulo">Seguimiento</h3>
+          <ul class="cola__lista">
+            {seguimientos.map((s) => (
+              <li class="cola__fila">
+                <div class="cola__quien">
+                  <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
+                    {s.nombre}
+                  </a>
+                  <span class="tabla__sec">
+                    {s.proxima_accion_tipo
+                      ? ETIQUETA_ACCION_PENDIENTE[s.proxima_accion_tipo]
+                      : 'Seguimiento'}
+                    {' · '}
+                    {fechaHora(s.proxima_accion_en)}
+                    {s.proxima_accion_nota && ` · ${s.proxima_accion_nota}`}
+                  </span>
+                </div>
+                <div class="cola__accion">
+                  <a
+                    class="btn btn--primary btn--chico"
+                    href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Contactar
+                  </a>
+                  {/* Cerrar la acción es lo que saca la fila de la cola. Sin
+                      este botón habría que entrar a la ficha para todo. */}
+                  <form method="post" class="cola__hecho">
+                    <input type="hidden" name="accion" value="seguimiento-hecho" />
+                    <input type="hidden" name="id" value={s.id} />
+                    <button class="btn btn--ghost btn--chico" type="submit">
+                      Hecho
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+
+    {/* 3. Las citas del día. */}
+    {
+      citasHoy.length > 0 && (
+        <div class="cola">
+          <h3 class="cola__titulo">Citas de hoy</h3>
+          <ul class="citas">
+            {citasHoy.map((cita) => (
+              <FilaCita cita={cita} />
+            ))}
+          </ul>
+          <a class="cola__mas" href="/admin/agenda">
+            Ver la agenda
+          </a>
+        </div>
+      )
+    }
+
+    {/* 4. Cobranza. Solo la doctora: recepción no ve dinero. */}
+    {
+      esDoctora && vencidas.length > 0 && (
+        <div class="cola">
+          <h3 class="cola__titulo">Cuotas vencidas</h3>
+          <ul class="cola__lista">
+            {vencidas.map((c) => {
+              const nombre = nombresPaciente.get(c.paciente_id) ?? 'Paciente';
+              const telefono = telefonos.get(c.paciente_id) ?? '';
+              const aviso = recordatorios.get(c.id);
+              return (
+                <li class="cola__fila">
+                  <div class="cola__quien">
+                    <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
+                      {nombre}
+                    </a>
+                    <span class="tabla__sec">
+                      Mensualidad {c.numero} · {dineroCorto(c.restante)} · venció{' '}
+                      {fechaCorta(c.vence_el)}
+                      {aviso && ` · recordado el ${fechaCorta(diaEnMexico(aviso.creado_en))}`}
+                    </span>
+                  </div>
+                  <div class="cola__accion">
+                    {telefono ? (
                       <a
                         class="btn btn--primary btn--chico"
-                        href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                        href={aWhatsappCobro(telefono, {
+                          nombre,
+                          numero: c.numero,
+                          restante: c.restante,
+                          venceEl: c.vence_el,
+                          vencida: true,
+                        })}
                         target="_blank"
                         rel="noopener noreferrer"
-                        data-wa-id={s.id}
-                        data-wa-nombre={s.nombre}
-                        data-wa-estado={s.estado}
                       >
-                        WhatsApp
+                        Cobrar
                       </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  {
-    !fallo && cobros.length > 0 && (
-      <div class="panel panel--lista">
-        <div class="panel__cabecera">
-          <h2 class="panel__titulo">Por cobrar</h2>
-          <a href="/admin/pagos">Ir a pagos</a>
-        </div>
-        <div class="tabla-scroll">
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>Paciente</th>
-                <th>Concepto</th>
-                <th>Vence</th>
-                <th class="tabla__num">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cobros.map((c) => (
-                <tr>
-                  <td>
-                    <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
-                      {nombresPaciente.get(c.paciente_id) ?? 'Paciente'}
-                    </a>
-                  </td>
-                  <td class="tabla__meta">Mensualidad {c.numero}</td>
-                  <td class="tabla__fecha tabla__meta">
-                    {c.estado === 'vencida' ? (
-                      <span class="chip chip--vencida">Venció {fechaCorta(c.vence_el)}</span>
                     ) : (
-                      fechaCorta(c.vence_el)
+                      <a class="btn btn--ghost btn--chico" href="/admin/pagos">
+                        Ver en pagos
+                      </a>
                     )}
-                  </td>
-                  <td class="tabla__num">{dineroCorto(c.restante)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          <a class="cola__mas" href="/admin/pagos">
+            Ir a pagos
+          </a>
         </div>
+      )
+    }
+  </div>
+
+  {/* -------------------------------------------------------- Métricas */}
+  {
+    metricas && (
+      <div class="panel">
+        <div class="panel__cabecera">
+          <h2 class="panel__titulo">Cómo va</h2>
+          <div class="periodos">
+            {PERIODOS.map((valor) => (
+              <a
+                class={`periodo ${valor === periodo ? 'periodo--activo' : ''}`}
+                href={enlacePeriodo(valor)}
+              >
+                {ETIQUETA_PERIODO[valor]}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="metricas">
+          <div class="metrica">
+            <span class="metrica__k">Solicitudes</span>
+            <span class="metrica__v">{metricas.recibidas}</span>
+            <span class="metrica__d">Recibidas en el periodo</span>
+          </div>
+          <div class="metrica">
+            <span class="metrica__k">Contactadas</span>
+            <span class="metrica__v">{metricas.contactadas}</span>
+            <span class="metrica__d">Prospectos distintos</span>
+          </div>
+          <div class="metrica">
+            <span class="metrica__k">Agendadas</span>
+            <span class="metrica__v">{metricas.agendadas}</span>
+            <span class="metrica__d">Con cita creada</span>
+          </div>
+          <div class="metrica">
+            <span class="metrica__k">Convertidas</span>
+            <span class="metrica__v">{metricas.convertidas}</span>
+            <span class="metrica__d">
+              {metricas.conversion === null
+                ? 'Sin solicitudes que comparar'
+                : `${metricas.conversion}% de conversión`}
+            </span>
+          </div>
+          <div class="metrica">
+            <span class="metrica__k">Citas atendidas</span>
+            <span class="metrica__v">{metricas.citasAtendidas}</span>
+            <span class={metricas.citasNoAsistio > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d'}>
+              {metricas.citasNoAsistio} no {metricas.citasNoAsistio === 1 ? 'asistió' : 'asistieron'}
+            </span>
+          </div>
+          {metricas.cobrado !== null && (
+            <div class="metrica">
+              <span class="metrica__k">Cobrado</span>
+              <span class="metrica__v">{dineroCorto(metricas.cobrado)}</span>
+              <span class="metrica__d">En el periodo</span>
+            </div>
+          )}
+          {metricas.vencido !== null && (
+            <div class="metrica">
+              <span class="metrica__k">Vencido</span>
+              <span class="metrica__v">
+                {metricas.vencido > 0 ? dineroCorto(metricas.vencido) : '—'}
+              </span>
+              <span
+                class={metricas.vencido > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}
+              >
+                {metricas.vencido > 0 ? 'A día de hoy' : 'Nada vencido'}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <p class="panel__nota">
+          «Contactadas» cuenta acciones registradas desde el panel, así que empieza a contar
+          desde que existe el seguimiento: lo anterior no aparece aquí.
+        </p>
       </div>
     )
   }
-
-  <script is:inline>
-    for (const form of document.querySelectorAll('.estado-rapido')) {
-      form.classList.add('estado-rapido--auto');
-      form.querySelector('select')?.addEventListener('change', (e) => {
-        e.target.form.submit();
-      });
-    }
-  </script>
 </AdminLayout>

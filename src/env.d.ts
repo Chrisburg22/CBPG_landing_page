@@ -15,5 +15,10 @@ declare namespace App {
     >;
     /** Usuaria autenticada Y dentro de la allowlist. `null` si cualquiera de las dos falla. */
     user: import('@supabase/supabase-js').User | null;
+    /**
+     * Rol de la cuenta, leído de `admins` por el middleware. `null` cuando no
+     * hay sesión válida — que es el mismo caso en que `user` es `null`.
+     */
+    rol: import('@/lib/supabase/tipos').Rol | null;
   }
 }

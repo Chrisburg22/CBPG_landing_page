@@ -1,0 +1,236 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import FilaCita from '@/components/admin/FilaCita.astro';
+import {
+  cambiarEstado,
+  esEstadoCita,
+  listarEntre,
+  obtener as obtenerCita,
+  pendientesDeSincronizar,
+} from '@/lib/citas';
+import { sincronizacionActiva } from '@/lib/google/almacen';
+import { reintentar, sincronizar } from '@/lib/google/sincronizar';
+import {
+  diaCortoConNumero,
+  diaEnMexico,
+  diaLargo,
+  lunesDeLaSemana,
+  sumarDias,
+} from '@/lib/tiempo';
+import { ESTADOS_CITA, ETIQUETA_ESTADO_CITA, type Cita } from '@/lib/supabase/tipos';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+const hoy = diaEnMexico(new Date());
+
+// POST-Redirect-GET, como en el resto del panel. Astro valida Origin por su
+// cuenta, y por eso esto son formularios nativos y no fetch con JSON.
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const accion = String(datos.get('accion') ?? '');
+  // Conservar los filtros: perder el día que estabas mirando al marcar una
+  // cita como atendida sería desconcertante.
+  const volver = new URL(Astro.url);
+  volver.searchParams.delete('error');
+
+  try {
+    if (accion === 'estado') {
+      const id = String(datos.get('id') ?? '');
+      const nuevo = String(datos.get('estado') ?? '');
+      if (id && esEstadoCita(nuevo)) {
+        const activa = await sincronizacionActiva();
+        await cambiarEstado(supabase, id, nuevo, activa);
+        // Cancelar borra el evento en Google. Se intenta aquí mismo y, si
+        // falla, la cita queda marcada y el botón de reintentar la recoge:
+        // nunca se pierde la cancelación por un fallo de Google.
+        if (activa && nuevo === 'cancelada') {
+          const cita = await obtenerCita(supabase, id);
+          if (cita) await sincronizar(supabase, cita);
+        }
+      }
+    } else if (accion === 'sincronizar') {
+      const pendientes = await pendientesDeSincronizar(supabase);
+      await reintentar(supabase, pendientes);
+    }
+  } catch (e) {
+    console.error('[admin] agenda:', e instanceof Error ? e.message : 'desconocido');
+    volver.searchParams.set('error', '1');
+  }
+  return Astro.redirect(`${volver.pathname}${volver.search}`, 303);
+}
+
+const params = Astro.url.searchParams;
+const vista = params.get('vista') === 'semana' ? 'semana' : 'dia';
+const diaParam = params.get('dia');
+const dia = diaParam && /^\d{4}-\d{2}-\d{2}$/.test(diaParam) ? diaParam : hoy;
+const estadoParam = params.get('estado');
+const estado = esEstadoCita(estadoParam) ? estadoParam : undefined;
+const soloMias = params.get('mias') === '1';
+
+// En vista semanal el rango va de lunes a domingo; en diaria, un solo día.
+const primerDia = vista === 'semana' ? lunesDeLaSemana(dia) : dia;
+const ultimoDia = vista === 'semana' ? sumarDias(primerDia, 6) : dia;
+const salto = vista === 'semana' ? 7 : 1;
+
+let citas: Cita[] = [];
+let sinSincronizar = 0;
+let integracionActiva = false;
+let fallo: string | null = null;
+
+try {
+  const filtro = {
+    estado,
+    responsable: soloMias ? (Astro.locals.user?.id ?? undefined) : undefined,
+  };
+  const [lista, pendientes, activa] = await Promise.all([
+    listarEntre(supabase, primerDia, ultimoDia, filtro),
+    pendientesDeSincronizar(supabase, 100),
+    sincronizacionActiva(),
+  ]);
+  citas = lista;
+  sinSincronizar = pendientes.length;
+  integracionActiva = activa;
+} catch (e) {
+  console.error('[admin] no se pudo cargar la agenda:', e instanceof Error ? e.message : 'desconocido');
+  fallo = 'No pudimos cargar la agenda. Vuelve a intentarlo en un momento.';
+}
+
+/** Las citas agrupadas por día mexicano, para la vista semanal. */
+const porDia = new Map<string, Cita[]>();
+for (let i = 0; i < (vista === 'semana' ? 7 : 1); i += 1) {
+  porDia.set(sumarDias(primerDia, i), []);
+}
+for (const cita of citas) {
+  const clave = diaEnMexico(cita.inicia_en);
+  porDia.get(clave)?.push(cita);
+}
+
+/** Mantiene el resto de filtros al moverse de día o cambiar de vista. */
+function enlace(cambios: Record<string, string | undefined>): string {
+  const nuevos = new URLSearchParams(params);
+  for (const [clave, valor] of Object.entries(cambios)) {
+    if (valor === undefined) nuevos.delete(clave);
+    else nuevos.set(clave, valor);
+  }
+  const cadena = nuevos.toString();
+  return `/admin/agenda${cadena ? `?${cadena}` : ''}`;
+}
+
+const hayFiltro = !!estado || soloMias;
+const errorGuardar = params.get('error') === '1';
+const titulo = vista === 'semana' ? `Semana del ${diaLargo(primerDia, false)}` : diaLargo(dia);
+---
+
+<AdminLayout title="Agenda" seccion="agenda">
+  <div class="admin-head">
+    <div>
+      <h1>Agenda</h1>
+      <p>
+        {titulo}
+        {` · ${citas.length} ${citas.length === 1 ? 'cita' : 'citas'}`}
+        {hayFiltro && ' con este filtro'}
+      </p>
+    </div>
+    <div class="acciones">
+      {
+        Astro.locals.rol === 'doctora' && (
+          <a class="btn btn--ghost btn--chico" href="/admin/integracion/google">
+            Google Calendar
+          </a>
+        )
+      }
+      <a class="btn btn--primary btn--chico" href="/admin/agenda/nueva">+ Nueva cita</a>
+    </div>
+  </div>
+
+  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {errorGuardar && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
+
+  {
+    integracionActiva && sinSincronizar > 0 && (
+      /* Nunca se pierde una cita por un fallo de Google: se guarda igual y se
+         reintenta desde aquí, a mano y cuando se quiera. */
+      <div class="aviso aviso--aviso aviso--accion">
+        <span>
+          {sinSincronizar === 1
+            ? 'Hay 1 cita sin reflejar en Google Calendar.'
+            : `Hay ${sinSincronizar} citas sin reflejar en Google Calendar.`}
+        </span>
+        <form method="post">
+          <input type="hidden" name="accion" value="sincronizar" />
+          <button class="btn btn--ghost btn--chico" type="submit">Reintentar</button>
+        </form>
+      </div>
+    )
+  }
+
+  <div class="agenda-barra">
+    <div class="agenda-nav">
+      <a class="btn btn--ghost btn--chico" href={enlace({ dia: sumarDias(dia, -salto) })}>←</a>
+      <a class="btn btn--ghost btn--chico" href={enlace({ dia: hoy })}>Hoy</a>
+      <a class="btn btn--ghost btn--chico" href={enlace({ dia: sumarDias(dia, salto) })}>→</a>
+    </div>
+
+    <div class="agenda-vista">
+      <a
+        class={`btn btn--chico ${vista === 'dia' ? 'btn--primary' : 'btn--ghost'}`}
+        href={enlace({ vista: 'dia' })}>Día</a
+      >
+      <a
+        class={`btn btn--chico ${vista === 'semana' ? 'btn--primary' : 'btn--ghost'}`}
+        href={enlace({ vista: 'semana' })}>Semana</a
+      >
+    </div>
+
+    <form class="filtros" method="get" action="/admin/agenda">
+      <input type="hidden" name="vista" value={vista} />
+      <input type="hidden" name="dia" value={dia} />
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" name="estado">
+          <option value="">Todos</option>
+          {
+            ESTADOS_CITA.map((valor) => (
+              <option value={valor} selected={valor === estado}>
+                {ETIQUETA_ESTADO_CITA[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <label class="check">
+        <input type="checkbox" name="mias" value="1" checked={soloMias} />
+        Solo las mías
+      </label>
+      <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  {
+    !fallo &&
+      [...porDia.entries()].map(([clave, delDia]) => (
+        <div class="panel panel--lista">
+          <div class="panel__cabecera">
+            <h2 class="panel__titulo">
+              {vista === 'semana' ? diaCortoConNumero(clave) : diaLargo(clave)}
+              {clave === hoy && <span class="chip chip--hoy">Hoy</span>}
+            </h2>
+            <a href={`/admin/agenda/nueva?dia=${clave}`}>+ Cita</a>
+          </div>
+
+          {delDia.length === 0 ? (
+            <div class={`vacio ${vista === 'semana' ? 'vacio--linea' : 'vacio--chico'}`}>
+              <p>Sin citas{hayFiltro ? ' con este filtro' : ''}.</p>
+            </div>
+          ) : (
+            <ul class="citas">
+              {delDia.map((cita) => (
+                <FilaCita cita={cita} />
+              ))}
+            </ul>
+          )}
+        </div>
+      ))
+  }
+</AdminLayout>

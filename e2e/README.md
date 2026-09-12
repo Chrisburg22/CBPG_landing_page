@@ -10,7 +10,7 @@ pnpm test:e2e:ui # con la interfaz de Playwright
 
 ```bash
 pnpm admin listar
-pnpm admin alta <correo> [contraseña]
+pnpm admin alta <correo> [contraseña] [--rol=doctora|recepcionista]
 pnpm admin baja <correo>
 ```
 
@@ -19,11 +19,27 @@ El acceso son dos barreras independientes: la variable `ADMIN_EMAILS` y la tabla
 que hay que cambiar a mano en el `.env` **y** en Vercel. `listar` marca con `○`
 las cuentas que están solo en una de las dos: esas no funcionan.
 
+Cada cuenta tiene además un **rol** en `admins.rol`: `doctora` (todo) o
+`recepcionista` (prospectos, seguimiento y agenda). Sin `--rol`, el alta usa
+`recepcionista`, que es el menos privilegiado. `listar` lo enseña en la última
+columna. Para cambiárselo a una cuenta que ya existe:
+
+```sql
+update public.admins set rol = 'doctora' where email = '…';
+```
+
 ## Antes de correrlas
 
 Hace falta el `.env` de la aplicación más `E2E_ADMIN_PASSWORD`, la contraseña de
-una cuenta que esté en `ADMIN_EMAILS` **y** en la tabla `admins`. Si falta,
-las pruebas lo dicen en vez de fallar de forma críptica.
+una cuenta que esté en `ADMIN_EMAILS` **y** en la tabla `admins`, con rol
+`doctora`. Si falta, las pruebas lo dicen en vez de fallar de forma críptica.
+
+Las pruebas de `roles.spec.ts` que necesitan una recepcionista **se saltan**
+mientras no existan `E2E_RECEPCION_EMAIL` y `E2E_RECEPCION_PASSWORD`. No se
+pueden crear al vuelo: entrar al panel exige estar también en `ADMIN_EMAILS`,
+que es una variable con la que el servidor ya arrancó. Para activarlas: dar de
+alta la cuenta con `pnpm admin alta`, dejarla con rol `recepcionista`, añadir su
+correo a `ADMIN_EMAILS` y poner las dos variables en el `.env`.
 
 ## Tres cosas que conviene saber
 
@@ -46,6 +62,13 @@ reutilizado arrastraría la cuota gastada de la corrida anterior. Se le pasa
 `--ignore-lock` para que conviva con tu `astro dev` normal, y
 `ASTRO_DEV_BACKGROUND=0` para que Astro 7 no lo demonice — ver los comentarios de
 `playwright.config.ts`.
+
+**Dos archivos no tocan el navegador.** `google.spec.ts` prueba el adaptador de
+Google Calendar contra un `fetch` simulado —creación, actualización,
+cancelación, error de Google, caída de red— y las conversiones de hora de la
+agenda. `roles.spec.ts` empieza comprobando `puedeVer()` sin sesión. Usan
+Playwright como ejecutor de pruebas, nada más: así no hace falta una cuenta de
+Google por cada quien corra la suite.
 
 ## Lo que no cubren
 

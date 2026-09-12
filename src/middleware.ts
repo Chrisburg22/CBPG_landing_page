@@ -1,6 +1,8 @@
 import { defineMiddleware } from 'astro:middleware';
 import { crearClienteServidor } from '@/lib/supabase/servidor';
 import { emailsPermitidos, normalizarRuta, RUTAS_PUBLICAS_ADMIN } from '@/lib/admin';
+import { obtenerRol, puedeVer } from '@/lib/roles';
+import type { Rol } from '@/lib/supabase/tipos';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // Con output:'static' el middleware TAMBIÉN corre en build, una vez por ruta
@@ -32,8 +34,27 @@ export const onRequest = defineMiddleware(async (context, next) => {
     console.error('[admin] no se pudo validar la sesión:', e instanceof Error ? e.message : 'desconocido');
   }
 
-  const autorizada = !!user?.email && emailsPermitidos().has(user.email.toLowerCase());
+  const enAllowlist = !!user?.email && emailsPermitidos().has(user.email.toLowerCase());
+
+  // El rol decide qué secciones existen para esta persona. Se lee aquí y no en
+  // cada página para que la comprobación no dependa de que nadie se olvide.
+  //
+  // Sin fila en `admins` no hay rol, y sin rol no se pasa: RLS ya le devolvería
+  // cero filas a todo, así que dejarla entrar solo produciría pantallas vacías
+  // sin explicación. Un fallo de red aquí se trata igual — mejor mandar al
+  // acceso que servir un panel del que no sabemos qué puede ver.
+  let rol: Rol | null = null;
+  if (enAllowlist && user) {
+    try {
+      rol = await obtenerRol(supabase, user.id);
+    } catch (e) {
+      console.error('[admin] no se pudo leer el rol:', e instanceof Error ? e.message : 'desconocido');
+    }
+  }
+
+  const autorizada = enAllowlist && rol !== null;
   context.locals.user = autorizada ? user : null;
+  context.locals.rol = autorizada ? rol : null;
 
   if (RUTAS_PUBLICAS_ADMIN.has(ruta)) {
     // Única redirección desde una ruta pública: ya hay sesión y sobra el login.
@@ -43,6 +64,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // rebotando entre /admin y /admin/login para siempre.
     if (user) await supabase.auth.signOut();
     return context.redirect('/admin/login', 302);
+  } else if (rol && !puedeVer(rol, ruta)) {
+    // Barrera de ruta, no de botón. La de verdad es RLS —la recepcionista no
+    // puede leer pacientes ni pagos aunque llegue—, pero cortar aquí evita
+    // consultar nada y deja un mensaje en vez de una tabla vacía.
+    //
+    // Para un POST no vale redirigir: un 303 a /admin lo convertiría en un GET
+    // y parecería que la escritura se hizo. Un 403 dice lo que pasó.
+    if (context.request.method !== 'GET') {
+      return new Response('Sin acceso a esta sección.', { status: 403 });
+    }
+    return context.redirect('/admin?acceso=denegado', 303);
   }
 
   const respuesta = await next();

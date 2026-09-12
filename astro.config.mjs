@@ -45,6 +45,23 @@ export default defineConfig({
       ADMIN_EMAILS: envField.string({ context: 'server', access: 'secret', min: 5 }),
       /** Vercel lo inyecta como `Authorization: Bearer …` en los cron. */
       CRON_SECRET: envField.string({ context: 'server', access: 'secret', min: 32 }),
+
+      // Google Calendar. Las tres son OPCIONALES a propósito: el panel funciona
+      // entero sin calendario conectado —las citas se guardan igual y quedan
+      // como «sin sincronizar»—, y obligar a rellenarlas rompería el despliegue
+      // de un consultorio que decidió no usar Google.
+      /** ID de cliente OAuth del proyecto de Google Cloud. */
+      GOOGLE_CLIENT_ID: envField.string({ context: 'server', access: 'public', optional: true }),
+      GOOGLE_CLIENT_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+      }),
+      /**
+       * 32 bytes en hexadecimal. Cifra los tokens de Google antes de guardarlos.
+       * Generar con: openssl rand -hex 32
+       */
+      GOOGLE_TOKEN_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
 });

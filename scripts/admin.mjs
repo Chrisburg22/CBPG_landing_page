@@ -12,8 +12,12 @@
  * de diagnosticar.
  *
  *   node scripts/admin.mjs listar
- *   node scripts/admin.mjs alta  <correo> [contraseña]
+ *   node scripts/admin.mjs alta  <correo> [contraseña] [--rol=doctora|recepcionista]
  *   node scripts/admin.mjs baja  <correo>
+ *
+ * El rol por defecto es `recepcionista`, el menos privilegiado: una cuenta que
+ * nace pudiendo verlo todo por olvido es un problema más caro que una que nace
+ * sin poder ver los pagos.
  */
 import { config as cargarEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
@@ -29,8 +33,18 @@ if (!URL || !SECRETA) {
 }
 
 const supabase = createClient(URL, SECRETA, { auth: { persistSession: false } });
-const [accion, correoBruto, passwordDada] = process.argv.slice(2);
+
+const argumentos = process.argv.slice(2);
+const [accion, correoBruto, passwordDada] = argumentos.filter((a) => !a.startsWith('--'));
 const correo = correoBruto?.trim().toLowerCase();
+
+const ROLES = ['doctora', 'recepcionista'];
+const rolPedido = argumentos.find((a) => a.startsWith('--rol='))?.slice('--rol='.length);
+if (rolPedido && !ROLES.includes(rolPedido)) {
+  console.error(`--rol tiene que ser ${ROLES.join(' o ')}.`);
+  process.exit(1);
+}
+const rol = rolPedido ?? 'recepcionista';
 
 /** Contraseña larga y aleatoria: nadie tiene por qué inventarse una. */
 const generarPassword = () => randomBytes(12).toString('base64url');
@@ -56,8 +70,10 @@ async function buscarUsuario(email) {
 }
 
 async function listar() {
-  const { data, error } = await supabase.from('admins').select('email, creado_en, user_id');
+  const { data, error } = await supabase.from('admins').select('email, creado_en, user_id, rol');
   if (error) throw new Error(error.message);
+
+  const roles = new Map(data.map((f) => [f.email.toLowerCase(), f.rol]));
 
   const enVariable = (process.env.ADMIN_EMAILS ?? '')
     .split(',')
@@ -70,7 +86,10 @@ async function listar() {
     const variable = enVariable.includes(email) ? 'ADMIN_EMAILS ✓' : 'ADMIN_EMAILS ✗';
     const tabla = enTabla.includes(email) ? 'admins ✓' : 'admins ✗';
     const completo = enVariable.includes(email) && enTabla.includes(email);
-    console.log(`  ${completo ? '●' : '○'} ${email.padEnd(34)} ${variable}   ${tabla}`);
+    const papel = roles.get(email) ?? '—';
+    console.log(
+      `  ${completo ? '●' : '○'} ${email.padEnd(34)} ${variable}   ${tabla}   ${papel}`
+    );
   }
   if (![...enVariable].every((e) => enTabla.includes(e)) ||
       ![...enTabla].every((e) => enVariable.includes(e))) {
@@ -105,9 +124,12 @@ async function alta() {
 
   const { error } = await supabase
     .from('admins')
-    .upsert({ user_id: usuario.id, email: correo }, { onConflict: 'user_id' });
+    .upsert({ user_id: usuario.id, email: correo, rol }, { onConflict: 'user_id' });
   if (error) throw new Error(error.message);
-  console.log('Fila añadida a la tabla `admins`.');
+  console.log(`Fila añadida a la tabla \`admins\` con rol \`${rol}\`.`);
+  if (rol === 'recepcionista') {
+    console.log('  (recepción no ve pacientes, planes ni pagos. Para todo: --rol=doctora)');
+  }
 
   const actuales = (process.env.ADMIN_EMAILS ?? '')
     .split(',').map((v) => v.trim()).filter(Boolean);
@@ -150,7 +172,7 @@ if (!acciones[accion] || (accion !== 'listar' && !correo)) {
   console.error(
     'Uso:\n' +
       '  node scripts/admin.mjs listar\n' +
-      '  node scripts/admin.mjs alta <correo> [contraseña]\n' +
+      '  node scripts/admin.mjs alta <correo> [contraseña] [--rol=doctora|recepcionista]\n' +
       '  node scripts/admin.mjs baja <correo>'
   );
   process.exit(1);

@@ -9,18 +9,37 @@ import {
   porCobrar,
   type MovimientoPago,
 } from '@/lib/pagos';
-import { ETIQUETA_METODO_PAGO, ETIQUETA_TIPO_PAGO, TIPOS_PAGO } from '@/lib/supabase/tipos';
+import { aWhatsappCobro, registrarRecordatorio, ultimoPorCuota } from '@/lib/cobranza';
+import { diaEnMexico } from '@/lib/tiempo';
+import {
+  ETIQUETA_METODO_PAGO,
+  ETIQUETA_TIPO_PAGO,
+  TIPOS_PAGO,
+  type RecordatorioCobro,
+} from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
-// Borrar un pago mal registrado. POST-Redirect-GET como el resto del panel.
+// Borrar un pago mal registrado, o dejar constancia de un recordatorio de cobro.
+// POST-Redirect-GET como el resto del panel.
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
+  const accion = String(datos.get('accion') ?? 'borrar');
   const id = String(datos.get('id') ?? '');
   try {
-    if (id) await borrar(Astro.locals.supabase, id);
+    if (accion === 'recordatorio') {
+      // La aplicación no manda el mensaje: lo manda la doctora desde su
+      // teléfono. Lo único que se registra es que lo dio por enviado, que es
+      // lo que evita cobrarle dos veces a la misma persona.
+      await registrarRecordatorio(Astro.locals.supabase, {
+        cuotaId: id,
+        pacienteId: String(datos.get('paciente') ?? ''),
+      });
+    } else if (id) {
+      await borrar(Astro.locals.supabase, id);
+    }
   } catch (e) {
-    console.error('[admin] no se pudo borrar el pago:', e instanceof Error ? e.message : 'desconocido');
+    console.error('[admin] no se pudo guardar:', e instanceof Error ? e.message : 'desconocido');
     return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
   }
   return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
@@ -39,6 +58,8 @@ const tipo = esTipoPago(tipoParam) ? tipoParam : undefined;
 let movimientos: MovimientoPago[] = [];
 let pendientes: Awaited<ReturnType<typeof porCobrar>> = [];
 let nombresPaciente = new Map<string, string>();
+let telefonos = new Map<string, string>();
+let recordatorios = new Map<string, RecordatorioCobro>();
 let fallo: string | null = null;
 
 try {
@@ -51,9 +72,14 @@ try {
   if (ids.length > 0) {
     const { data } = await Astro.locals.supabase
       .from('pacientes')
-      .select('id, nombre')
+      .select('id, nombre, telefono')
       .in('id', ids);
     nombresPaciente = new Map((data ?? []).map((p) => [p.id, p.nombre]));
+    telefonos = new Map((data ?? []).map((p) => [p.id, p.telefono]));
+    recordatorios = await ultimoPorCuota(
+      Astro.locals.supabase,
+      pendientes.map((c) => c.id)
+    );
   }
 } catch (e) {
   console.error('[admin] no se pudieron cargar los pagos:', e instanceof Error ? e.message : 'desconocido');
@@ -149,15 +175,20 @@ const meses = Array.from({ length: 12 }, (_, i) => {
                 <th>Concepto</th>
                 <th>Vence</th>
                 <th class="tabla__num">Falta</th>
+                <th>Recordatorio</th>
                 <th><span class="visualmente-oculto">Registrar</span></th>
               </tr>
             </thead>
             <tbody>
-              {pendientes.map((c) => (
+              {pendientes.map((c) => {
+                const nombre = nombresPaciente.get(c.paciente_id) ?? 'Paciente';
+                const telefono = telefonos.get(c.paciente_id) ?? '';
+                const aviso = recordatorios.get(c.id);
+                return (
                 <tr>
                   <td>
                     <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
-                      {nombresPaciente.get(c.paciente_id) ?? 'Paciente'}
+                      {nombre}
                     </a>
                   </td>
                   <td class="tabla__meta">Mensualidad {c.numero}</td>
@@ -169,6 +200,42 @@ const meses = Array.from({ length: 12 }, (_, i) => {
                     )}
                   </td>
                   <td class="tabla__num">{dinero(c.restante)}</td>
+                  <td class="tabla__accion tabla__accion--doble">
+                    {/* El mensaje se manda a mano desde WhatsApp; el botón de
+                        al lado solo deja constancia de que se mandó. Separados
+                        a propósito: la aplicación no puede saber si el enlace
+                        acabó en un mensaje enviado, y fingir que sí llevaría a
+                        dar por cobrado lo que nadie mandó. */}
+                    {telefono && (
+                      <a
+                        class="btn btn--primary btn--chico"
+                        href={aWhatsappCobro(telefono, {
+                          nombre,
+                          numero: c.numero,
+                          restante: c.restante,
+                          venceEl: c.vence_el,
+                          vencida: c.estado === 'vencida',
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                    <form method="post">
+                      <input type="hidden" name="accion" value="recordatorio" />
+                      <input type="hidden" name="id" value={c.id} />
+                      <input type="hidden" name="paciente" value={c.paciente_id} />
+                      <button class="estado-rapido__ok" type="submit">
+                        Marcar recordatorio enviado
+                      </button>
+                    </form>
+                    {aviso && (
+                      <span class="tabla__sec">
+                        Último: {fechaCorta(diaEnMexico(aviso.creado_en))}
+                      </span>
+                    )}
+                  </td>
                   <td class="tabla__accion">
                     <a
                       class="btn btn--ghost btn--chico"
@@ -178,7 +245,8 @@ const meses = Array.from({ length: 12 }, (_, i) => {
                     </a>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

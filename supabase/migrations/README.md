@@ -35,6 +35,29 @@ Tomadas de las tablas que ya existían, para no tener dos estilos:
   TypeScript en `src/lib/supabase/tipos.ts` refleja esos GRANT en su `Update`, así
   que un update ilegal falla en `astro check` y no en producción.
 
+## Roles (desde 0006)
+
+`admins.rol` vale `doctora` o `recepcionista`, y es lo que miran las políticas:
+
+- **`privado.es_admin()`** — cualquiera de las dos. Protege `solicitudes`,
+  `citas` y `acciones_prospecto`: el trabajo compartido.
+- **`privado.es_doctora()`** — solo ella. Protege `pacientes`,
+  `planes_tratamiento`, `cuotas`, `pagos` y `recordatorios_cobro`. Las dos
+  vistas del dinero llevan `security_invoker`, así que heredan esto sin tocarlas.
+
+El **default de la columna es `recepcionista`**, el rol menos privilegiado: una
+cuenta creada a mano no hereda el panel entero por olvido. Para dar de alta a la
+doctora, después de `pnpm admin alta`:
+
+```sql
+update public.admins set rol = 'doctora' where email = '…';
+```
+
+`integracion_google` es el caso aparte: RLS activo, **cero políticas y ningún
+GRANT**. No es un olvido — así la tabla de los tokens solo se puede leer con la
+clave secreta, desde el servidor, y el cliente del panel no la alcanza aunque
+alguien se equivoque escribiendo una consulta.
+
 ## Después de aplicar
 
 Actualizar `src/lib/supabase/tipos.ts` a mano y cotejar con `generate_typescript_types`,

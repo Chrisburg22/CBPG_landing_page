@@ -11,7 +11,16 @@ import {
   listar,
   type SolicitudListado,
 } from '@/lib/solicitudes';
-import { ESTADOS, ESTADOS_MANUALES, ETIQUETA_ESTADO } from '@/lib/supabase/tipos';
+import { esOrigen, registrar } from '@/lib/seguimiento';
+import { fechaHora } from '@/lib/tiempo';
+import {
+  ESTADOS,
+  ESTADOS_MANUALES,
+  ETIQUETA_ACCION_PENDIENTE,
+  ETIQUETA_ESTADO,
+  ETIQUETA_ORIGEN,
+  ORIGENES,
+} from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
@@ -29,6 +38,11 @@ if (Astro.request.method === 'POST') {
     // prospecto marcado como convertido sin paciente al que enlazar.
     if (id && esEstado(nuevoEstado) && nuevoEstado !== 'terminado') {
       await cambiarEstado(Astro.locals.supabase, id, nuevoEstado);
+      // Marcar «contactada» al volver de WhatsApp es haber contactado: queda en
+      // el historial del prospecto y es lo que cuenta la métrica del tablero.
+      if (nuevoEstado === 'contactada') {
+        await registrar(Astro.locals.supabase, id, 'whatsapp');
+      }
     }
   } catch (e) {
     console.error('[admin] no se pudo cambiar el estado:', e instanceof Error ? e.message : 'desconocido');
@@ -40,6 +54,8 @@ if (Astro.request.method === 'POST') {
 const params = Astro.url.searchParams;
 const estadoParam = params.get('estado');
 const estado = esEstado(estadoParam) ? estadoParam : undefined;
+const origenParam = params.get('origen');
+const origen = esOrigen(origenParam) ? origenParam : undefined;
 const busqueda = params.get('q')?.trim() ?? '';
 
 let solicitudes: SolicitudListado[] = [];
@@ -51,7 +67,7 @@ let fallo: string | null = null;
 
 try {
   [solicitudes, nuevas, total] = await Promise.all([
-    listar(Astro.locals.supabase, { estado, busqueda }),
+    listar(Astro.locals.supabase, { estado, busqueda, origen }),
     contarNuevas(Astro.locals.supabase),
     contarTodas(Astro.locals.supabase),
   ]);
@@ -62,7 +78,10 @@ try {
   fallo = 'No pudimos cargar las solicitudes. Vuelve a intentarlo en un momento.';
 }
 
-const hayFiltro = !!estado || !!busqueda;
+const hayFiltro = !!estado || !!busqueda || !!origen;
+
+/** Ahora mismo, para saber qué seguimiento ya se pasó de fecha. */
+const ahora = Date.now();
 ---
 
 <AdminLayout title="Prospectos" seccion="prospectos" nuevas={fallo ? null : nuevas}>
@@ -105,6 +124,19 @@ const hayFiltro = !!estado || !!busqueda;
         </select>
       </div>
       <div class="field">
+        <label for="origen">Origen</label>
+        <select id="origen" name="origen">
+          <option value="">Todos</option>
+          {
+            ORIGENES.map((valor) => (
+              <option value={valor} selected={valor === origen}>
+                {ETIQUETA_ORIGEN[valor]}
+              </option>
+            ))
+          }
+        </select>
+      </div>
+      <div class="field">
         <label for="q">Buscar</label>
         <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
       </div>
@@ -141,6 +173,7 @@ const hayFiltro = !!estado || !!busqueda;
               <tr>
                 <th>Prospecto</th>
                 <th>Tratamiento</th>
+                <th>Seguimiento</th>
                 <th>Recibida</th>
                 <th>Estado</th>
                 <th><span class="visualmente-oculto">Contactar</span></th>
@@ -155,7 +188,31 @@ const hayFiltro = !!estado || !!busqueda;
                     </a>
                     <span class="tabla__sec">{s.telefono}</span>
                   </td>
-                  <td class="tabla__meta">{s.tratamiento}</td>
+                  <td class="tabla__meta">
+                    {s.tratamiento}
+                    <span class="tabla__sec">{ETIQUETA_ORIGEN[s.origen]}</span>
+                  </td>
+                  <td class="tabla__meta">
+                    {/* Lo vencido en rojo: una cola de seguimiento que no
+                        distingue lo de hoy de lo de hace dos semanas no sirve
+                        para decidir a quién llamar primero. */}
+                    {s.proxima_accion_en ? (
+                      <span
+                        class={
+                          new Date(s.proxima_accion_en).getTime() < ahora
+                            ? 'chip chip--vencida'
+                            : 'chip'
+                        }
+                      >
+                        {s.proxima_accion_tipo
+                          ? ETIQUETA_ACCION_PENDIENTE[s.proxima_accion_tipo]
+                          : 'Seguimiento'}
+                        {` · ${fechaHora(s.proxima_accion_en)}`}
+                      </span>
+                    ) : (
+                      <span class="tabla__sec">—</span>
+                    )}
+                  </td>
                   <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
                   <td class="tabla__estado">
                     {/* Ya convertido: el estado deja de ser editable aquí. Volver

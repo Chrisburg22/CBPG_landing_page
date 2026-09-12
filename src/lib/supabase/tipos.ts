@@ -78,6 +78,98 @@ export const ETIQUETA_METODO_PAGO: Record<MetodoPago, string> = {
   tarjeta: 'Tarjeta',
 };
 
+/**
+ * Rol de la cuenta. La doctora ve el panel entero; la recepcionista, solo
+ * prospectos, seguimiento y agenda. Lo impone RLS (migración 0006), no la
+ * interfaz: esto es el espejo en TypeScript de esa decisión.
+ */
+export type Rol = 'doctora' | 'recepcionista';
+
+export const ETIQUETA_ROL: Record<Rol, string> = {
+  doctora: 'Doctora',
+  recepcionista: 'Recepción',
+};
+
+export type OrigenProspecto = 'sitio' | 'instagram' | 'recomendacion' | 'otro';
+
+export const ORIGENES = ['sitio', 'instagram', 'recomendacion', 'otro'] as const;
+
+export const ETIQUETA_ORIGEN: Record<OrigenProspecto, string> = {
+  sitio: 'Sitio web',
+  instagram: 'Instagram',
+  recomendacion: 'Recomendación',
+  otro: 'Otro',
+};
+
+export type TipoAccionPendiente = 'whatsapp' | 'llamada' | 'cita' | 'otro';
+
+export const TIPOS_ACCION_PENDIENTE = ['whatsapp', 'llamada', 'cita', 'otro'] as const;
+
+export const ETIQUETA_ACCION_PENDIENTE: Record<TipoAccionPendiente, string> = {
+  whatsapp: 'Escribir por WhatsApp',
+  llamada: 'Llamar',
+  cita: 'Agendar cita',
+  otro: 'Otro',
+};
+
+export type TipoAccion =
+  | 'whatsapp'
+  | 'llamada'
+  | 'cita_creada'
+  | 'cita_reprogramada'
+  | 'cita_cancelada'
+  | 'conversion'
+  | 'nota';
+
+export const ETIQUETA_ACCION: Record<TipoAccion, string> = {
+  whatsapp: 'WhatsApp',
+  llamada: 'Llamada',
+  cita_creada: 'Cita creada',
+  cita_reprogramada: 'Cita reprogramada',
+  cita_cancelada: 'Cita cancelada',
+  conversion: 'Convertido en paciente',
+  nota: 'Nota',
+};
+
+export type TipoCita = 'valoracion' | 'control';
+
+export const TIPOS_CITA = ['valoracion', 'control'] as const;
+
+export const ETIQUETA_TIPO_CITA: Record<TipoCita, string> = {
+  valoracion: 'Valoración',
+  control: 'Control',
+};
+
+export type EstadoCita = 'programada' | 'confirmada' | 'atendida' | 'cancelada' | 'no_asistio';
+
+export const ESTADOS_CITA = [
+  'programada',
+  'confirmada',
+  'atendida',
+  'cancelada',
+  'no_asistio',
+] as const;
+
+export const ETIQUETA_ESTADO_CITA: Record<EstadoCita, string> = {
+  programada: 'Programada',
+  confirmada: 'Confirmada',
+  atendida: 'Atendida',
+  cancelada: 'Cancelada',
+  no_asistio: 'No asistió',
+};
+
+/**
+ * Estado del espejo en Google Calendar.
+ *
+ * `desactivada` no es un fallo: es que no hay calendario conectado y por tanto
+ * no hay nada que sincronizar. Distinguirlo de `error` evita que el panel
+ * enseñe para siempre un aviso de «pendiente de sincronizar» a un consultorio
+ * que decidió no usar Google.
+ */
+export type EstadoSync = 'pendiente' | 'sincronizada' | 'error' | 'desactivada';
+
+export type TipoRecordatorio = 'whatsapp' | 'llamada';
+
 export type EstadoPaciente = 'activo' | 'retencion' | 'alta' | 'pausado';
 
 export const ESTADOS_PACIENTE = ['activo', 'retencion', 'alta', 'pausado'] as const;
@@ -214,6 +306,92 @@ type SolicitudFila = {
   aviso_version: string;
   estado: EstadoSolicitud;
   notas: string;
+  origen: OrigenProspecto;
+  /** Nulo = nada pendiente. Es el único sitio del esquema donde el nulo dice algo. */
+  proxima_accion_en: string | null;
+  proxima_accion_tipo: TipoAccionPendiente | null;
+  proxima_accion_nota: string;
+};
+
+/** Lo que el panel puede escribir en una solicitud. Espejo del GRANT de 0007. */
+type SolicitudEscribible = Pick<
+  SolicitudFila,
+  'estado' | 'notas' | 'origen' | 'proxima_accion_en' | 'proxima_accion_tipo' | 'proxima_accion_nota'
+>;
+
+type CitaFila = {
+  id: string;
+  creado_en: string;
+  actualizado_en: string;
+  solicitud_id: string | null;
+  paciente_id: string | null;
+  /** Copiados, no resueltos por join: la recepcionista no puede leer `pacientes`. */
+  nombre_contacto: string;
+  telefono_contacto: string;
+  /** `timestamptz`: se guarda en UTC y se pinta en America/Mexico_City. */
+  inicia_en: string;
+  duracion_min: number;
+  tipo: TipoCita;
+  estado: EstadoCita;
+  /** Operativa, NO clínica. */
+  nota: string;
+  responsable: string | null;
+  google_evento_id: string;
+  google_sync: EstadoSync;
+  google_error: string;
+};
+
+type CitaEscribible = Pick<
+  CitaFila,
+  | 'nombre_contacto'
+  | 'telefono_contacto'
+  | 'inicia_en'
+  | 'duracion_min'
+  | 'tipo'
+  | 'estado'
+  | 'nota'
+  | 'google_evento_id'
+  | 'google_sync'
+  | 'google_error'
+>;
+
+type AccionProspectoFila = {
+  id: string;
+  creado_en: string;
+  solicitud_id: string;
+  cita_id: string | null;
+  tipo: TipoAccion;
+  nota: string;
+  actor: string | null;
+};
+
+type RecordatorioCobroFila = {
+  id: string;
+  creado_en: string;
+  cuota_id: string;
+  paciente_id: string;
+  tipo: TipoRecordatorio;
+  enviado_por: string | null;
+  nota: string;
+};
+
+/**
+ * Configuración de Google Calendar. **No la puede leer el cliente del panel**:
+ * la tabla tiene RLS sin políticas y sin GRANT, así que solo llega con la clave
+ * secreta desde el servidor. Aparece aquí porque ese código también tipa.
+ */
+type IntegracionGoogleFila = {
+  id: number;
+  creado_en: string;
+  actualizado_en: string;
+  cuenta: string;
+  calendario_id: string;
+  calendario_nombre: string;
+  refresh_token_cifrado: string;
+  access_token_cifrado: string;
+  access_expira_en: string | null;
+  conectado_en: string | null;
+  ultimo_error: string;
 };
 
 export type Database = {
@@ -228,9 +406,11 @@ export type Database = {
         Row: SolicitudFila;
         Insert: Partial<Omit<SolicitudFila, 'id'>> &
           Pick<SolicitudFila, 'nombre' | 'telefono' | 'tratamiento'>;
-        // La doctora solo puede tocar estas dos columnas: el GRANT por columna
-        // lo impone en la base de datos, esto lo refleja en el tipo.
-        Update: Partial<Pick<SolicitudFila, 'estado' | 'notas'>>;
+        // El panel solo puede tocar estas columnas: el GRANT por columna lo
+        // impone en la base de datos, esto lo refleja en el tipo. `origen` y la
+        // próxima acción entraron en 0007; el formulario público (rol `anon`)
+        // sigue sin poder escribir ninguna de las dos.
+        Update: Partial<SolicitudEscribible>;
         Relationships: [];
       };
       pacientes: {
@@ -260,10 +440,47 @@ export type Database = {
         Update: Partial<Omit<PagoEscribible, 'paciente_id'>>;
         Relationships: [];
       };
+      citas: {
+        Row: CitaFila;
+        // `inicia_en` y `nombre_contacto` son lo mínimo: sin hora no hay cita, y
+        // sin nombre la agenda no dice a quién se atiende.
+        Insert: Partial<CitaEscribible> &
+          Pick<CitaFila, 'inicia_en' | 'nombre_contacto'> & {
+            solicitud_id?: string | null;
+            paciente_id?: string | null;
+            responsable?: string | null;
+          };
+        // Sin `solicitud_id` ni `paciente_id`: mover una cita de persona es
+        // crear otra cita. El GRANT de 0007 lo impone igual.
+        Update: Partial<CitaEscribible>;
+        Relationships: [];
+      };
+      acciones_prospecto: {
+        Row: AccionProspectoFila;
+        Insert: Pick<AccionProspectoFila, 'solicitud_id' | 'tipo'> &
+          Partial<Pick<AccionProspectoFila, 'cita_id' | 'nota' | 'actor'>>;
+        // Registro de hechos: no se corrige, no se borra. Sin columnas
+        // actualizables el update deja de compilar, que es la idea.
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      recordatorios_cobro: {
+        Row: RecordatorioCobroFila;
+        Insert: Pick<RecordatorioCobroFila, 'cuota_id' | 'paciente_id'> &
+          Partial<Pick<RecordatorioCobroFila, 'tipo' | 'enviado_por' | 'nota'>>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      integracion_google: {
+        Row: IntegracionGoogleFila;
+        Insert: Partial<Omit<IntegracionGoogleFila, 'creado_en' | 'actualizado_en'>>;
+        Update: Partial<Omit<IntegracionGoogleFila, 'id' | 'creado_en' | 'actualizado_en'>>;
+        Relationships: [];
+      };
       admins: {
-        Row: { user_id: string; email: string; creado_en: string };
-        Insert: { user_id: string; email: string; creado_en?: string };
-        Update: Partial<{ email: string }>;
+        Row: { user_id: string; email: string; creado_en: string; rol: Rol };
+        Insert: { user_id: string; email: string; creado_en?: string; rol?: Rol };
+        Update: Partial<{ email: string; rol: Rol }>;
         Relationships: [];
       };
     };
@@ -310,3 +527,7 @@ export type Cuota = CuotaFila;
 export type Pago = PagoFila;
 export type CuotaConEstado = VistaCuotaFila;
 export type SaldoPaciente = VistaSaldoFila;
+export type Cita = CitaFila;
+export type AccionProspecto = AccionProspectoFila;
+export type RecordatorioCobro = RecordatorioCobroFila;
+export type IntegracionGoogle = IntegracionGoogleFila;

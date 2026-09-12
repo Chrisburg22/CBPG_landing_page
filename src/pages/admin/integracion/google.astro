@@ -1,0 +1,272 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import {
+  accessToken,
+  desconectar,
+  guardarCalendario,
+  hayCredenciales,
+  resumen,
+  type ResumenIntegracion,
+} from '@/lib/google/almacen';
+import { listarCalendarios, type CalendarioDisponible } from '@/lib/google/calendario';
+import { pendientesDeSincronizar } from '@/lib/citas';
+import { reintentar } from '@/lib/google/sincronizar';
+import { fecha } from '@/lib/formato';
+
+export const prerender = false;
+
+const supabase = Astro.locals.supabase;
+
+if (Astro.request.method === 'POST') {
+  const datos = await Astro.request.formData();
+  const accion = String(datos.get('accion') ?? '');
+
+  try {
+    if (accion === 'calendario') {
+      const id = String(datos.get('calendario') ?? '');
+      if (!id) return Astro.redirect(`${Astro.url.pathname}?error=calendario`, 303);
+      // El nombre se resuelve contra Google y no se acepta del formulario: es
+      // lo único que se enseña después, y un campo oculto editable dejaría
+      // poner ahí cualquier cosa. Si Google no contesta, se guarda el id solo.
+      const token = await accessToken();
+      const disponibles = token ? await listarCalendarios(fetch, token).catch(() => []) : [];
+      const elegido = disponibles.find((c) => c.id === id);
+      await guardarCalendario(id, elegido?.nombre ?? '');
+    } else if (accion === 'desconectar') {
+      await desconectar();
+    } else if (accion === 'sincronizar') {
+      const pendientes = await pendientesDeSincronizar(supabase);
+      await reintentar(supabase, pendientes);
+    }
+  } catch (e) {
+    console.error('[google] ajustes:', e instanceof Error ? e.message : 'desconocido');
+    return Astro.redirect(`${Astro.url.pathname}?error=guardar`, 303);
+  }
+  return Astro.redirect(`${Astro.url.pathname}?guardado=1`, 303);
+}
+
+const params = Astro.url.searchParams;
+const error = params.get('error');
+const guardado = params.get('guardado') === '1';
+const reciénConectado = params.get('conectado') === '1';
+
+const credenciales = hayCredenciales();
+
+let estado: ResumenIntegracion = {
+  conectado: false,
+  cuenta: '',
+  calendarioId: '',
+  calendarioNombre: '',
+  conectadoEn: null,
+  ultimoError: '',
+};
+let calendarios: CalendarioDisponible[] = [];
+let sinSincronizar = 0;
+/** Se autorizó, pero Google no contesta al pedir la lista de calendarios. */
+let falloListado = false;
+
+if (credenciales) {
+  estado = await resumen();
+
+  // Solo se pregunta por los calendarios si ya hay autorización: sin ella, la
+  // llamada fallaría y el mensaje de error confundiría más de lo que explica.
+  const token = await accessToken().catch(() => null);
+  if (token) {
+    try {
+      calendarios = await listarCalendarios(fetch, token);
+    } catch (e) {
+      console.error(
+        '[google] no se pudieron listar los calendarios:',
+        e instanceof Error ? e.message : 'desconocido'
+      );
+      falloListado = true;
+    }
+  }
+
+  sinSincronizar = await pendientesDeSincronizar(supabase)
+    .then((lista) => lista.length)
+    .catch(() => 0);
+}
+
+const autorizado = calendarios.length > 0 || !!estado.cuenta;
+---
+
+<AdminLayout title="Google Calendar" seccion="agenda">
+  <div class="admin-head">
+    <div>
+      <h1>Google Calendar</h1>
+      <p>Las citas del panel se copian al calendario compartido del consultorio</p>
+    </div>
+    <a class="btn btn--ghost btn--chico" href="/admin/agenda">← Agenda</a>
+  </div>
+
+  {guardado && <p class="aviso aviso--ok">Guardado.</p>}
+  {reciénConectado && <p class="aviso aviso--ok">Cuenta conectada. Ahora elige el calendario.</p>}
+  {
+    error === 'estado' && (
+      <p class="aviso aviso--error">
+        La vuelta desde Google no coincidió con la conexión que se había empezado. Vuelve a
+        intentarlo desde este botón, sin usar enlaces de fuera.
+      </p>
+    )
+  }
+  {error === 'cancelado' && <p class="aviso aviso--aviso">Se canceló la autorización.</p>}
+  {error === 'sin-codigo' && <p class="aviso aviso--error">Google no devolvió el código.</p>}
+  {
+    error === 'conexion' && (
+      <p class="aviso aviso--error">No se pudo completar la conexión. Inténtalo otra vez.</p>
+    )
+  }
+  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
+  {error === 'calendario' && <p class="aviso aviso--error">Elige un calendario de la lista.</p>}
+  {
+    error === 'sin-credenciales' && (
+      <p class="aviso aviso--error">Faltan las credenciales de Google en el servidor.</p>
+    )
+  }
+
+  {
+    !credenciales ? (
+      <div class="panel">
+        <h2 class="panel__titulo">Sin configurar</h2>
+        {/* `{' '}` no es decorativo: el salto de línea antes de un elemento se
+            colapsa y sin él las tres variables salen pegadas por la coma. */}
+        <p class="panel__texto">
+          Esta parte necesita tres variables en el servidor: <code>GOOGLE_CLIENT_ID</code>,{' '}
+          <code>GOOGLE_CLIENT_SECRET</code> y <code>GOOGLE_TOKEN_KEY</code>. Mientras no estén,
+          la agenda funciona igual: las citas se guardan en el panel y no se copian a ningún
+          calendario.
+        </p>
+        <p class="panel__texto">
+          Las dos primeras salen de un ID de cliente OAuth en Google Cloud, con la API de
+          Calendar activada y esta URI de redirección autorizada:{' '}
+          <code>{Astro.url.origin}/admin/integracion/google/callback</code>. La tercera se
+          genera con <code>openssl rand -hex 32</code>.
+        </p>
+      </div>
+    ) : (
+      <div class="detalle-grid">
+        <div>
+          <div class="panel">
+            <h2 class="panel__titulo">Estado</h2>
+            {estado.conectado ? (
+              <p class="convertido">
+                <span class="chip chip--terminado">Conectado</span>
+                <span>
+                  {estado.calendarioNombre || estado.calendarioId}
+                  {estado.cuenta && ` · ${estado.cuenta}`}
+                </span>
+              </p>
+            ) : autorizado ? (
+              <p class="convertido">
+                <span class="chip chip--agendada">Falta elegir calendario</span>
+                <span>{estado.cuenta}</span>
+              </p>
+            ) : (
+              <p class="panel__texto">
+                Todavía no hay ninguna cuenta conectada. Las citas se guardan en el panel y
+                quedan marcadas como «sin sincronizar».
+              </p>
+            )}
+
+            {estado.conectadoEn && (
+              <p class="tabla__sec">Autorizado el {fecha(estado.conectadoEn, true)}</p>
+            )}
+
+            {estado.ultimoError && (
+              <p class="aviso aviso--error" style="margin-top: 14px">
+                {estado.ultimoError}
+              </p>
+            )}
+
+            <div class="acciones" style="margin-top: 18px">
+              <a class="btn btn--primary btn--chico" href="/admin/integracion/google/conectar">
+                {autorizado ? 'Volver a conectar' : 'Conectar con Google'}
+              </a>
+              {autorizado && (
+                <form method="post" data-confirmar="¿Desconectar el calendario?">
+                  <input type="hidden" name="accion" value="desconectar" />
+                  <button class="btn btn--ghost btn--chico" type="submit">
+                    Desconectar
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+
+          {sinSincronizar > 0 && (
+            <div class="panel">
+              <h2 class="panel__titulo">Citas sin reflejar</h2>
+              <p class="panel__texto">
+                {sinSincronizar === 1
+                  ? 'Hay 1 cita guardada en el panel que todavía no está en Google.'
+                  : `Hay ${sinSincronizar} citas guardadas en el panel que todavía no están en Google.`}
+              </p>
+              <form method="post">
+                <input type="hidden" name="accion" value="sincronizar" />
+                <button class="btn btn--primary btn--block btn--chico" type="submit">
+                  Reintentar ahora
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <form class="panel" method="post">
+            <h2 class="panel__titulo">Calendario destino</h2>
+            {falloListado ? (
+              <p class="panel__texto">
+                No se pudo pedir la lista de calendarios a Google. Vuelve a conectar la cuenta.
+              </p>
+            ) : calendarios.length === 0 ? (
+              <p class="panel__texto">
+                Conecta una cuenta para poder elegir a qué calendario van las citas.
+              </p>
+            ) : (
+              <>
+                <input type="hidden" name="accion" value="calendario" />
+                <div class="field">
+                  <label for="calendario">A dónde van las citas</label>
+                  <select id="calendario" name="calendario">
+                    {calendarios.map((c) => (
+                      <option value={c.id} selected={c.id === estado.calendarioId}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <p class="field__ayuda">
+                    Solo aparecen los calendarios en los que esa cuenta puede escribir.
+                  </p>
+                </div>
+                <button class="btn btn--primary btn--block btn--chico" type="submit">
+                  Guardar calendario
+                </button>
+              </>
+            )}
+          </form>
+
+          <div class="panel">
+            <h2 class="panel__titulo">Qué se copia</h2>
+            <p class="panel__texto">
+              Del evento en Google solo salen el tipo de cita, el nombre y el teléfono. La nota
+              de la agenda no viaja: el calendario lo ve todo el consultorio.
+            </p>
+            <p class="panel__texto">
+              Si Google falla, la cita se guarda igual en el panel y queda pendiente de
+              sincronizar. El panel es la fuente de verdad; el calendario, una copia.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  <script is:inline>
+    for (const form of document.querySelectorAll('[data-confirmar]')) {
+      form.addEventListener('submit', (e) => {
+        if (!confirm(form.dataset.confirmar)) e.preventDefault();
+      });
+    }
+  </script>
+</AdminLayout>

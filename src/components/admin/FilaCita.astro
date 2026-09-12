@@ -1,0 +1,66 @@
+---
+/**
+ * Una cita en una lista. La usan la agenda y el tablero de inicio, para que una
+ * cita se lea igual en los dos sitios.
+ */
+import { aWhatsappCita } from '@/lib/contacto-directo';
+import { fechaHora, hora } from '@/lib/tiempo';
+import { ETIQUETA_ESTADO_CITA, ETIQUETA_TIPO_CITA, type Cita } from '@/lib/supabase/tipos';
+
+interface Props {
+  cita: Cita;
+  /** Con `false` se omite el enlace de WhatsApp: en el tablero ya hay uno. */
+  conContacto?: boolean;
+}
+
+const { cita, conContacto = true } = Astro.props as Props;
+
+const problema = cita.google_sync === 'error' || cita.google_sync === 'pendiente';
+---
+
+<li class={`cita cita--${cita.estado}`}>
+  <div class="cita__hora">
+    <strong>{hora(cita.inicia_en)}</strong>
+    <span class="tabla__sec">{cita.duracion_min} min</span>
+  </div>
+
+  <div class="cita__quien">
+    <a class="tabla__nombre" href={`/admin/agenda/${cita.id}`}>{cita.nombre_contacto}</a>
+    <span class="tabla__sec">
+      {ETIQUETA_TIPO_CITA[cita.tipo]}
+      {cita.telefono_contacto && ` · ${cita.telefono_contacto}`}
+    </span>
+    {/* La nota es operativa, no clínica: cabe en la lista sin problema. */}
+    {cita.nota && <span class="cita__nota">{cita.nota}</span>}
+  </div>
+
+  <div class="cita__estado">
+    <span class={`chip chip--cita-${cita.estado}`}>{ETIQUETA_ESTADO_CITA[cita.estado]}</span>
+    {
+      problema && (
+        <span class="chip chip--sync" title={cita.google_error || 'Pendiente de sincronizar'}>
+          Sin sincronizar
+        </span>
+      )
+    }
+  </div>
+
+  {
+    conContacto && cita.telefono_contacto && (
+      <div class="cita__accion">
+        <a
+          class="btn btn--ghost btn--chico"
+          href={aWhatsappCita(
+            cita.telefono_contacto,
+            cita.nombre_contacto,
+            fechaHora(cita.inicia_en)
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          WhatsApp
+        </a>
+      </div>
+    )
+  }
+</li>

@@ -9,24 +9,34 @@
  *
  * Las tres las decide `admin.css`; aquí no hay ninguna rama por tamaño.
  */
-import type { SeccionPanel } from '@/lib/panel';
+import { SECCIONES_POR_ROL, type SeccionPanel } from '@/lib/panel';
+import type { Rol } from '@/lib/supabase/tipos';
 
 interface Props {
   seccion: SeccionPanel;
   /** Prospectos sin atender. `null` si no se pudo contar: entonces no se dibuja. */
   nuevas: number | null;
+  /** Decide qué secciones existen. `null` solo en la pantalla de acceso. */
+  rol: Rol | null;
 }
 
 // El cast es explícito porque aquí `astro check` no enlaza `Props` con
 // `Astro.props` por su cuenta y marca la interfaz como no usada.
-const { seccion, nuevas } = Astro.props as Props;
+const { seccion, nuevas, rol } = Astro.props as Props;
 
-const enlaces = [
+const TODOS = [
   { id: 'inicio', texto: 'Inicio', href: '/admin' },
-  { id: 'pacientes', texto: 'Pacientes', href: '/admin/pacientes' },
+  { id: 'agenda', texto: 'Agenda', href: '/admin/agenda' },
   { id: 'prospectos', texto: 'Prospectos', href: '/admin/prospectos' },
+  { id: 'pacientes', texto: 'Pacientes', href: '/admin/pacientes' },
   { id: 'pagos', texto: 'Pagos', href: '/admin/pagos' },
 ] as const;
+
+// Recepción no ve pacientes ni pagos. Esconderlos no es lo que protege los
+// datos —eso es RLS—, pero enseñar un enlace que siempre lleva a «sin acceso»
+// solo serviría para hacer sentir que el panel está roto.
+const permitidas = SECCIONES_POR_ROL[rol ?? 'recepcionista'];
+const enlaces = TODOS.filter((enlace) => permitidas.includes(enlace.id));
 ---
 
 <nav class="nav-panel" aria-label="Secciones del panel">
@@ -48,6 +58,12 @@ const enlaces = [
               {id === 'inicio' && (
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" />
+                </svg>
+              )}
+              {id === 'agenda' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3.5" y="5" width="17" height="15" rx="2" />
+                  <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
                 </svg>
               )}
               {id === 'pacientes' && (

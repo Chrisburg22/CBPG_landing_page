@@ -3,6 +3,7 @@ import '@/styles/global.css';
 import '@/styles/admin.css';
 import NavPanel from '@/components/admin/NavPanel.astro';
 import { contarNuevasParaNavegacion, type SeccionPanel } from '@/lib/panel';
+import { ETIQUETA_ROL } from '@/lib/supabase/tipos';
 
 interface Props {
   title: string;
@@ -19,6 +20,7 @@ interface Props {
 
 const { title, seccion, conBarra = true, nuevas } = Astro.props;
 const email = Astro.locals.user?.email ?? '';
+const rol = Astro.locals.rol;
 
 const sinAtender =
   nuevas !== undefined
@@ -66,13 +68,16 @@ const sinAtender =
     {
       conBarra ? (
         <div class="marco">
-          <NavPanel seccion={seccion ?? 'inicio'} nuevas={sinAtender} />
+          <NavPanel seccion={seccion ?? 'inicio'} nuevas={sinAtender} rol={rol} />
 
           <div class="marco__col">
             <header class="admin-barra">
               <div class="admin-barra__interior">
                 <span class="admin-barra__marca">{title}</span>
                 <div class="admin-barra__derecha">
+                  {/* Con dos roles, saber con cuál se entró deja de ser un
+                      detalle: explica por qué hay secciones que no están. */}
+                  {rol && <span class="admin-barra__rol">{ETIQUETA_ROL[rol]}</span>}
                   {email && <span class="admin-barra__email">{email}</span>}
                   <form method="post" action="/admin/auth/salir">
                     <button class="btn btn--ghost btn--chico" type="submit">

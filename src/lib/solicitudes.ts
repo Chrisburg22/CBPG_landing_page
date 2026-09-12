@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database, EstadoSolicitud, Solicitud } from './supabase/tipos';
+import type { Database, EstadoSolicitud, OrigenProspecto, Solicitud } from './supabase/tipos';
 import { ESTADOS } from './supabase/tipos';
 
 type Cliente = SupabaseClient<Database>;
@@ -10,6 +10,7 @@ const LIMITE_LISTADO = 200;
 export interface FiltroListado {
   estado?: EstadoSolicitud | undefined;
   busqueda?: string | undefined;
+  origen?: OrigenProspecto | undefined;
 }
 
 /** `true` si el valor es uno de los cuatro estados. Para validar querystrings y formularios. */
@@ -30,11 +31,24 @@ function limpiarBusqueda(bruto: string): string {
 }
 
 /** Las columnas del listado. `mensaje` no se trae: no se muestra y puede llevar datos de salud. */
-const COLUMNAS_LISTADO = 'id, creado_en, nombre, telefono, tratamiento, estado';
+// En una sola cadena literal, sin concatenar: postgrest-js deriva el tipo de la
+// fila del texto del `select`, y una concatenación lo degrada a `string` — con
+// lo que `data` deja de tener forma y el `as` de abajo no compila.
+// prettier-ignore
+const COLUMNAS_LISTADO = 'id, creado_en, nombre, telefono, tratamiento, estado, origen, proxima_accion_en, proxima_accion_tipo, proxima_accion_nota';
 
 export type SolicitudListado = Pick<
   Solicitud,
-  'id' | 'creado_en' | 'nombre' | 'telefono' | 'tratamiento' | 'estado'
+  | 'id'
+  | 'creado_en'
+  | 'nombre'
+  | 'telefono'
+  | 'tratamiento'
+  | 'estado'
+  | 'origen'
+  | 'proxima_accion_en'
+  | 'proxima_accion_tipo'
+  | 'proxima_accion_nota'
 >;
 
 export async function listar(
@@ -48,6 +62,7 @@ export async function listar(
     .limit(LIMITE_LISTADO);
 
   if (filtro.estado) consulta = consulta.eq('estado', filtro.estado);
+  if (filtro.origen) consulta = consulta.eq('origen', filtro.origen);
 
   const busqueda = filtro.busqueda ? limpiarBusqueda(filtro.busqueda) : '';
   if (busqueda) {

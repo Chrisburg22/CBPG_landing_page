@@ -51,6 +51,27 @@ export function aWhatsapp(telefono: string, nombre: string, tratamiento: string)
   return `https://wa.me/${aE164(telefono)}?text=${encodeURIComponent(mensajeWhatsapp(nombre, tratamiento))}`;
 }
 
+/**
+ * Confirmación de una cita ya agendada.
+ *
+ * Aparte del mensaje de primer contacto porque dicen cosas distintas: aquel
+ * pregunta cuándo puede, este recuerda cuándo quedó. Tampoco nombra el
+ * tratamiento — una cita de control no necesita explicarse, y el texto viaja
+ * dentro de una URL.
+ */
+export function mensajeCita(nombre: string, cuando: string): string {
+  const primerNombre = nombre.trim().split(/\s+/)[0] ?? '';
+  const saludo = primerNombre ? `Hola ${primerNombre}` : 'Hola';
+  return (
+    `${saludo}, le escribo del consultorio de la Dra. ${doctor.name} ` +
+    `para confirmar su cita del ${cuando}. ¿Nos vemos ahí?`
+  );
+}
+
+export function aWhatsappCita(telefono: string, nombre: string, cuando: string): string {
+  return `https://wa.me/${aE164(telefono)}?text=${encodeURIComponent(mensajeCita(nombre, cuando))}`;
+}
+
 export function aTelefono(telefono: string): string {
   return `tel:+${aE164(telefono)}`;
 }

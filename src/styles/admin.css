@@ -624,3 +624,186 @@ body.admin {
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* ============================================================
+   Agenda, cola de hoy y seguimiento.
+
+   Todo lo que entró con la suite operativa. Reutiliza los tokens y los patrones
+   de arriba (chips, paneles, .btn) en vez de inventar otros: lo que ya sabe
+   leer la doctora en Prospectos tiene que valer igual en Agenda.
+   ============================================================ */
+
+/* ---------- Avisos con una acción al lado ---------- */
+/* Ámbar: no es un error —la cita está guardada— pero tampoco es «todo bien». */
+.aviso--aviso { background: #fdf1dc; border-color: #ecd9b0; color: #8a5c15; }
+.aviso--accion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.aviso__detalle { display: block; font-size: 13px; opacity: .85; margin-top: 4px; }
+
+.admin-barra__rol {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+}
+
+/* ---------- Barra de la agenda ---------- */
+.agenda-barra {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.agenda-nav, .agenda-vista { display: flex; gap: 6px; }
+.agenda-barra .filtros { margin-left: auto; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  min-height: 40px;
+}
+
+/* ---------- Lista de citas ---------- */
+.citas { list-style: none; margin: 0; padding: 0; }
+.cita {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+.cita:first-child { border-top: 0; }
+.cita__hora { flex: none; width: 92px; }
+.cita__hora strong { display: block; font-variant-numeric: tabular-nums; font-size: 15.5px; }
+.cita__quien { flex: 1; min-width: 0; }
+.cita__nota { display: block; font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+.cita__estado { flex: none; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.cita__accion { flex: none; }
+
+/* Una cita cancelada sigue en la lista —el hueco existió— pero no compite por
+   la atención con las que sí hay que atender. */
+.cita--cancelada { opacity: .55; }
+.cita--cancelada .cita__hora strong { text-decoration: line-through; }
+
+/* En un teléfono no hay sitio para la columna de la hora: la cita se apila y la
+   hora pasa a ser su primera línea, con la duración al lado en vez de debajo. */
+@media (max-width: 720px) {
+  .cita { flex-direction: column; align-items: stretch; gap: 6px; padding: 14px 16px; }
+  .cita__hora { width: auto; display: flex; align-items: baseline; gap: 8px; }
+  .cita__hora .tabla__sec { margin-top: 0; }
+  .cita__estado { justify-content: flex-start; }
+}
+
+.chip--cita-programada { background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
+.chip--cita-confirmada { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
+.chip--cita-atendida   { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
+.chip--cita-cancelada  { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
+.chip--cita-no_asistio { background: #f8e7e2; color: #b4452e; border-color: #eccfc6; }
+/* Ámbar como el aviso: la cita está bien, lo que falta es su copia en Google. */
+.chip--sync { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
+.chip--hoy { margin-left: 10px; background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
+
+/* ---------- Cola de «Hoy» ---------- */
+/* Cada bloque es un tipo de pendiente y cada fila tiene UNA acción. La lista no
+   se ordena por importancia global a propósito: son cuatro trabajos distintos,
+   y mezclarlos obligaría a leerlos todos para encontrar el que toca ahora. */
+.cola { border-top: 1px solid var(--line); padding: 16px 20px 18px; }
+.cola:first-of-type { border-top: 0; }
+.cola__titulo {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.cola__lista { list-style: none; margin: 0; padding: 0; }
+.cola__fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.cola__fila:first-child { border-top: 0; }
+.cola__quien { min-width: 0; }
+.cola__accion { flex: none; display: flex; gap: 8px; align-items: center; }
+.cola__mas { display: inline-block; margin-top: 12px; font-size: 13.5px; }
+
+@media (max-width: 720px) {
+  .cola { padding-inline: 16px; }
+  .cola__fila { flex-direction: column; align-items: stretch; }
+  .cola__accion { justify-content: flex-start; }
+}
+
+/* ---------- Selector de periodo de las métricas ---------- */
+.periodos { display: flex; gap: 6px; flex-wrap: wrap; }
+.periodo {
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.periodo:hover { background: var(--bg); }
+.periodo--activo { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
+
+.panel__nota { margin: 16px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+
+/* ---------- Formularios de dos campos ---------- */
+.campos-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 18px;
+}
+
+/* ---------- Listas simples (historial, citas de una ficha) ---------- */
+.lista-simple { list-style: none; margin: 0; padding: 0; }
+.lista-simple > li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
+.lista-simple > li:first-child { border-top: 0; }
+
+/* ---------- Seguimiento ---------- */
+.seguimiento { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 16px; }
+.seguimiento--vencido { color: #b4452e; }
+
+/* El panel que propone convertir tras una cita atendida: es una sugerencia, no
+   un paso obligatorio, así que se distingue sin gritar. */
+.panel--destacado { border-color: #c3d8d3; background: var(--accent-tint); }
+
+/* Dos acciones en la misma celda —mandar el mensaje y anotar que se mandó—
+   necesitan apilarse: en una fila se salen de la tabla en pantallas normales. */
+.tabla__accion--doble { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+
+/* El `min-width: 190px` de los filtros alcanzaba también a las casillas, y una
+   casilla de 190px deja su etiqueta a medio metro. */
+.filtros input[type='checkbox'] { min-width: 0; width: auto; }
+
+/* `.vacio--chico` se declara antes que `.vacio` más arriba, así que la regla
+   general le ganaba por orden y el «sin nada» seguía ocupando 56px de alto.
+   Repetirlo aquí, al final, es lo que hace que funcione. */
+.vacio--chico { padding: 28px 20px; }
+
+/* Una semana son siete paneles: si cada día vacío ocupa lo que un día lleno, la
+   vista se convierte en un rollo que hay que desplazar para ver dos citas. */
+.vacio--linea { padding: 10px 20px 14px; text-align: left; font-size: 13.5px; }
+.vacio--linea p { margin: 0; }
+
+/* El selector de periodo no cabe al lado del título en un teléfono: bajarlo
+   entero es mejor que dejar «Cómo va» partido en dos líneas de una palabra. */
+@media (max-width: 720px) {
+  .panel__cabecera { flex-wrap: wrap; gap: 10px; }
+  .periodos { width: 100%; }
+}
