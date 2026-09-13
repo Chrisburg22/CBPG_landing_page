@@ -1,0 +1,258 @@
+{
+  "pages": [
+    {
+      "id": "p-sistema",
+      "name": "Sistema"
+    },
+    {
+      "id": "p-escritorio",
+      "name": "Escritorio 1440"
+    },
+    {
+      "id": "p-tablet",
+      "name": "Tablet 768"
+    },
+    {
+      "id": "p-movil",
+      "name": "Móvil 390"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Sistema.dc.html",
+      "page": "p-sistema",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2260,
+      "title": "Sistema del panel"
+    },
+    {
+      "file": "Main.dc.html",
+      "page": "p-escritorio",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1480,
+      "title": "Inicio"
+    },
+    {
+      "file": "AgendaDia.dc.html",
+      "page": "p-escritorio",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1250,
+      "title": "Agenda · día"
+    },
+    {
+      "file": "AgendaSemana.dc.html",
+      "page": "p-escritorio",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1140,
+      "title": "Agenda · semana"
+    },
+    {
+      "file": "NuevaCita.dc.html",
+      "page": "p-escritorio",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1140,
+      "title": "Nueva cita"
+    },
+    {
+      "file": "Prospectos.dc.html",
+      "page": "p-escritorio",
+      "x": 0,
+      "y": 1680,
+      "w": 1440,
+      "h": 1080,
+      "title": "Prospectos"
+    },
+    {
+      "file": "ProspectoFicha.dc.html",
+      "page": "p-escritorio",
+      "x": 1560,
+      "y": 1680,
+      "w": 1440,
+      "h": 1140,
+      "title": "Ficha de prospecto"
+    },
+    {
+      "file": "Pacientes.dc.html",
+      "page": "p-escritorio",
+      "x": 3120,
+      "y": 1680,
+      "w": 1440,
+      "h": 900,
+      "title": "Pacientes"
+    },
+    {
+      "file": "PacienteFicha.dc.html",
+      "page": "p-escritorio",
+      "x": 4680,
+      "y": 1680,
+      "w": 1440,
+      "h": 1320,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "Pagos.dc.html",
+      "page": "p-escritorio",
+      "x": 0,
+      "y": 3200,
+      "w": 1440,
+      "h": 1480,
+      "title": "Pagos"
+    },
+    {
+      "file": "RegistrarPago.dc.html",
+      "page": "p-escritorio",
+      "x": 1560,
+      "y": 3200,
+      "w": 1440,
+      "h": 1000,
+      "title": "Registrar pago"
+    },
+    {
+      "file": "TabletInicio.dc.html",
+      "page": "p-tablet",
+      "x": 0,
+      "y": 0,
+      "w": 768,
+      "h": 1700,
+      "title": "Inicio"
+    },
+    {
+      "file": "TabletAgenda.dc.html",
+      "page": "p-tablet",
+      "x": 868,
+      "y": 0,
+      "w": 768,
+      "h": 1040,
+      "title": "Agenda · semana"
+    },
+    {
+      "file": "TabletProspecto.dc.html",
+      "page": "p-tablet",
+      "x": 1736,
+      "y": 0,
+      "w": 768,
+      "h": 1460,
+      "title": "Ficha de prospecto"
+    },
+    {
+      "file": "TabletPaciente.dc.html",
+      "page": "p-tablet",
+      "x": 2604,
+      "y": 0,
+      "w": 768,
+      "h": 1500,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "TabletPagos.dc.html",
+      "page": "p-tablet",
+      "x": 3472,
+      "y": 0,
+      "w": 768,
+      "h": 1024,
+      "title": "Pagos"
+    },
+    {
+      "file": "MovilInicio.dc.html",
+      "page": "p-movil",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1180,
+      "title": "Inicio"
+    },
+    {
+      "file": "MovilAgenda.dc.html",
+      "page": "p-movil",
+      "x": 480,
+      "y": 0,
+      "w": 390,
+      "h": 1070,
+      "title": "Agenda · día"
+    },
+    {
+      "file": "MovilProspectos.dc.html",
+      "page": "p-movil",
+      "x": 960,
+      "y": 0,
+      "w": 390,
+      "h": 1090,
+      "title": "Prospectos"
+    },
+    {
+      "file": "MovilProspecto.dc.html",
+      "page": "p-movil",
+      "x": 1440,
+      "y": 0,
+      "w": 390,
+      "h": 1180,
+      "title": "Ficha de prospecto"
+    },
+    {
+      "file": "MovilPaciente.dc.html",
+      "page": "p-movil",
+      "x": 1920,
+      "y": 0,
+      "w": 390,
+      "h": 1120,
+      "title": "Ficha de paciente"
+    },
+    {
+      "file": "MovilPagos.dc.html",
+      "page": "p-movil",
+      "x": 2400,
+      "y": 0,
+      "w": 390,
+      "h": 1100,
+      "title": "Cobranza"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "nota-sistema",
+      "page": "p-sistema",
+      "x": 1540,
+      "y": 0,
+      "w": 320,
+      "text": "Misma marca, más colores.\nArcilla = prospectos y valoraciones.\nPizarra = confirmado e informativo.\nEstados siempre con texto al lado."
+    },
+    {
+      "id": "nota-escritorio",
+      "page": "p-escritorio",
+      "x": 0,
+      "y": -170,
+      "w": 520,
+      "text": "Maquetas estáticas para revisar antes de programar. Nombres y cifras son de ejemplo.\nFila 1: Inicio y agenda · Fila 2: prospectos y pacientes · Fila 3: pagos."
+    },
+    {
+      "id": "nota-agenda",
+      "page": "p-escritorio",
+      "x": 1560,
+      "y": -170,
+      "w": 520,
+      "text": "Agenda por horas: el alto del bloque es la duración. Al hacer clic se abre el detalle a la derecha; una valoración atendida ofrece convertir, nunca convierte sola."
+    },
+    {
+      "id": "nota-movil",
+      "page": "p-movil",
+      "x": 0,
+      "y": -150,
+      "w": 420,
+      "text": "Móvil: tablas pasan a tarjetas, acciones de 44 px o más, barra de pestañas fija abajo como hoy."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "p-escritorio"
+  }
+}

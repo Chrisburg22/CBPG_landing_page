@@ -34,3 +34,25 @@ Los artboards son **maquetas**, no la implementación. Sus clases están en ingl
 corto (`.item`, `.tile`); el panel real usa las del repo, en español
 (`.metrica`, `.nav-panel__enlace`). Al portar algo, se copian los valores
 —colores, radios, tamaños—, no los nombres.
+
+## Rediseño V1.1 (`rediseno/`)
+
+Maquetas de la segunda ronda: paleta ampliada (arcilla, pizarra y estados), Inicio
+con cola y embudo, agenda por horas, y las pantallas de prospectos, pacientes y
+pagos en escritorio, tablet y móvil. Publicado como
+[canvas](https://claude.ai/code/artifact/a4188925-ba60-435e-a2af-9ca3e0712162).
+
+| Archivo | Qué es |
+|---|---|
+| `rediseno/_gen.mjs` | Genera los 22 artboards y `canvas.json`. Toda la hoja de estilos compartida vive arriba del archivo. |
+| `rediseno/*.dc.html` | Los artboards. Mismo formato que los de la primera ronda. |
+| `rediseno/canvas.json` | Páginas Sistema / Escritorio / Tablet / Móvil, posiciones y notas. |
+
+```bash
+cd rediseno && node _gen.mjs
+```
+
+Las alturas de cada marco están en la lista `artboards` al final de `_gen.mjs`,
+medidas sobre el contenido: si una pantalla crece, súbela ahí o quedará recortada
+en el lienzo. El archivo sembrado (`panel-bp-rediseno.html`) no se versiona, igual
+que el de la primera ronda.
