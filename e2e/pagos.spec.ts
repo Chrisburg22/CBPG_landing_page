@@ -26,7 +26,7 @@ test.describe('Alta de paciente desde cero', () => {
 
   test('se crea sin pasar por un prospecto', async ({ page }) => {
     await entrarAlPanel(page, '/admin/pacientes');
-    await page.getByRole('link', { name: '+ Nuevo paciente' }).first().click();
+    await page.getByRole('link', { name: /Nuevo paciente/ }).first().click();
 
     await page.getByLabel('Nombre completo').fill(nombre);
     await page.getByLabel('Teléfono').fill('33 7777 8888');

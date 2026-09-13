@@ -1,17 +1,25 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import Icono from '@/components/admin/Icono.astro';
 import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
+import { aWhatsappCobro, registrarRecordatorio, ultimoPorCuota } from '@/lib/cobranza';
+import { porPaciente as citasDelPaciente } from '@/lib/citas';
 import { actualizar, esEstadoPaciente, guardarNotas, obtener } from '@/lib/pacientes';
 import { cuotasDe, historialDe, saldoDe } from '@/lib/pagos';
-import { dinero, fechaCorta } from '@/lib/formato';
+import { dinero, fechaCorta, haceCuanto, iniciales } from '@/lib/formato';
+import { diaEnMexico, fechaHora } from '@/lib/tiempo';
 import {
   ESTADOS_PACIENTE,
-  ETIQUETA_ESTADO_PACIENTE,
+  ETIQUETA_ESTADO_CITA,
   ETIQUETA_ESTADO_CUOTA,
+  ETIQUETA_ESTADO_PACIENTE,
   ETIQUETA_METODO_PAGO,
+  ETIQUETA_TIPO_CITA,
+  type Cita,
   type CuotaConEstado,
   type Paciente,
   type Pago,
+  type RecordatorioCobro,
   type SaldoPaciente,
 } from '@/lib/supabase/tipos';
 
@@ -44,6 +52,12 @@ if (Astro.request.method === 'POST') {
       });
     } else if (accion === 'notas') {
       await guardarNotas(supabase, id, String(datos.get('notas') ?? ''));
+    } else if (accion === 'recordatorio') {
+      // La aplicación no manda el mensaje: lo manda la doctora desde su
+      // teléfono. Lo único que se registra es que lo dio por enviado.
+      const cuotaId = String(datos.get('cuota') ?? '');
+      if (cuotaId) await registrarRecordatorio(supabase, { cuotaId, pacienteId: id });
+      return Astro.redirect(`${Astro.url.pathname}?recordatorio=1#mensualidades`, 303);
     }
     return Astro.redirect(`${Astro.url.pathname}?guardado=1`, 303);
   } catch (e) {
@@ -56,15 +70,22 @@ let paciente: Paciente | null = null;
 let saldo: SaldoPaciente | null = null;
 let cuotas: CuotaConEstado[] = [];
 let pagos: Pago[] = [];
+let citas: Cita[] = [];
+let recordatorios = new Map<string, RecordatorioCobro>();
 let fallo: string | null = null;
 
 try {
-  [paciente, saldo, cuotas, pagos] = await Promise.all([
+  [paciente, saldo, cuotas, pagos, citas] = await Promise.all([
     obtener(supabase, id),
     saldoDe(supabase, id),
     cuotasDe(supabase, id),
     historialDe(supabase, id),
+    citasDelPaciente(supabase, id),
   ]);
+  recordatorios = await ultimoPorCuota(
+    supabase,
+    cuotas.filter((c) => c.estado !== 'pagada').map((c) => c.id)
+  );
 } catch (e) {
   console.error('[admin] no se pudo cargar el paciente:', e instanceof Error ? e.message : 'desconocido');
   fallo = 'No pudimos cargar este paciente. Vuelve a intentarlo en un momento.';
@@ -77,7 +98,11 @@ const guardado = params.get('guardado') === '1';
 const creado = params.get('creado') === '1';
 const planGuardado = params.get('plan') === '1';
 const pagoGuardado = params.get('pago') === '1';
+const recordatorioGuardado = params.get('recordatorio') === '1';
 const error = params.get('error');
+
+const hoy = diaEnMexico(new Date());
+const ahora = Date.now();
 
 /**
  * Qué mensualidades se ven al abrir la ficha.
@@ -99,331 +124,478 @@ const cuotasVisibles = [...urgentes, ...proximas];
 const visiblesIds = new Set(cuotasVisibles.map((c) => c.id));
 /** Lo que queda: el calendario lejano y las ya pagadas. */
 const cuotasPlegadas = cuotas.filter((c) => !visiblesIds.has(c.id));
+/** La que toca cobrar ahora: la primera pendiente o vencida. */
+const siguienteCuota = cuotasVisibles[0]?.id;
 
 /** Cuánto del plan lleva cubierto, para la barra de avance. */
-const avance = saldo && Number(saldo.costo_total) > 0
-  ? Math.min(100, Math.round((Number(saldo.pagado) / Number(saldo.costo_total)) * 100))
-  : 0;
+const avance =
+  saldo && Number(saldo.costo_total) > 0
+    ? Math.min(100, Math.round((Number(saldo.pagado) / Number(saldo.costo_total)) * 100))
+    : 0;
+
+const proximaCita =
+  [...citas]
+    .reverse()
+    .find((c) => new Date(c.inicia_en).getTime() > ahora && c.estado !== 'cancelada' && c.estado !== 'no_asistio') ??
+  null;
+const citasRecientes = citas.filter((c) => c.id !== proximaCita?.id).slice(0, 5);
 ---
 
 <AdminLayout title={paciente?.nombre ?? 'Paciente'} seccion="pacientes">
-  <div class="admin-head">
-    <div>
-      <h1>{paciente?.nombre ?? 'Paciente'}</h1>
-      {paciente && <p>Desde el {fechaCorta(paciente.inicio)} · {paciente.tratamiento}</p>}
-    </div>
-    <a class="btn btn--ghost btn--chico" href="/admin/pacientes">← Todos los pacientes</a>
-  </div>
-
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
-  {creado && <p class="aviso aviso--ok">Ficha creada. El prospecto quedó como terminado.</p>}
-  {planGuardado && <p class="aviso aviso--ok">Plan guardado.</p>}
-  {pagoGuardado && <p class="aviso aviso--ok">Pago registrado.</p>}
-  {guardado && !creado && <p class="aviso aviso--ok">Guardado.</p>}
-  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
-  {error === 'nombre' && <p class="aviso aviso--error">El nombre no puede quedar vacío.</p>}
-  {error === 'estado' && <p class="aviso aviso--error">Ese estado no es válido.</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
+  {
+    creado && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Ficha creada. El prospecto quedó como terminado.</span>
+      </p>
+    )
+  }
+  {
+    planGuardado && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Plan guardado.</span>
+      </p>
+    )
+  }
+  {
+    pagoGuardado && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Pago registrado.</span>
+      </p>
+    )
+  }
+  {
+    recordatorioGuardado && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Recordatorio anotado.</span>
+      </p>
+    )
+  }
+  {
+    guardado && !creado && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Guardado.</span>
+      </p>
+    )
+  }
+  {
+    error === 'guardar' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">No se pudo guardar. Inténtalo otra vez.</span>
+      </p>
+    )
+  }
+  {
+    error === 'nombre' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">El nombre no puede quedar vacío.</span>
+      </p>
+    )
+  }
+  {
+    error === 'estado' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">Ese estado no es válido.</span>
+      </p>
+    )
+  }
 
   {
     paciente && (
-    <>
-      <div class="detalle-grid">
-        <div>
-          <form class="panel" method="post">
-            <h2 class="panel__titulo">Datos</h2>
-            <input type="hidden" name="accion" value="datos" />
-
-            <div class="campos">
-              <div class="field">
-                <label for="nombre">Nombre completo</label>
-                <input id="nombre" name="nombre" type="text" maxlength="120" required value={paciente.nombre} />
-              </div>
-              <div class="field">
-                <label for="telefono">Teléfono</label>
-                <input id="telefono" name="telefono" type="tel" maxlength="30" value={paciente.telefono} />
-              </div>
-              <div class="field">
-                <label for="tratamiento">Tratamiento</label>
-                <input
-                  id="tratamiento"
-                  name="tratamiento"
-                  type="text"
-                  maxlength="120"
-                  value={paciente.tratamiento}
-                />
-              </div>
-              <div class="field">
-                <label for="inicio">Inicio</label>
-                <input id="inicio" name="inicio" type="date" value={paciente.inicio} />
-              </div>
-              <div class="field">
-                <label for="estado">Estado del tratamiento</label>
-                <select id="estado" name="estado">
-                  {ESTADOS_PACIENTE.map((valor) => (
-                    <option value={valor} selected={valor === paciente?.estado}>
-                      {ETIQUETA_ESTADO_PACIENTE[valor]}
-                    </option>
-                  ))}
-                </select>
+      <>
+        <section class="panel ficha-cabecera">
+          <div class="ficha-cabecera__fila">
+            <div class="ficha-cabecera__quien">
+              <span class="avatar avatar--teal" aria-hidden="true">{iniciales(paciente.nombre)}</span>
+              <div>
+                <h1>{paciente.nombre}</h1>
+                <div class="ficha-cabecera__meta">
+                  <span class={`chip chip--${paciente.estado}`}>{ETIQUETA_ESTADO_PACIENTE[paciente.estado]}</span>
+                  <span>
+                    {paciente.tratamiento} · desde el {fechaCorta(paciente.inicio)} ·{' '}
+                    {paciente.solicitud_id ? (
+                      <a href={`/admin/prospectos/${paciente.solicitud_id}`}>vino por solicitud</a>
+                    ) : (
+                      'Alta directa'
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
-
-            <div class="acciones acciones--fin" style="margin-top: 20px">
-              <button class="btn btn--primary btn--chico" type="submit">
-                Guardar cambios
-              </button>
-            </div>
-          </form>
-
-        </div>
-
-        <div>
-          <div class="panel">
-            <h2 class="panel__titulo">Contacto</h2>
-            <dl class="datos">
-              <dt>Teléfono</dt>
-              <dd>{paciente.telefono || '—'}</dd>
-              <dt>Estado</dt>
-              <dd>
-                <span class={`chip chip--${paciente.estado}`}>
-                  {ETIQUETA_ESTADO_PACIENTE[paciente.estado]}
-                </span>
-              </dd>
-              <dt>Origen</dt>
-              <dd>
-                {paciente.solicitud_id ? (
-                  <a href={`/admin/prospectos/${paciente.solicitud_id}`}>Solicitud del sitio</a>
-                ) : (
-                  'Alta directa'
-                )}
-              </dd>
-            </dl>
-
-            {paciente.telefono && (
-              <div class="acciones" style="margin-top: 22px">
+            <div class="acciones">
+              {paciente.telefono && (
                 <a
-                  class="btn btn--primary btn--chico"
+                  class="btn btn--ghost btn--chico"
                   href={aWhatsapp(paciente.telefono, paciente.nombre, paciente.tratamiento)}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  WhatsApp
+                  <Icono nombre="whatsapp" tam={16} /> WhatsApp
                 </a>
-                <a class="btn btn--ghost btn--chico" href={aTelefono(paciente.telefono)}>
-                  Llamar
-                </a>
-              </div>
-            )}
-          </div>
-
-          <form class="panel" method="post">
-            <h2 class="panel__titulo">Notas</h2>
-            <input type="hidden" name="accion" value="notas" />
-            <div class="field">
-              <label for="notas">Solo para ti. El paciente no las ve.</label>
-              {/* Interpolación normal, nunca set:html: puede llevar datos de salud. */}
-              <textarea id="notas" name="notas" rows="7" maxlength="4000">{paciente.notas}</textarea>
+              )}
+              <a class="btn btn--ghost btn--chico" href={`/admin/agenda/nueva?paciente=${id}`}>
+                <Icono nombre="agenda" tam={16} /> Agendar cita
+              </a>
+              <a class="btn btn--primary btn--chico" href={`/admin/pagos/nuevo?paciente=${id}`}>
+                <Icono nombre="mas" tam={16} /> Registrar pago
+              </a>
             </div>
-            <button class="btn btn--ghost btn--block btn--chico" type="submit">
-              Guardar notas
-            </button>
-          </form>
-
-
-        </div>
-      </div>
-
-        <div class="panel">
-          <div class="panel__cabecera">
-            <h2 class="panel__titulo">Plan de tratamiento</h2>
-            <a href={`/admin/pacientes/${id}/plan`}>{saldo ? 'Editar plan' : 'Crear plan'}</a>
           </div>
 
           {saldo ? (
-            <>
-              <div class="metricas metricas--compacta">
-                <div class="metrica">
-                  <span class="metrica__k">Costo total</span>
-                  <span class="metrica__v">{dinero(saldo.costo_total)}</span>
-                </div>
-                <div class="metrica">
-                  <span class="metrica__k">Pagado</span>
-                  <span class="metrica__v">{dinero(saldo.pagado)}</span>
-                </div>
-                <div class="metrica">
-                  <span class="metrica__k">Saldo</span>
-                  <span class="metrica__v">{dinero(saldo.saldo)}</span>
-                  {saldo.cuotas_vencidas > 0 && (
-                    <span class="metrica__d metrica__d--alta">
-                      {saldo.cuotas_vencidas}{' '}
-                      {saldo.cuotas_vencidas === 1 ? 'cuota vencida' : 'cuotas vencidas'}
-                    </span>
-                  )}
-                </div>
+            <div class="kpis kpis--4" style="border-top: 1px solid var(--line); padding-top: 18px">
+              <div class="kpi">
+                <span class="eyebrow-panel">Costo total</span>
+                <span class="kpi__v">{dinero(saldo.costo_total)}</span>
+                <a class="kpi__d" href={`/admin/pacientes/${id}/plan`}>Editar plan</a>
               </div>
-
-              {saldo.num_cuotas > 0 && (
-                <div style="margin-top: 18px">
-                  <div class="avance__etiquetas">
-                    <span>
-                      Mensualidad {saldo.cuotas_pagadas} de {saldo.num_cuotas}
-                    </span>
-                    <span>{avance}% pagado</span>
-                  </div>
-                  <div class="avance">
-                    <i style={`width: ${avance}%`} />
-                  </div>
-                </div>
-              )}
-
-              <div class="acciones" style="margin-top: 20px">
-                <a class="btn btn--primary btn--chico" href={`/admin/pagos/nuevo?paciente=${id}`}>
-                  + Registrar pago
-                </a>
+              <div class="kpi">
+                <span class="eyebrow-panel">Pagado</span>
+                <span class="kpi__v">{dinero(saldo.pagado)}</span>
+                <span class="kpi__d">{pagos.length} {pagos.length === 1 ? 'pago' : 'pagos'}</span>
               </div>
-            </>
+              <div class="kpi">
+                <span class="eyebrow-panel">Saldo</span>
+                <span class="kpi__v">{dinero(saldo.saldo)}</span>
+                {saldo.cuotas_vencidas > 0 ? (
+                  <span class="kpi__d kpi__d--peligro">
+                    {saldo.cuotas_vencidas} {saldo.cuotas_vencidas === 1 ? 'cuota vencida' : 'cuotas vencidas'} ·{' '}
+                    {dinero(saldo.monto_vencido)}
+                  </span>
+                ) : (
+                  <span class="kpi__d">Al corriente</span>
+                )}
+              </div>
+              <div class="kpi">
+                <span class="eyebrow-panel">Avance</span>
+                <span class="kpi__v">
+                  {avance}% <small>pagado</small>
+                </span>
+                <div class="barra" aria-hidden="true">
+                  <i style={`width: ${avance}%`} />
+                </div>
+                {saldo.num_cuotas > 0 && (
+                  <span class="kpi__d">
+                    {saldo.cuotas_pagadas} de {saldo.num_cuotas} mensualidades
+                  </span>
+                )}
+              </div>
+            </div>
           ) : (
-            <div class="vacio vacio--chico">
-              <strong>Sin plan todavía</strong>
-              <p>
-                Define el costo del tratamiento y, si hay mensualidades, cuántas y qué día
-                vencen. También puedes dejarlo sin calendario.
-              </p>
-              <a
-                class="btn btn--primary btn--chico"
-                href={`/admin/pacientes/${id}/plan`}
-                style="margin-top: 16px"
-              >
-                Crear plan
-              </a>
+            <div class="panel panel--plano" style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap">
+              <span>
+                <b>Sin plan todavía.</b>{' '}
+                <span class="tabla__sec" style="display: inline">
+                  Define el costo y, si hay mensualidades, cuántas y qué día vencen.
+                </span>
+              </span>
+              <a class="btn btn--primary btn--chico" href={`/admin/pacientes/${id}/plan`}>Crear plan</a>
             </div>
           )}
-        </div>
+        </section>
 
-        {cuotas.length > 0 && (
-          <div class="panel panel--lista">
-            <div class="panel__cabecera">
-              <h2 class="panel__titulo">Mensualidades</h2>
-              <span class="panel__cuenta">
-                {cuotasPendientes.length} por cobrar de {cuotas.length}
-              </span>
-            </div>
+        <nav class="secciones" aria-label="Secciones de la ficha">
+          {cuotas.length > 0 && (
+            <a href="#mensualidades">
+              Mensualidades <b>{cuotas.length}</b>
+            </a>
+          )}
+          <a href="#pagos">
+            Pagos <b>{pagos.length}</b>
+          </a>
+          <a href="#citas">
+            Citas <b>{citas.length}</b>
+          </a>
+          <a href="#datos">Datos y notas</a>
+        </nav>
 
-            {cuotasVisibles.length > 0 && (
-              <div class="tabla-scroll">
-                <table class="tabla">
-                  <thead>
-                    <tr>
-                      <th>N.º</th>
-                      <th>Vence</th>
-                      <th class="tabla__num">Monto</th>
-                      <th class="tabla__num">Falta</th>
-                      <th>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cuotasVisibles.map((c) => (
-                      <tr>
-                        <td>{c.numero}</td>
-                        <td class="tabla__fecha tabla__meta">{fechaCorta(c.vence_el)}</td>
-                        <td class="tabla__num">{dinero(c.monto)}</td>
-                        <td class="tabla__num">{dinero(c.restante)}</td>
-                        <td class="tabla__estado">
-                          <span class={`chip chip--${c.estado}`}>
-                            {ETIQUETA_ESTADO_CUOTA[c.estado]}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        <div class="detalle-grid">
+          <div class="columna">
+            {cuotas.length > 0 && (
+              <section class="panel panel--lista panel--tarjetas" id="mensualidades" aria-labelledby="titulo-mensualidades">
+                <div class="panel__cabecera">
+                  <h2 class="panel__titulo" id="titulo-mensualidades">Mensualidades</h2>
+                  <span class="panel__cuenta">
+                    {cuotasPendientes.length} por cobrar de {cuotas.length}
+                  </span>
+                </div>
+
+                {cuotasVisibles.length > 0 ? (
+                  <div class="tabla-scroll">
+                    <table class="tabla">
+                      <thead>
+                        <tr>
+                          <th>Cuota</th>
+                          <th>Vence</th>
+                          <th class="tabla__num">Falta</th>
+                          <th><span class="visualmente-oculto">Acciones</span></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cuotasVisibles.map((c) => {
+                          const aviso = recordatorios.get(c.id);
+                          const urgente = c.estado === 'vencida' || c.estado === 'parcial';
+                          const recordadaHoy = aviso && diaEnMexico(aviso.creado_en) === hoy;
+                          return (
+                            <tr class={c.estado === 'vencida' ? 'tabla__urgente' : undefined}>
+                              <td>
+                                <span class="tabla__nowrap" style="font-weight: 600">Mensualidad {c.numero}</span>
+                                <span class="tabla__sec">
+                                  {aviso
+                                    ? `Recordada ${haceCuanto(diaEnMexico(aviso.creado_en), hoy)}`
+                                    : urgente
+                                      ? 'Sin recordar'
+                                      : ''}
+                                </span>
+                              </td>
+                              <td>
+                                <span class={`chip chip--${c.estado}`}>
+                                  {c.estado === 'vencida' ? `Venció ${fechaCorta(c.vence_el)}` : c.estado === 'parcial' ? `Parcial · ${fechaCorta(c.vence_el)}` : fechaCorta(c.vence_el)}
+                                </span>
+                              </td>
+                              <td class="tabla__num">{dinero(c.restante)}</td>
+                              <td class="tabla__accion tabla__accion--apilada">
+                                <div class="acciones">
+                                  {urgente && paciente?.telefono && (
+                                    <a
+                                      class="btn btn--ghost btn--chico"
+                                      href={aWhatsappCobro(paciente.telefono, {
+                                        nombre: paciente.nombre,
+                                        numero: c.numero,
+                                        restante: c.restante,
+                                        venceEl: c.vence_el,
+                                        vencida: c.estado === 'vencida',
+                                      })}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                    >
+                                      <Icono nombre="whatsapp" tam={16} /> Cobrar
+                                    </a>
+                                  )}
+                                  {urgente && !recordadaHoy && (
+                                    <form method="post">
+                                      <input type="hidden" name="accion" value="recordatorio" />
+                                      <input type="hidden" name="cuota" value={c.id} />
+                                      <button class="btn btn--suave btn--chico" type="submit">
+                                        <Icono nombre="hecho" tam={16} /> Marcar enviado
+                                      </button>
+                                    </form>
+                                  )}
+                                  {!urgente && c.id === siguienteCuota && (
+                                    <a class="btn--enlace" href={`/admin/pagos/nuevo?cuota=${c.id}`}>
+                                      Registrar
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div class="vacio vacio--chico">
+                    <strong>Todo cobrado</strong>
+                    <p>No queda ninguna mensualidad pendiente.</p>
+                  </div>
+                )}
+
+                {/* `details` nativo: funciona sin JavaScript y el navegador ya sabe
+                    manejarlo con teclado y con la búsqueda en página. */}
+                {cuotasPlegadas.length > 0 && (
+                  <details class="plegable" style="border-top: 1px solid var(--line)">
+                    <summary>
+                      Resto del calendario{' '}
+                      <span class="plegable__resumen">
+                        {cuotasPlegadas.length} {cuotasPlegadas.length === 1 ? 'mensualidad' : 'mensualidades'}
+                      </span>
+                    </summary>
+                    <div class="tabla-scroll">
+                      <table class="tabla">
+                        <tbody>
+                          {cuotasPlegadas.map((c) => (
+                            <tr>
+                              <td>Mensualidad {c.numero}</td>
+                              <td class="tabla__fecha">{fechaCorta(c.vence_el)}</td>
+                              <td class="tabla__num">{dinero(c.monto)}</td>
+                              <td class="tabla__estado">
+                                <span class={`chip chip--${c.estado}`}>{ETIQUETA_ESTADO_CUOTA[c.estado]}</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                )}
+              </section>
             )}
 
-            {cuotasVisibles.length === 0 && (
-              <div class="vacio vacio--chico">
-                <strong>Todo cobrado</strong>
-                <p>No queda ninguna mensualidad pendiente.</p>
+            <section class="panel panel--lista panel--tarjetas" id="pagos" aria-labelledby="titulo-pagos">
+              <div class="panel__cabecera">
+                <h2 class="panel__titulo" id="titulo-pagos">Historial de pagos</h2>
+                <a href={`/admin/pagos/nuevo?paciente=${id}`}>Registrar</a>
               </div>
-            )}
-
-            {/* `details` nativo: funciona sin JavaScript y el navegador ya sabe
-                manejarlo con teclado y con la búsqueda en página. */}
-            {cuotasPlegadas.length > 0 && (
-              <details class="plegable">
-                <summary>
-                  Ver el resto del calendario ({cuotasPlegadas.length}{' '}
-                  {cuotasPlegadas.length === 1 ? 'mensualidad' : 'mensualidades'})
-                </summary>
+              {pagos.length === 0 ? (
+                <div class="vacio vacio--chico">
+                  <strong>Todavía no hay pagos</strong>
+                  <p>Lo que vaya cobrando aparecerá aquí, de lo más reciente a lo más antiguo.</p>
+                </div>
+              ) : (
                 <div class="tabla-scroll">
                   <table class="tabla">
                     <thead>
                       <tr>
-                        <th>N.º</th>
-                        <th>Vence</th>
+                        <th>Concepto</th>
+                        <th>Fecha</th>
                         <th class="tabla__num">Monto</th>
-                        <th>Estado</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {cuotasPlegadas.map((c) => (
+                      {pagos.map((g) => (
                         <tr>
-                          <td>{c.numero}</td>
-                          <td class="tabla__fecha tabla__meta">{fechaCorta(c.vence_el)}</td>
-                          <td class="tabla__num">{dinero(c.monto)}</td>
-                          <td class="tabla__estado">
-                            <span class={`chip chip--${c.estado}`}>
-                              {ETIQUETA_ESTADO_CUOTA[c.estado]}
-                            </span>
+                          <td>
+                            <span style="font-weight: 600">{g.concepto || '—'}</span>
+                            <span class="tabla__sec">{ETIQUETA_METODO_PAGO[g.metodo]}</span>
                           </td>
+                          <td class="tabla__fecha tabla__meta">{fechaCorta(g.pagado_el)}</td>
+                          <td class="tabla__num">{dinero(g.monto)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              </details>
-            )}
-          </div>
-        )}
-
-        <div class="panel panel--lista">
-          <div class="panel__cabecera">
-            <h2 class="panel__titulo">Historial de pagos</h2>
-            <a href={`/admin/pagos/nuevo?paciente=${id}`}>Registrar</a>
+              )}
+            </section>
           </div>
 
-          {pagos.length === 0 ? (
-            <div class="vacio vacio--chico">
-              <strong>Todavía no hay pagos</strong>
-              <p>Lo que vaya cobrando aparecerá aquí, de lo más reciente a lo más antiguo.</p>
-            </div>
-          ) : (
-            <div class="tabla-scroll">
-              <table class="tabla">
-                <thead>
-                  <tr>
-                    <th>Concepto</th>
-                    <th>Fecha</th>
-                    <th class="tabla__num">Monto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pagos.map((g) => (
-                    <tr>
-                      <td>
-                        {g.concepto || '—'}
-                        <span class="tabla__sec">{ETIQUETA_METODO_PAGO[g.metodo]}</span>
-                      </td>
-                      <td class="tabla__fecha tabla__meta">{fechaCorta(g.pagado_el)}</td>
-                      <td class="tabla__num">{dinero(g.monto)}</td>
-                    </tr>
+          <div class="columna">
+            <section class="panel" id="citas" aria-labelledby="titulo-citas">
+              <div class="panel__cabecera">
+                <h2 class="panel__titulo" id="titulo-citas">Citas</h2>
+                <a href={`/admin/agenda/nueva?paciente=${id}`}>+ Agendar</a>
+              </div>
+              {proximaCita && (
+                <a class="cita-destacada panel--tinta" href={`/admin/agenda?dia=${diaEnMexico(proximaCita.inicia_en)}&cita=${proximaCita.id}`} style="border: 1px solid var(--teal-200)">
+                  <span class="cola__icono ic-pizarra">
+                    <Icono nombre="agenda" />
+                  </span>
+                  <span style="flex: 1; min-width: 0">
+                    <span class="eyebrow-panel">Próxima</span>
+                    <b style="display: block">{fechaHora(proximaCita.inicia_en)}</b>
+                    <span class="tabla__sec">
+                      {ETIQUETA_TIPO_CITA[proximaCita.tipo]} · {proximaCita.duracion_min} min
+                    </span>
+                  </span>
+                  <span class={`chip chip--cita-${proximaCita.estado}`}>{ETIQUETA_ESTADO_CITA[proximaCita.estado]}</span>
+                </a>
+              )}
+              {citasRecientes.length > 0 ? (
+                <ul class="linea" style={proximaCita ? 'margin-top: 8px' : undefined}>
+                  {citasRecientes.map((c) => (
+                    <li class="linea__item" style="grid-template-columns: 110px minmax(0, 1fr) auto">
+                      <span class="linea__hora">{fechaHora(c.inicia_en)}</span>
+                      <a href={`/admin/agenda?dia=${diaEnMexico(c.inicia_en)}&cita=${c.id}`}>{ETIQUETA_TIPO_CITA[c.tipo]}</a>
+                      <span class={`chip chip--cita-${c.estado}`}>{ETIQUETA_ESTADO_CITA[c.estado]}</span>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </ul>
+              ) : (
+                !proximaCita && <p class="panel__texto" style="margin: 0">Todavía no tiene citas en la agenda.</p>
+              )}
+            </section>
+
+            <section class="panel" id="datos" aria-labelledby="titulo-datos">
+              <h2 class="panel__titulo" id="titulo-datos">Datos</h2>
+              <dl class="datos">
+                <dt>Teléfono</dt>
+                <dd>
+                  {paciente.telefono ? <a href={aTelefono(paciente.telefono)}>{paciente.telefono}</a> : '—'}
+                </dd>
+                <dt>Tratamiento</dt>
+                <dd>{paciente.tratamiento}</dd>
+                <dt>Inicio</dt>
+                <dd>{fechaCorta(paciente.inicio)}</dd>
+                <dt>Origen</dt>
+                <dd>
+                  {paciente.solicitud_id ? (
+                    <a href={`/admin/prospectos/${paciente.solicitud_id}`}>Solicitud del sitio</a>
+                  ) : (
+                    'Sin solicitud previa'
+                  )}
+                </dd>
+              </dl>
+
+              <details class="plegable" style="margin-top: 14px; border-top: 1px solid var(--line)">
+                <summary>Editar datos</summary>
+                <form method="post" class="plegable__cuerpo">
+                  <input type="hidden" name="accion" value="datos" />
+                  <div class="field">
+                    <label for="nombre">Nombre completo</label>
+                    <input id="nombre" name="nombre" type="text" maxlength="120" required value={paciente.nombre} />
+                  </div>
+                  <div class="field">
+                    <label for="telefono">Teléfono</label>
+                    <input id="telefono" name="telefono" type="tel" maxlength="30" value={paciente.telefono} />
+                  </div>
+                  <div class="field">
+                    <label for="tratamiento">Tratamiento</label>
+                    <input id="tratamiento" name="tratamiento" type="text" maxlength="120" value={paciente.tratamiento} />
+                  </div>
+                  <div class="campos-2">
+                    <div class="field">
+                      <label for="inicio">Inicio</label>
+                      <input id="inicio" name="inicio" type="date" value={paciente.inicio} />
+                    </div>
+                    <div class="field">
+                      <label for="estado">Estado del tratamiento</label>
+                      <select id="estado" name="estado">
+                        {ESTADOS_PACIENTE.map((valor) => (
+                          <option value={valor} selected={valor === paciente?.estado}>
+                            {ETIQUETA_ESTADO_PACIENTE[valor]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <button class="btn btn--primary btn--block btn--chico" type="submit">Guardar cambios</button>
+                </form>
+              </details>
+
+              <details class="plegable" open={!!paciente.notas}>
+                <summary>
+                  Notas <span class="plegable__resumen">Solo para ti</span>
+                </summary>
+                <form method="post" class="plegable__cuerpo">
+                  <input type="hidden" name="accion" value="notas" />
+                  <div class="field">
+                    <label for="notas">Solo para ti. El paciente no las ve.</label>
+                    {/* Interpolación normal, nunca set:html: puede llevar datos de salud. */}
+                    <textarea id="notas" name="notas" rows="5" maxlength="4000">{paciente.notas}</textarea>
+                  </div>
+                  <button class="btn btn--ghost btn--block btn--chico" type="submit">Guardar notas</button>
+                </form>
+              </details>
+            </section>
+          </div>
         </div>
-    </>
+      </>
     )
   }
 </AdminLayout>

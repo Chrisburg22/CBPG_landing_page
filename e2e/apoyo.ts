@@ -136,6 +136,17 @@ export async function citasDeSolicitud(solicitudId: string) {
   return data ?? [];
 }
 
+/** Las citas de un paciente, leídas sin pasar por la interfaz. */
+export async function citasDePaciente(pacienteId: string) {
+  const { data, error } = await clienteAdmin()
+    .from('citas')
+    .select('id, inicia_en, duracion_min, tipo, estado, nombre_contacto')
+    .eq('paciente_id', pacienteId)
+    .order('inicia_en');
+  if (error) throw new Error(`No se pudieron leer las citas: ${error.message}`);
+  return data ?? [];
+}
+
 /** El historial de acciones de un prospecto. */
 export async function accionesDeSolicitud(solicitudId: string) {
   const { data, error } = await clienteAdmin()

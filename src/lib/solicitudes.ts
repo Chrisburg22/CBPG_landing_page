@@ -11,6 +11,8 @@ export interface FiltroListado {
   estado?: EstadoSolicitud | undefined;
   busqueda?: string | undefined;
   origen?: OrigenProspecto | undefined;
+  /** Solo las que tienen una próxima acción cuya fecha ya pasó. */
+  seguimientoVencido?: boolean | undefined;
 }
 
 /** `true` si el valor es uno de los cuatro estados. Para validar querystrings y formularios. */
@@ -63,6 +65,15 @@ export async function listar(
 
   if (filtro.estado) consulta = consulta.eq('estado', filtro.estado);
   if (filtro.origen) consulta = consulta.eq('origen', filtro.origen);
+  if (filtro.seguimientoVencido) {
+    // «Vencido» es anterior a este instante, no al final del día: la cola de
+    // Inicio ya enseña lo de hoy, y aquí se busca lo que se quedó atrás.
+    consulta = consulta
+      .not('proxima_accion_en', 'is', null)
+      .lt('proxima_accion_en', new Date().toISOString())
+      .neq('estado', 'terminado')
+      .neq('estado', 'descartada');
+  }
 
   const busqueda = filtro.busqueda ? limpiarBusqueda(filtro.busqueda) : '';
   if (busqueda) {
@@ -82,6 +93,42 @@ export async function contarNuevas(supabase: Cliente): Promise<number> {
     .eq('estado', 'nueva');
   if (error) throw new Error(`No se pudo contar: ${error.message}`);
   return count ?? 0;
+}
+
+/**
+ * Cuántas hay en cada estado, más las de seguimiento vencido, de una sola vez.
+ *
+ * Una consulta con la columna `estado` y el recuento en memoria, en vez de seis
+ * `count` separados: con el volumen de un consultorio sobra, y seis viajes a la
+ * base por cada carga del listado no.
+ */
+export async function contarPorEstado(
+  supabase: Cliente
+): Promise<{ porEstado: Record<EstadoSolicitud, number>; total: number; vencidas: number }> {
+  const { data, error } = await supabase
+    .from('solicitudes')
+    .select('estado, proxima_accion_en')
+    .limit(5000);
+  if (error) throw new Error(`No se pudo contar: ${error.message}`);
+
+  const porEstado = Object.fromEntries(ESTADOS.map((e) => [e, 0])) as Record<
+    EstadoSolicitud,
+    number
+  >;
+  const ahora = Date.now();
+  let vencidas = 0;
+  for (const fila of data ?? []) {
+    if (esEstado(fila.estado)) porEstado[fila.estado] += 1;
+    if (
+      fila.proxima_accion_en &&
+      new Date(fila.proxima_accion_en).getTime() < ahora &&
+      fila.estado !== 'terminado' &&
+      fila.estado !== 'descartada'
+    ) {
+      vencidas += 1;
+    }
+  }
+  return { porEstado, total: data?.length ?? 0, vencidas };
 }
 
 /** Total sin filtrar. Sirve para decirle a la doctora que su filtro esconde datos. */

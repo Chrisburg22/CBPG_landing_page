@@ -1,11 +1,11 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import AvisoContactado from '@/components/admin/AvisoContactado.astro';
+import Icono from '@/components/admin/Icono.astro';
 import { aWhatsapp } from '@/lib/contacto-directo';
 import {
   cambiarEstado,
-  contarNuevas,
-  contarTodas,
+  contarPorEstado,
   esEstado,
   fecha,
   listar,
@@ -20,9 +20,19 @@ import {
   ETIQUETA_ESTADO,
   ETIQUETA_ORIGEN,
   ORIGENES,
+  type EstadoSolicitud,
 } from '@/lib/supabase/tipos';
 
 export const prerender = false;
+
+/** Plural de cada estado para los chips de filtro: «Nuevas 5», no «Nueva 5». */
+const PLURAL: Record<EstadoSolicitud, string> = {
+  nueva: 'Nuevas',
+  contactada: 'Contactadas',
+  agendada: 'Agendadas',
+  descartada: 'Descartadas',
+  terminado: 'Terminadas',
+};
 
 // Cambio rápido de estado desde el aviso que aparece al volver de WhatsApp.
 // POST-Redirect-GET: sin el redirect, recargar repetiría la escritura. Astro
@@ -56,20 +66,21 @@ const estadoParam = params.get('estado');
 const estado = esEstado(estadoParam) ? estadoParam : undefined;
 const origenParam = params.get('origen');
 const origen = esOrigen(origenParam) ? origenParam : undefined;
+const seguimientoVencido = params.get('seguimiento') === 'vencido';
 const busqueda = params.get('q')?.trim() ?? '';
 
 let solicitudes: SolicitudListado[] = [];
-let nuevas = 0;
-// Total sin filtrar: es lo que permite distinguir "no hay nada" de
-// "hay cosas pero tu filtro las esconde", que son problemas muy distintos.
-let total = 0;
+let conteo: Awaited<ReturnType<typeof contarPorEstado>> = {
+  porEstado: { nueva: 0, contactada: 0, agendada: 0, descartada: 0, terminado: 0 },
+  total: 0,
+  vencidas: 0,
+};
 let fallo: string | null = null;
 
 try {
-  [solicitudes, nuevas, total] = await Promise.all([
-    listar(Astro.locals.supabase, { estado, busqueda, origen }),
-    contarNuevas(Astro.locals.supabase),
-    contarTodas(Astro.locals.supabase),
+  [solicitudes, conteo] = await Promise.all([
+    listar(Astro.locals.supabase, { estado, busqueda, origen, seguimientoVencido }),
+    contarPorEstado(Astro.locals.supabase),
   ]);
 } catch (e) {
   // Un fallo de base de datos no debe dar un 500 en blanco: la doctora tiene que
@@ -78,10 +89,25 @@ try {
   fallo = 'No pudimos cargar las solicitudes. Vuelve a intentarlo en un momento.';
 }
 
-const hayFiltro = !!estado || !!busqueda || !!origen;
+const nuevas = conteo.porEstado.nueva;
+// Total sin filtrar: es lo que permite distinguir "no hay nada" de
+// "hay cosas pero tu filtro las esconde", que son problemas muy distintos.
+const total = conteo.total;
+const hayFiltro = !!estado || !!busqueda || !!origen || seguimientoVencido;
 
 /** Ahora mismo, para saber qué seguimiento ya se pasó de fecha. */
 const ahora = Date.now();
+
+/** Enlace de filtro que conserva el resto de la querystring. */
+function enlace(cambios: Record<string, string | undefined>): string {
+  const nuevos = new URLSearchParams(params);
+  for (const [clave, valor] of Object.entries(cambios)) {
+    if (valor === undefined) nuevos.delete(clave);
+    else nuevos.set(clave, valor);
+  }
+  const cadena = nuevos.toString();
+  return `/admin/prospectos${cadena ? `?${cadena}` : ''}`;
+}
 ---
 
 <AdminLayout title="Prospectos" seccion="prospectos" nuevas={fallo ? null : nuevas}>
@@ -92,7 +118,7 @@ const ahora = Date.now();
         {
           fallo
             ? 'Sin datos'
-            : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender`
+            : `${solicitudes.length} ${solicitudes.length === 1 ? 'solicitud' : 'solicitudes'}${hayFiltro ? ' con este filtro' : ''} · ${nuevas} sin atender${conteo.vencidas > 0 ? ` · ${conteo.vencidas} con seguimiento vencido` : ''}`
         }
         {
           /* Con un filtro puesto es fácil quedarse mirando una tabla vacía sin
@@ -109,46 +135,82 @@ const ahora = Date.now();
       </p>
     </div>
 
-    <form class="filtros" method="get" action="/admin/prospectos">
-      <div class="field">
-        <label for="estado">Estado</label>
-        <select id="estado" name="estado">
-          <option value="">Todos</option>
-          {
-            ESTADOS.map((valor) => (
-              <option value={valor} selected={valor === estado}>
-                {ETIQUETA_ESTADO[valor]}
-              </option>
-            ))
-          }
-        </select>
-      </div>
-      <div class="field">
-        <label for="origen">Origen</label>
-        <select id="origen" name="origen">
-          <option value="">Todos</option>
-          {
-            ORIGENES.map((valor) => (
-              <option value={valor} selected={valor === origen}>
-                {ETIQUETA_ORIGEN[valor]}
-              </option>
-            ))
-          }
-        </select>
-      </div>
-      <div class="field">
-        <label for="q">Buscar</label>
+    <form class="filtros" method="get" action="/admin/prospectos" role="search">
+      {estado && <input type="hidden" name="estado" value={estado} />}
+      {origen && <input type="hidden" name="origen" value={origen} />}
+      {seguimientoVencido && <input type="hidden" name="seguimiento" value="vencido" />}
+      <div class="field buscador">
+        <label class="visualmente-oculto" for="q">Buscar</label>
+        <Icono nombre="buscar" />
         <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
       </div>
       <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
     </form>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
+
+  <div class="agenda-barra">
+    <nav class="fchips" aria-label="Filtrar por estado">
+      <a class="fchip" href={enlace({ estado: undefined })} aria-current={!estado ? 'true' : undefined}>
+        Todas <span class="fchip__n">{total}</span>
+      </a>
+      {
+        ESTADOS.map((valor) => (
+          <a
+            class="fchip"
+            href={enlace({ estado: valor })}
+            aria-current={valor === estado ? 'true' : undefined}
+          >
+            {PLURAL[valor]} <span class="fchip__n">{conteo.porEstado[valor]}</span>
+          </a>
+        ))
+      }
+    </nav>
+    <div class="fchips">
+      <a
+        class="fchip fchip--peligro"
+        href={enlace({ seguimiento: seguimientoVencido ? undefined : 'vencido' })}
+        aria-current={seguimientoVencido ? 'true' : undefined}
+      >
+        <Icono nombre="alerta" tam={16} /> Seguimiento vencido
+        <span class="fchip__n">{conteo.vencidas}</span>
+      </a>
+      <details class="menu">
+        <summary class="fchip">
+          <Icono nombre="filtro" tam={16} /> Origen: {origen ? ETIQUETA_ORIGEN[origen] : 'todos'}
+          <Icono nombre="abajo" tam={16} />
+        </summary>
+        <ul class="menu__lista">
+          <li>
+            <a href={enlace({ origen: undefined })} aria-current={!origen ? 'true' : undefined}>
+              Todos
+            </a>
+          </li>
+          {
+            ORIGENES.map((valor) => (
+              <li>
+                <a href={enlace({ origen: valor })} aria-current={valor === origen ? 'true' : undefined}>
+                  {ETIQUETA_ORIGEN[valor]}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </details>
+    </div>
+  </div>
 
   <AvisoContactado modo="listado" />
 
-  <div class="panel panel--lista">
+  <div class="panel panel--lista panel--tarjetas">
     {
       solicitudes.length === 0 && !fallo ? (
         <div class="vacio">
@@ -173,90 +235,90 @@ const ahora = Date.now();
               <tr>
                 <th>Prospecto</th>
                 <th>Tratamiento</th>
-                <th>Seguimiento</th>
+                <th>Próxima acción</th>
                 <th>Recibida</th>
                 <th>Estado</th>
                 <th><span class="visualmente-oculto">Contactar</span></th>
               </tr>
             </thead>
             <tbody>
-              {solicitudes.map((s) => (
-                <tr>
-                  <td>
-                    <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
-                      {s.nombre}
-                    </a>
-                    <span class="tabla__sec">{s.telefono}</span>
-                  </td>
-                  <td class="tabla__meta">
-                    {s.tratamiento}
-                    <span class="tabla__sec">{ETIQUETA_ORIGEN[s.origen]}</span>
-                  </td>
-                  <td class="tabla__meta">
-                    {/* Lo vencido en rojo: una cola de seguimiento que no
-                        distingue lo de hoy de lo de hace dos semanas no sirve
-                        para decidir a quién llamar primero. */}
-                    {s.proxima_accion_en ? (
-                      <span
-                        class={
-                          new Date(s.proxima_accion_en).getTime() < ahora
-                            ? 'chip chip--vencida'
-                            : 'chip'
-                        }
-                      >
-                        {s.proxima_accion_tipo
-                          ? ETIQUETA_ACCION_PENDIENTE[s.proxima_accion_tipo]
-                          : 'Seguimiento'}
-                        {` · ${fechaHora(s.proxima_accion_en)}`}
+              {solicitudes.map((s) => {
+                const vencido = !!s.proxima_accion_en && new Date(s.proxima_accion_en).getTime() < ahora;
+                return (
+                  <tr class={s.estado === 'nueva' ? 'tabla__destacada' : undefined}>
+                    <td>
+                      <a class="tabla__nombre" href={`/admin/prospectos/${s.id}`}>
+                        {s.nombre}
+                      </a>
+                      <span class="tabla__sec">{s.telefono}</span>
+                    </td>
+                    <td class="tabla__meta">
+                      {s.tratamiento}
+                      <span class="tabla__sec">
+                        <span class={`chip chip--chico chip--origen-${s.origen}`}>{ETIQUETA_ORIGEN[s.origen]}</span>
                       </span>
-                    ) : (
-                      <span class="tabla__sec">—</span>
-                    )}
-                  </td>
-                  <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
-                  <td class="tabla__estado">
-                    {/* Ya convertido: el estado deja de ser editable aquí. Volver
-                        a «contactada» un prospecto que ya tiene ficha de paciente
-                        solo desincronizaría las dos tablas. */}
-                    {s.estado === 'terminado' ? (
-                      <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
-                    ) : (
-                      <form method="post" class="estado-rapido">
-                        <input type="hidden" name="id" value={s.id} />
-                        <label class="visualmente-oculto" for={`estado-${s.id}`}>
-                          Estado de {s.nombre}
-                        </label>
-                        <select
-                          class={`estado-rapido__select chip chip--${s.estado}`}
-                          id={`estado-${s.id}`}
-                          name="estado"
+                    </td>
+                    <td class="tabla__meta">
+                      {/* Lo vencido en rojo: una cola de seguimiento que no
+                          distingue lo de hoy de lo de hace dos semanas no sirve
+                          para decidir a quién llamar primero. */}
+                      {s.proxima_accion_en ? (
+                        <span class={`chip ${vencido ? 'chip--peligro' : 'chip--teal'}`}>
+                          {s.proxima_accion_tipo ? ETIQUETA_ACCION_PENDIENTE[s.proxima_accion_tipo] : 'Seguimiento'}
+                          {` · ${fechaHora(s.proxima_accion_en)}`}
+                        </span>
+                      ) : (
+                        <span class="tabla__sec" style="margin: 0">—</span>
+                      )}
+                    </td>
+                    <td class="tabla__fecha tabla__meta">{fecha(s.creado_en)}</td>
+                    <td class="tabla__estado">
+                      {/* Ya convertido: el estado deja de ser editable aquí. Volver
+                          a «contactada» un prospecto que ya tiene ficha de paciente
+                          solo desincronizaría las dos tablas. */}
+                      {s.estado === 'terminado' ? (
+                        <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
+                      ) : (
+                        <form method="post" class="estado-rapido">
+                          <input type="hidden" name="id" value={s.id} />
+                          <label class="visualmente-oculto" for={`estado-${s.id}`}>
+                            Estado de {s.nombre}
+                          </label>
+                          <select
+                            class={`estado-rapido__select chip chip--${s.estado}`}
+                            id={`estado-${s.id}`}
+                            name="estado"
+                          >
+                            {ESTADOS_MANUALES.map((valor) => (
+                              <option value={valor} selected={valor === s.estado}>
+                                {ETIQUETA_ESTADO[valor]}
+                              </option>
+                            ))}
+                          </select>
+                          {/* Sin JavaScript el select no envía solo; este botón sí. */}
+                          <button class="estado-rapido__ok" type="submit" data-sin-texto>Guardar</button>
+                        </form>
+                      )}
+                    </td>
+                    <td class="tabla__accion">
+                      {s.estado !== 'terminado' && s.estado !== 'descartada' && (
+                        <a
+                          class={`btn btn--chico ${s.estado === 'nueva' ? 'btn--primary' : 'btn--ghost'}`}
+                          href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-wa-id={s.id}
+                          data-wa-nombre={s.nombre}
+                          data-wa-estado={s.estado}
                         >
-                          {ESTADOS_MANUALES.map((valor) => (
-                            <option value={valor} selected={valor === s.estado}>
-                              {ETIQUETA_ESTADO[valor]}
-                            </option>
-                          ))}
-                        </select>
-                        {/* Sin JavaScript el select no envía solo; este botón sí. */}
-                        <button class="estado-rapido__ok" type="submit">Guardar</button>
-                      </form>
-                    )}
-                  </td>
-                  <td class="tabla__accion">
-                    <a
-                      class="btn btn--primary btn--chico"
-                      href={aWhatsapp(s.telefono, s.nombre, s.tratamiento)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-wa-id={s.id}
-                      data-wa-nombre={s.nombre}
-                      data-wa-estado={s.estado}
-                    >
-                      WhatsApp
-                    </a>
-                  </td>
-                </tr>
-              ))}
+                          <Icono nombre="whatsapp" tam={16} />
+                          WhatsApp
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -264,19 +326,14 @@ const ahora = Date.now();
     }
   </div>
 
-  {/* Con JS, cambiar el estado filtra al vuelo. Sin JS, queda el botón Filtrar. */}
   <script is:inline>
-    document.getElementById('estado')?.addEventListener('change', (e) => {
-      e.target.form.submit();
-    });
-
-    // Lo mismo para el estado de cada fila: con JS se guarda al soltar el
-    // selector y su botón «Guardar» sobra, así que se esconde. Sin JS el botón
-    // sigue ahí y la tabla se opera igual, solo que con un clic más.
+    // Con JS el estado de cada fila se guarda al soltar el selector y su botón
+    // «Guardar» sobra, así que se esconde. Sin JS el botón sigue ahí y la tabla
+    // se opera igual, solo que con un clic más.
     for (const form of document.querySelectorAll('.estado-rapido')) {
       form.classList.add('estado-rapido--auto');
       form.querySelector('select')?.addEventListener('change', (e) => {
-        e.target.form.submit();
+        e.target.form.requestSubmit();
       });
     }
   </script>

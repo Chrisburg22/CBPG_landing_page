@@ -93,8 +93,8 @@ if (yaConvertida) return Astro.redirect(`/admin/pacientes/${yaConvertida.id}`, 3
     <a class="btn btn--ghost btn--chico" href={`/admin/prospectos/${id}`}>← Volver al prospecto</a>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
-  {error && <p class="aviso aviso--error">{error}</p>}
+  {fallo && <p class="aviso aviso--error" role="alert">{fallo}</p>}
+  {error && <p class="aviso aviso--error" role="alert">{error}</p>}
 
   {
     solicitud && (

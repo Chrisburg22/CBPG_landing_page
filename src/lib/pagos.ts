@@ -227,6 +227,24 @@ export async function listarMovimientos(
   return (data ?? []) as unknown as MovimientoPago[];
 }
 
+/**
+ * Lo que se esperaba cobrar en un mes: la suma de las mensualidades que vencen
+ * dentro de él. Es la referencia de la barra «cobrado de esperado».
+ *
+ * No incluye enganches ni cargos sueltos porque esos no se esperan: llegan.
+ */
+export async function esperadoEntre(supabase: Cliente, desde: string, hasta: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('cuotas')
+    .select('monto')
+    .gte('vence_el', desde)
+    .lte('vence_el', hasta)
+    .limit(2000);
+  if (error) throw new Error(`No se pudo calcular lo esperado: ${error.message}`);
+  const centavos = (data ?? []).reduce((t, f) => t + Math.round(Number(f.monto) * 100), 0);
+  return centavos / 100;
+}
+
 /** Primer y último día del mes que contiene `fecha`, en formato 'AAAA-MM-DD'. */
 export function limitesDelMes(fecha: string): { desde: string; hasta: string } {
   const [anio, mes] = fecha.split('-').map(Number);

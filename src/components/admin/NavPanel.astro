@@ -40,6 +40,7 @@ const enlaces = TODOS.filter((enlace) => permitidas.includes(enlace.id));
 ---
 
 <nav class="nav-panel" aria-label="Secciones del panel">
+  <a class="nav-panel__marca" href="/admin"><span class="nav-panel__sello" aria-hidden="true">BP</span>Panel</a>
   <ul class="nav-panel__lista">
     {
       enlaces.map(({ id, texto, href }) => (

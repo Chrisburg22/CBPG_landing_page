@@ -100,28 +100,28 @@ const autorizado = calendarios.length > 0 || !!estado.cuenta;
     <a class="btn btn--ghost btn--chico" href="/admin/agenda">← Agenda</a>
   </div>
 
-  {guardado && <p class="aviso aviso--ok">Guardado.</p>}
-  {reciénConectado && <p class="aviso aviso--ok">Cuenta conectada. Ahora elige el calendario.</p>}
+  {guardado && <p class="aviso aviso--ok" role="status">Guardado.</p>}
+  {reciénConectado && <p class="aviso aviso--ok" role="status">Cuenta conectada. Ahora elige el calendario.</p>}
   {
     error === 'estado' && (
-      <p class="aviso aviso--error">
+      <p class="aviso aviso--error" role="alert">
         La vuelta desde Google no coincidió con la conexión que se había empezado. Vuelve a
         intentarlo desde este botón, sin usar enlaces de fuera.
       </p>
     )
   }
-  {error === 'cancelado' && <p class="aviso aviso--aviso">Se canceló la autorización.</p>}
-  {error === 'sin-codigo' && <p class="aviso aviso--error">Google no devolvió el código.</p>}
+  {error === 'cancelado' && <p class="aviso aviso--aviso" role="status">Se canceló la autorización.</p>}
+  {error === 'sin-codigo' && <p class="aviso aviso--error" role="alert">Google no devolvió el código.</p>}
   {
     error === 'conexion' && (
-      <p class="aviso aviso--error">No se pudo completar la conexión. Inténtalo otra vez.</p>
+      <p class="aviso aviso--error" role="alert">No se pudo completar la conexión. Inténtalo otra vez.</p>
     )
   }
-  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
-  {error === 'calendario' && <p class="aviso aviso--error">Elige un calendario de la lista.</p>}
+  {error === 'guardar' && <p class="aviso aviso--error" role="alert">No se pudo guardar. Inténtalo otra vez.</p>}
+  {error === 'calendario' && <p class="aviso aviso--error" role="alert">Elige un calendario de la lista.</p>}
   {
     error === 'sin-credenciales' && (
-      <p class="aviso aviso--error">Faltan las credenciales de Google en el servidor.</p>
+      <p class="aviso aviso--error" role="alert">Faltan las credenciales de Google en el servidor.</p>
     )
   }
 
@@ -174,7 +174,7 @@ const autorizado = calendarios.length > 0 || !!estado.cuenta;
             )}
 
             {estado.ultimoError && (
-              <p class="aviso aviso--error" style="margin-top: 14px">
+              <p class="aviso aviso--error" role="alert" style="margin-top: 14px">
                 {estado.ultimoError}
               </p>
             )}

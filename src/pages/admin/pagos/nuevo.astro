@@ -1,36 +1,51 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import Icono from '@/components/admin/Icono.astro';
 import { paraSelector } from '@/lib/pacientes';
-import { aImporte, cuotasDe, esMetodoPago, esTipoPago, registrar } from '@/lib/pagos';
+import { aImporte, cuotasDe, esMetodoPago, esTipoPago, registrar, saldoDe } from '@/lib/pagos';
 import { dinero, fechaCorta, hoyEnMexico } from '@/lib/formato';
 import {
   ETIQUETA_METODO_PAGO,
   ETIQUETA_TIPO_PAGO,
   METODOS_PAGO,
-  TIPOS_PAGO,
   type CuotaConEstado,
+  type SaldoPaciente,
+  type TipoPago,
 } from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
 const supabase = Astro.locals.supabase;
 
+/** Cuántas mensualidades se ofrecen como tarjeta. El resto sigue en la ficha. */
+const TARJETAS = 6;
+
 let error: string | null = null;
 
 if (Astro.request.method === 'POST') {
   const datos = await Astro.request.formData();
   const pacienteId = String(datos.get('paciente_id') ?? '');
-  const tipo = String(datos.get('tipo') ?? '');
   const metodo = String(datos.get('metodo') ?? '');
   const monto = aImporte(String(datos.get('monto') ?? ''));
-  // Cadena vacía = ningún vínculo con una mensualidad concreta.
-  const cuotaId = String(datos.get('cuota_id') ?? '') || null;
+
+  // «A qué corresponde» llega en un solo campo: `cuota:<id>` para una
+  // mensualidad concreta, o el tipo de pago tal cual. Un solo control evita
+  // la combinación incoherente de antes —«enganche» con una cuota elegida—.
+  const aplica = String(datos.get('aplica') ?? 'mensualidad');
+  let tipo: TipoPago | null = null;
+  let cuotaId: string | null = null;
+  if (aplica.startsWith('cuota:')) {
+    tipo = 'mensualidad';
+    cuotaId = aplica.slice('cuota:'.length) || null;
+  } else if (esTipoPago(aplica)) {
+    tipo = aplica;
+  }
 
   if (!pacienteId) {
     error = 'Elige a quién corresponde el pago.';
   } else if (monto === null) {
     error = 'El monto tiene que ser un número mayor que cero.';
-  } else if (!esTipoPago(tipo)) {
+  } else if (!tipo) {
     error = 'Ese tipo de pago no es válido.';
   } else if (!esMetodoPago(metodo)) {
     error = 'Ese método de pago no es válido.';
@@ -39,9 +54,7 @@ if (Astro.request.method === 'POST') {
     try {
       creado = await registrar(supabase, {
         paciente_id: pacienteId,
-        // Un cargo suelto o un enganche no cuelgan de ninguna mensualidad,
-        // aunque el formulario traiga una cuota preseleccionada de antes.
-        cuota_id: tipo === 'mensualidad' ? cuotaId : null,
+        cuota_id: cuotaId,
         tipo,
         concepto: String(datos.get('concepto') ?? '').trim().slice(0, 160),
         monto,
@@ -86,16 +99,33 @@ if (cuotaParam) {
 }
 
 const pacienteId = cuotaElegida?.paciente_id ?? params.get('paciente') ?? '';
+const pacienteElegido = pacientes.find((p) => p.id === pacienteId) ?? null;
 
 // Las cuotas del paciente elegido, para poder decir a cuál corresponde el pago.
 let cuotas: CuotaConEstado[] = [];
+let saldo: SaldoPaciente | null = null;
 if (pacienteId) {
   try {
-    cuotas = (await cuotasDe(supabase, pacienteId)).filter((c) => c.estado !== 'pagada');
+    [cuotas, saldo] = await Promise.all([cuotasDe(supabase, pacienteId), saldoDe(supabase, pacienteId)]);
+    // Lo urgente primero; dentro de cada grupo, por número.
+    const orden = { vencida: 0, parcial: 1, pendiente: 2, pagada: 3 } as const;
+    cuotas = cuotas
+      .filter((c) => c.estado !== 'pagada')
+      .sort((a, b) => orden[a.estado] - orden[b.estado] || a.numero - b.numero)
+      .slice(0, TARJETAS);
   } catch (e) {
     console.error('[admin] no se pudieron cargar las cuotas:', e instanceof Error ? e.message : 'desconocido');
   }
 }
+// La elegida por URL tiene que estar entre las tarjetas aunque no sea de las primeras.
+if (cuotaElegida && !cuotas.some((c) => c.id === cuotaElegida?.id)) {
+  cuotas = [cuotaElegida, ...cuotas].slice(0, TARJETAS);
+}
+
+const cuotaInicial = cuotaElegida ?? cuotas[0] ?? null;
+const aplicaInicial = cuotaInicial ? `cuota:${cuotaInicial.id}` : 'mensualidad';
+const montoInicial = cuotaInicial ? Number(cuotaInicial.restante).toFixed(2) : '';
+const conceptoInicial = cuotaInicial ? `Mensualidad ${cuotaInicial.numero}` : '';
 
 const volverAqui = encodeURIComponent(`/admin/pagos/nuevo`);
 ---
@@ -104,13 +134,29 @@ const volverAqui = encodeURIComponent(`/admin/pagos/nuevo`);
   <div class="admin-head">
     <div>
       <h1>Registrar pago</h1>
-      <p>Queda en la ficha del paciente y en el listado de pagos</p>
+      <p>Lo que entró. Se aplica a una mensualidad o queda como enganche o cargo suelto.</p>
     </div>
-    <a class="btn btn--ghost btn--chico" href="/admin/pagos">← Cancelar</a>
+    <a class="btn btn--ghost btn--chico" href="/admin/pagos">
+      <Icono nombre="izquierda" tam={16} /> Pagos
+    </a>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
-  {error && <p class="aviso aviso--error">{error}</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
+  {
+    error && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{error}</span>
+      </p>
+    )
+  }
 
   {
     pacientes.length === 0 && !fallo ? (
@@ -118,19 +164,15 @@ const volverAqui = encodeURIComponent(`/admin/pagos/nuevo`);
         <div class="vacio">
           <strong>Todavía no hay pacientes</strong>
           <p>Un pago se registra siempre a nombre de alguien. Empieza por dar de alta al paciente.</p>
-          <a
-            class="btn btn--primary btn--chico"
-            href={`/admin/pacientes/nuevo?volver=${volverAqui}`}
-            style="margin-top: 20px"
-          >
+          <a class="btn btn--primary btn--chico" href={`/admin/pacientes/nuevo?volver=${volverAqui}`} style="margin-top: 20px">
             + Nuevo paciente
           </a>
         </div>
       </div>
     ) : (
-      <form class="panel panel--formulario" method="post">
-        <div class="campos">
-          <div class="field field--ancho">
+      <form method="post" class="agenda-layout" data-pago>
+        <section class="panel">
+          <div class="field">
             <label for="paciente_id">Paciente</label>
             <select id="paciente_id" name="paciente_id" required>
               <option value="">Elige un paciente…</option>
@@ -142,102 +184,164 @@ const volverAqui = encodeURIComponent(`/admin/pagos/nuevo`);
               ))}
             </select>
             <span class="field__ayuda">
-              ¿No está en la lista?{' '}
-              <a href={`/admin/pacientes/nuevo?volver=${volverAqui}`}>Crear paciente</a> y vuelves
+              ¿No está en la lista? <a href={`/admin/pacientes/nuevo?volver=${volverAqui}`}>Crear paciente</a> y vuelves
               aquí con él ya elegido.
             </span>
           </div>
 
-          <div class="field">
-            <label for="tipo">Tipo</label>
-            <select id="tipo" name="tipo">
-              {TIPOS_PAGO.map((valor) => (
-                <option value={valor} selected={valor === (cuotaElegida ? 'mensualidad' : 'mensualidad')}>
-                  {ETIQUETA_TIPO_PAGO[valor]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="cuota_id">Mensualidad</label>
-            <select id="cuota_id" name="cuota_id" disabled={cuotas.length === 0}>
-              <option value="">Sin mensualidad concreta</option>
+          <fieldset class="field" style="border: 0; padding: 0; margin: 0 0 18px">
+            <legend style="font-size: 14px; font-weight: 600; margin-bottom: 8px; padding: 0">¿A qué corresponde?</legend>
+            <div class="opciones">
               {cuotas.map((c) => (
-                <option value={c.id} selected={c.id === cuotaElegida?.id}>
-                  Mensualidad {c.numero} · vence {fechaCorta(c.vence_el)} · falta{' '}
-                  {dinero(c.restante)}
-                </option>
+                <label class="opcion">
+                  <input
+                    type="radio"
+                    name="aplica"
+                    value={`cuota:${c.id}`}
+                    checked={`cuota:${c.id}` === aplicaInicial}
+                    data-restante={Number(c.restante).toFixed(2)}
+                    data-concepto={`Mensualidad ${c.numero}`}
+                  />
+                  <b>Mensualidad {c.numero}</b>
+                  <span class={`chip chip--${c.estado}`}>
+                    {c.estado === 'vencida' ? 'Vencida' : c.estado === 'parcial' ? 'Parcial' : fechaCorta(c.vence_el)}
+                  </span>
+                  <span class="num">{dinero(c.restante)}</span>
+                </label>
               ))}
-            </select>
-            <span class="field__ayuda">
-              {cuotas.length === 0
-                ? 'Este paciente no tiene mensualidades pendientes. El pago contará contra su saldo igual.'
-                : 'Solo aplica a los pagos de tipo mensualidad.'}
-            </span>
-          </div>
+              <label class="opcion opcion--suelta">
+                <input type="radio" name="aplica" value="mensualidad" checked={aplicaInicial === 'mensualidad'} data-concepto="" />
+                <b>Abono al plan</b>
+                <span class="tabla__sec" style="margin: 0">Sin mensualidad concreta</span>
+              </label>
+              <label class="opcion opcion--suelta">
+                <input type="radio" name="aplica" value="enganche" data-concepto={ETIQUETA_TIPO_PAGO.enganche} />
+                <b>{ETIQUETA_TIPO_PAGO.enganche}</b>
+                <span class="tabla__sec" style="margin: 0">Al empezar el tratamiento</span>
+              </label>
+              <label class="opcion opcion--suelta">
+                <input type="radio" name="aplica" value="cargo_suelto" data-concepto="" />
+                <b>{ETIQUETA_TIPO_PAGO.cargo_suelto}</b>
+                <span class="tabla__sec" style="margin: 0">Retenedor, radiografía…</span>
+              </label>
+            </div>
+            {pacienteId && cuotas.length === 0 && (
+              <span class="field__ayuda">Este paciente no tiene mensualidades pendientes. El pago contará contra su saldo igual.</span>
+            )}
+          </fieldset>
 
           <div class="field">
             <label for="monto">Monto</label>
-            <input
-              id="monto"
-              name="monto"
-              type="text"
-              inputmode="decimal"
-              required
-              value={cuotaElegida ? Number(cuotaElegida.restante).toFixed(2) : ''}
-              placeholder="0.00"
-            />
-            <span class="field__ayuda">En pesos. Puedes abonar menos que la mensualidad.</span>
+            <div class="importe">
+              <span aria-hidden="true">$</span>
+              <input id="monto" name="monto" type="text" inputmode="decimal" required value={montoInicial} placeholder="0.00" data-monto />
+            </div>
+            <span class="field__ayuda">En pesos. Puedes abonar menos que la mensualidad: quedará como parcial.</span>
           </div>
 
-          <div class="field">
-            <label for="pagado_el">Fecha del pago</label>
-            <input id="pagado_el" name="pagado_el" type="date" value={hoyEnMexico()} />
-          </div>
-
-          <div class="field">
-            <label for="metodo">Método</label>
-            <select id="metodo" name="metodo">
-              {METODOS_PAGO.map((valor) => (
-                <option value={valor}>{ETIQUETA_METODO_PAGO[valor]}</option>
-              ))}
-            </select>
+          <div class="campos-2">
+            <fieldset class="field" style="border: 0; padding: 0; margin: 0 0 18px">
+              <legend style="font-size: 14px; font-weight: 600; margin-bottom: 7px; padding: 0">Método</legend>
+              <div class="seg seg--lleno">
+                {METODOS_PAGO.map((valor, i) => (
+                  <label>
+                    <input type="radio" name="metodo" value={valor} checked={i === 0} />
+                    {ETIQUETA_METODO_PAGO[valor]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div class="field">
+              <label for="pagado_el">Fecha del pago</label>
+              <input id="pagado_el" name="pagado_el" type="date" value={hoyEnMexico()} />
+            </div>
           </div>
 
           <div class="field">
             <label for="concepto">Concepto</label>
-            <input
-              id="concepto"
-              name="concepto"
-              type="text"
-              maxlength="160"
-              value={cuotaElegida ? `Mensualidad ${cuotaElegida.numero}` : ''}
-              placeholder="Retenedor, radiografía…"
-            />
+            <input id="concepto" name="concepto" type="text" maxlength="160" value={conceptoInicial} placeholder="Retenedor, radiografía…" data-concepto-campo />
           </div>
 
-          <div class="field field--ancho">
+          <div class="field" style="margin-bottom: 0">
             <label for="nota">Nota</label>
-            <textarea id="nota" name="nota" rows="3" maxlength="1000" />
+            <textarea id="nota" name="nota" rows="2" maxlength="1000" placeholder="Referencia de la transferencia" />
           </div>
-        </div>
+        </section>
 
-        <div class="acciones acciones--fin">
-          <a class="btn btn--ghost btn--chico" href="/admin/pagos">Cancelar</a>
-          <button class="btn btn--primary btn--chico" type="submit">Guardar pago</button>
-        </div>
+        <aside class="agenda-lateral">
+          <section class="panel panel--tinta">
+            <span class="eyebrow-panel" style="color: var(--teal-600)">Después de este pago</span>
+            {pacienteElegido ? (
+              <>
+                <b style="display: block; margin-top: 8px; font-size: 17px">{pacienteElegido.nombre}</b>
+                {saldo ? (
+                  <div class="resumen-pago" data-saldo={saldo.saldo}>
+                    <div>
+                      <span>Saldo</span>
+                      <span class="num">
+                        <s>{dinero(saldo.saldo)}</s> → <b data-saldo-nuevo>{dinero(saldo.saldo)}</b>
+                      </span>
+                    </div>
+                    <div>
+                      <span>Cuotas vencidas</span>
+                      <b class="num">{saldo.cuotas_vencidas}</b>
+                    </div>
+                  </div>
+                ) : (
+                  <p class="panel__texto" style="margin: 8px 0 0">Sin plan: el pago queda registrado sin saldo contra el que contar.</p>
+                )}
+              </>
+            ) : (
+              <p class="panel__texto" style="margin: 8px 0 0">Elige el paciente para ver cómo queda su saldo.</p>
+            )}
+            <button class="btn btn--primary btn--block" type="submit" style="margin-top: 20px">Guardar pago</button>
+            <a class="btn btn--ghost btn--chico btn--block" href="/admin/pagos" style="margin-top: 8px">Cancelar</a>
+          </section>
+        </aside>
       </form>
     )
   }
 
   {/* Cambiar de paciente recarga para traer sus mensualidades. Sin JavaScript el
-      selector de mensualidad se queda vacío y el pago se registra igual: cuenta
-      contra el saldo, solo que sin vincularse a una cuota concreta. */}
+      pago se registra igual como abono al plan. */}
   <script is:inline>
-    document.getElementById('paciente_id')?.addEventListener('change', (e) => {
-      const id = e.target.value;
-      if (id) location.href = `/admin/pagos/nuevo?paciente=${encodeURIComponent(id)}`;
-    });
+    (() => {
+      document.getElementById('paciente_id')?.addEventListener('change', (e) => {
+        const id = e.target.value;
+        if (id) location.href = `/admin/pagos/nuevo?paciente=${encodeURIComponent(id)}`;
+      });
+
+      const form = document.querySelector('[data-pago]');
+      if (!form) return;
+      const monto = form.querySelector('[data-monto]');
+      const concepto = form.querySelector('[data-concepto-campo]');
+      const resumen = form.querySelector('[data-saldo]');
+      const nuevo = form.querySelector('[data-saldo-nuevo]');
+      const pesos = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
+
+      // Monto y concepto se rellenan solos al elegir una tarjeta, pero solo
+      // mientras nadie los haya tocado a mano.
+      let montoTocado = false;
+      let conceptoTocado = false;
+      monto?.addEventListener('input', () => { montoTocado = true; pintar(); });
+      concepto?.addEventListener('input', () => { conceptoTocado = true; });
+
+      form.addEventListener('change', (e) => {
+        const radio = e.target;
+        if (!(radio instanceof HTMLInputElement) || radio.name !== 'aplica') return;
+        if (monto && !montoTocado) monto.value = radio.dataset.restante ?? '';
+        if (concepto && !conceptoTocado) concepto.value = radio.dataset.concepto ?? '';
+        pintar();
+      });
+
+      function pintar() {
+        if (!resumen || !nuevo || !monto) return;
+        const saldo = Number(resumen.dataset.saldo);
+        const abono = Number(String(monto.value).replace(/[$\s,]/g, ''));
+        if (!Number.isFinite(saldo) || !Number.isFinite(abono)) return;
+        nuevo.textContent = pesos.format(Math.round((saldo - abono) * 100) / 100);
+      }
+      pintar();
+    })();
   </script>
 </AdminLayout>

@@ -1,17 +1,34 @@
 /* ============================================================
-   Panel de administración (/admin)
-   Solo lo que falta sobre global.css. Los tokens, .wrap, .btn,
-   .field y .eyebrow vienen de allí.
+   Panel de administración (/admin) · V1.1
+   Solo lo que falta sobre global.css. Los tokens —incluida la paleta
+   ampliada—, .wrap, .btn y .field vienen de allí.
+
+   Referencia visual: design/panel/rediseno. Si algo aquí y la maqueta
+   discrepan, gana lo que está aquí; la maqueta no se mantiene al día.
    ============================================================ */
 
-/* Sin las fuentes de Google —el panel no las carga— la pila cae a system-ui,
-   que es lo que queremos: una pantalla de trabajo, no una pieza editorial. */
+/* Sin las fuentes de Google —el panel no las carga— la pila cae a Georgia para
+   títulos y system-ui para el resto: una pantalla de trabajo, no una pieza
+   editorial. */
 body.admin {
   font-size: 16px;
+  line-height: 1.55;
   background: var(--bg-deep);
 }
 
 .admin-main { padding-block: 36px 80px; }
+
+.icono {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Cifras siempre tabulares: los importes y las horas se comparan en columna. */
+.num { font-variant-numeric: tabular-nums; }
 
 /* ============================================================
    Marco: navegación + columna de contenido.
@@ -25,8 +42,13 @@ body.admin {
   width: 100%;
   max-width: 1400px;
   padding-inline: clamp(20px, 3vw, 30px);
-  padding-block: 30px 80px;
+  padding-block: 28px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
+/* Los hijos del main van con `gap`; los márgenes heredados sobran. */
+.marco__col > .admin-main > * { margin-block: 0; }
 
 /* ---------- Navegación ---------- */
 .nav-panel {
@@ -34,31 +56,56 @@ body.admin {
   width: 248px;
   background: var(--surface);
   border-right: 1px solid var(--line);
-  padding: 20px 14px;
+  padding: 18px 14px;
   position: sticky;
   top: 0;
   align-self: flex-start;
   height: 100dvh;
   overflow-y: auto;
   z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.nav-panel__marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 6px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--ink);
+}
+.nav-panel__sello {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--teal-500);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .02em;
 }
 .nav-panel__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .nav-panel__enlace {
   display: flex;
   align-items: center;
-  gap: 11px;
-  min-height: 44px;
+  gap: 12px;
+  min-height: 46px;
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   font-size: 15px;
   font-weight: 500;
   color: var(--ink);
-  transition: background .25s cubic-bezier(.2,.8,.2,1), color .2s;
+  transition: background .2s cubic-bezier(.2,.8,.2,1), color .2s;
 }
 .nav-panel__enlace:hover { background: var(--bg); }
 .nav-panel__enlace[aria-current='page'] {
-  background: var(--accent-tint);
-  color: var(--accent-deep);
+  background: var(--teal-100);
+  color: var(--teal-600);
   font-weight: 600;
 }
 .nav-panel__icono { position: relative; flex: none; width: 20px; height: 20px; }
@@ -68,7 +115,8 @@ body.admin {
   stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
 }
 /* Colgado de la esquina del icono y no al lado del texto: en el raíl y en la
-   barra de pestañas no hay sitio a la derecha, y así no hace falta moverlo. */
+   barra de pestañas no hay sitio a la derecha, y así no hace falta moverlo.
+   Arcilla y no verde: es un pendiente, no un estado activo. */
 .nav-panel__cuenta {
   position: absolute;
   top: -5px;
@@ -78,8 +126,8 @@ body.admin {
   padding-inline: 4px;
   border-radius: 100px;
   border: 2px solid var(--surface);
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--clay-500);
+  color: #fff;
   font-size: 10.5px;
   font-weight: 700;
   line-height: 13px;
@@ -89,6 +137,7 @@ body.admin {
 /* Raíl: un sidebar de 248px dejaría 520px de contenido y las tablas no caben. */
 @media (max-width: 939px) {
   .nav-panel { width: 84px; padding: 14px 8px; }
+  .nav-panel__marca { display: none; }
   .nav-panel__enlace {
     flex-direction: column;
     justify-content: center;
@@ -122,7 +171,11 @@ body.admin {
   .nav-panel__lista { flex-direction: row; gap: 4px; }
   .nav-panel__lista > li { flex: 1; min-width: 0; }
   .nav-panel__enlace { min-height: 52px; }
-  .marco__col > .admin-main { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .marco__col > .admin-main {
+    padding-inline: 16px;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+    gap: 16px;
+  }
 }
 
 /* ---------- Barra superior ---------- */
@@ -132,7 +185,7 @@ body.admin {
   position: sticky;
   top: 0;
   z-index: 10;
-  padding-inline: clamp(20px, 3vw, 30px);
+  padding-inline: clamp(16px, 3vw, 30px);
   padding-top: env(safe-area-inset-top);
 }
 .admin-barra__interior {
@@ -153,90 +206,83 @@ body.admin {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.admin-barra__derecha { display: flex; align-items: center; gap: 14px; flex: none; }
+.admin-barra__derecha { display: flex; align-items: center; gap: 12px; flex: none; }
 .admin-barra__email { font-size: 13.5px; color: var(--ink-soft); }
-
+.admin-barra__rol {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
 @media (max-width: 560px) {
   .admin-barra__email { display: none; }
 }
 
-/* ---------- Métricas del inicio ---------- */
-.metricas {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 20px;
-}
-.metrica {
+/* El enlace para saltar al contenido viene de global.css; aquí la barra es
+   sticky y hay que ponerlo por encima de ella. */
+.admin .skip-link { z-index: 60; }
+
+/* ============================================================
+   Superficies. Tres niveles para que no todo sea la misma tarjeta:
+   panel (contenido), tinta (lo que toca ahora) y plano (secundario).
+   ============================================================ */
+.panel {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 20px 22px;
+  padding: clamp(18px, 2.4vw, 26px);
   box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
-.metrica__k {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+.panel--tinta { background: var(--teal-50); border-color: var(--teal-200); box-shadow: none; }
+.panel--alerta { background: var(--bad-50); border-color: var(--bad-200); box-shadow: none; }
+.panel--plano { background: transparent; border-style: dashed; box-shadow: none; }
+/* Paneles con tabla o lista a sangre: el relleno lo pone cada fila. */
+.panel--lista { padding: clamp(16px, 2.2vw, 22px) 0 6px; }
+.panel--lista > .panel__cabecera,
+.panel--lista > .panel__pie { padding-inline: clamp(18px, 2.4vw, 26px); }
+.panel__titulo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 14px;
 }
-.metrica__v {
-  font-size: 36px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  font-variant-numeric: tabular-nums;
-}
-.metrica__d { font-size: 13px; color: var(--ink-soft); }
-/* Color más texto, nunca color solo: el número ya dice qué pasa. */
-.metrica__d--alta { color: #b4452e; font-weight: 600; }
-.metrica__d--ok { color: #3f6b32; font-weight: 600; }
-
-@media (max-width: 939px) {
-  .metricas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .metrica { padding: 15px 16px; gap: 3px; }
-  .metrica__v { font-size: 30px; }
-}
-
-/* ---------- Cabecera de panel ---------- */
 .panel__cabecera {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
-.panel__cabecera .panel__titulo { margin-bottom: 0; font-size: 19px; }
+.panel__cabecera .panel__titulo { margin-bottom: 0; }
+.panel__subtitulo { font-family: var(--font-body); font-size: 15px; font-weight: 500; color: var(--ink-soft); }
 /* 44px de área táctil sin engordar el texto. */
-.panel__cabecera a {
+.panel__cabecera a:not(.btn):not(.fchip) {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
   padding-inline: 4px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--teal-600);
 }
-
-/* ---------- Botón pequeño ---------- */
-.btn--chico { padding: 9px 16px; font-size: 14px; }
-
-/* ---------- Panel / tarjeta ---------- */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: clamp(20px, 3vw, 30px);
-  box-shadow: var(--shadow-sm);
+.panel__texto {
+  margin: 0 0 16px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  max-width: 60ch;
 }
-.panel + .panel { margin-top: 20px; }
-.panel__titulo {
-  font-family: var(--font-display);
-  font-size: 22px;
-  margin-bottom: 16px;
+.panel__nota { margin: 16px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+.panel__cuenta { font-size: 13.5px; color: var(--ink-soft); }
+.eyebrow-panel {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* ---------- Cabecera de página ---------- */
@@ -246,118 +292,177 @@ body.admin {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 22px;
 }
-.admin-head h1 { font-size: clamp(28px, 4vw, 38px); }
+.admin-head h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 500; }
 .admin-head p { color: var(--ink-soft); font-size: 14.5px; margin-top: 6px; }
 .admin-head__quitar {
-  color: var(--accent-deep);
+  color: var(--teal-600);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.admin-head__derecha { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 
-/* ---------- Filtros ---------- */
-.filtros { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.filtros .field { margin-bottom: 0; }
-.filtros select, .filtros input { min-width: 190px; }
+.acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.acciones--fin { justify-content: flex-end; }
 
-/* ---------- Tabla ---------- */
-/* Contenedor con scroll propio: la tabla nunca empuja el ancho de la página. */
-.tabla-scroll { overflow-x: auto; margin-inline: calc(clamp(20px, 3vw, 30px) * -1); }
-.tabla-scroll > .tabla { min-width: 860px; }
-
-.tabla { width: 100%; border-collapse: collapse; font-size: 14.5px; }
-.tabla th, .tabla td {
-  text-align: left;
-  padding: 13px clamp(20px, 3vw, 30px);
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
-}
-.tabla th {
-  font-size: 12px;
+/* ============================================================
+   Controles
+   ============================================================ */
+.admin .btn { transition: background .2s, box-shadow .2s, border-color .2s, color .2s; }
+.admin .btn:hover { transform: none; }
+.admin .btn--primary { background: var(--teal-500); }
+.admin .btn--primary:hover { background: var(--teal-600); }
+.admin .btn--ghost { border-color: var(--line-strong); }
+.admin .btn--ghost:hover { border-color: var(--ink); background: var(--surface); }
+.btn--chico { padding: 9px 16px; font-size: 14px; min-height: 40px; }
+.btn--suave { background: var(--teal-100); color: var(--teal-600); border-color: transparent; }
+.btn--suave:hover { background: var(--teal-200); }
+.btn--peligro { background: transparent; color: var(--bad-700); border-color: var(--bad-200); }
+.btn--peligro:hover { background: var(--bad-50); }
+.btn--enlace {
+  background: none;
+  border: 0;
+  padding: 0 6px;
+  min-height: 40px;
+  color: var(--teal-600);
+  font: inherit;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  cursor: pointer;
+}
+/* Mientras un formulario viaja: el botón no admite un segundo clic y lo dice. */
+.admin .btn[disabled],
+.admin .btn[aria-busy='true'] {
+  background: var(--neutral-50);
+  color: #857c70;
+  border-color: var(--line);
+  box-shadow: none;
+  cursor: progress;
+}
+.icbtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 100px;
+  border: 1px solid var(--line-strong);
+  display: inline-grid;
+  place-items: center;
+  color: var(--ink);
+  background: transparent;
+}
+.icbtn:hover { background: var(--surface); border-color: var(--ink); }
+
+/* Segmentado: un grupo de enlaces o radios donde uno está elegido. */
+.seg {
+  display: inline-flex;
+  background: var(--neutral-50);
+  border-radius: 100px;
+  padding: 4px;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+.seg a,
+.seg label {
+  position: relative;
+  padding: 7px 15px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink-soft);
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 0;
+}
+.seg a[aria-current='true'],
+.seg a[aria-current='page'],
+.seg label:has(input:checked) {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:focus-visible) { outline: 2px solid var(--teal-600); outline-offset: 2px; }
+.seg--lleno { display: flex; }
+.seg--lleno > * { flex: 1; }
+
+/* Chip de filtro: enlaces con conteo. */
+.fchips { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 100px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
   white-space: nowrap;
+  cursor: pointer;
 }
-.tabla tbody tr:last-child td { border-bottom: 0; }
-.tabla tbody tr:hover { background: var(--bg); }
-.tabla a.tabla__nombre { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-.tabla__sec { color: var(--ink-soft); font-size: 13px; display: block; margin-top: 3px; }
-.tabla__fecha { white-space: nowrap; color: var(--ink-soft); }
-.tabla__accion { text-align: right; white-space: nowrap; }
-.tabla__num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fchip:hover { border-color: var(--line-strong); }
+.fchip__n { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); }
+.fchip[aria-current='true'] { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
+.fchip[aria-current='true'] .fchip__n { color: #d9d2c6; }
+.fchip--peligro { border-color: var(--bad-200); color: var(--bad-700); background: var(--bad-50); }
+.fchip--peligro[aria-current='true'] { background: var(--bad-700); border-color: var(--bad-700); color: #fff; }
+.fchip--peligro[aria-current='true'] .fchip__n { color: #fff; }
 
-/* Tablet: la tabla sigue siendo tabla —a 768px se lee— pero con el ancho
-   mínimo de escritorio se sale del panel y el estado y el botón quedan fuera de
-   vista. Menos aire por celda y la fecha partida en dos líneas es suficiente
-   para que quepan las cinco columnas sin scroll horizontal. */
-@media (min-width: 720px) and (max-width: 939px) {
-  .tabla { font-size: 14px; }
-  .tabla th, .tabla td { padding: 12px 16px; }
-  .tabla-scroll { margin-inline: -16px; }
-  .tabla-scroll > .tabla { min-width: 0; }
-  .tabla__fecha { white-space: normal; }
+/* ---------- Campos ---------- */
+/* El borde de campo del sitio (`--line`) no llega al 3:1 que exige WCAG para
+   controles. En el panel se oscurece; la landing no se toca. */
+.admin .field input,
+.admin .field select,
+.admin .field textarea {
+  border-color: var(--line-strong);
+  background: var(--surface);
 }
-
-/* Bajo 720px la tabla se vuelve una lista de tarjetas: siete columnas no se
-   leen en un teléfono. Un solo marcado —la tabla semántica— y esto lo
-   reestructura; duplicar el DOM saldría más caro de mantener que este bloque.
-   El panel pierde su propia caja para que las tarjetas queden a sangre. */
-@media (max-width: 719px) {
-  .panel--lista {
-    background: none;
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-  }
-  .panel--lista .tabla-scroll { overflow-x: visible; margin-inline: 0; }
-  .panel--lista .tabla-scroll > .tabla { min-width: 0; }
-
-  .panel--lista .tabla,
-  .panel--lista .tabla tbody { display: block; }
-  .panel--lista .tabla thead { display: none; }
-
-  .panel--lista .tabla tbody tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 3px 12px;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-sm);
-    padding: 14px 16px;
-  }
-  .panel--lista .tabla tbody tr + tr { margin-top: 10px; }
-  .panel--lista .tabla tbody tr:hover { background: var(--surface); }
-
-  .panel--lista .tabla td {
-    display: block;
-    grid-column: 1;
-    padding: 0;
-    border-bottom: 0;
-  }
-  /* Estado y cifra suben a la derecha de la primera línea. */
-  .panel--lista .tabla td.tabla__estado,
-  .panel--lista .tabla td.tabla__num {
-    grid-column: 2;
-    grid-row: 1;
-    text-align: right;
-    align-self: start;
-  }
-  .panel--lista .tabla td.tabla__meta { font-size: 13px; color: var(--ink-soft); }
-  .panel--lista .tabla td.tabla__accion {
-    grid-column: 1 / -1;
-    text-align: left;
-    margin-top: 9px;
-  }
-  .panel--lista .tabla td.tabla__accion .btn { min-height: 44px; }
+.admin .field input:not([type='checkbox']):not([type='radio']),
+.admin .field select { min-height: 48px; }
+.admin .field input:focus,
+.admin .field select:focus,
+.admin .field textarea:focus {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 3px var(--teal-100);
 }
+.field__ayuda { display: block; font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
+.field--ancho { grid-column: 1 / -1; }
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px 20px;
+}
+.campos .field { margin-bottom: 0; }
+.campos-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 18px;
+}
+/* Un formulario a 1440px de ancho se lee como una hoja de cálculo. Con este
+   techo caben tres campos por fila y sigue siendo un formulario. */
+.panel--formulario { max-width: 860px; }
+.panel--formulario .acciones--fin {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.convertir-mensaje { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.convertir-mensaje + .acciones--fin { border-top: 0; padding-top: 0; }
 
-/* Visible para lectores de pantalla, no para la vista: la columna de acción no
-   necesita encabezado dibujado, pero sí necesita nombre. */
+.filtros { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.filtros .field { margin-bottom: 0; }
+.filtros select, .filtros input:not([type='checkbox']) { min-width: 190px; }
+.buscador { position: relative; display: flex; align-items: center; margin: 0; }
+.buscador .icono { position: absolute; left: 14px; color: var(--ink-soft); pointer-events: none; }
+.admin .buscador input { padding-left: 42px; min-width: 240px; }
+
+/* Visible para lectores de pantalla, no para la vista. */
 .visualmente-oculto {
   position: absolute;
   width: 1px; height: 1px;
@@ -367,55 +472,53 @@ body.admin {
   white-space: nowrap;
 }
 
-/* ---------- Aviso de "¿le escribiste?" ---------- */
-.aviso-contacto {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
-  background: var(--accent-tint);
-  border: 1px solid #c3d8d3;
-  border-radius: var(--radius);
-  padding: 14px 20px;
-  margin-bottom: 20px;
-}
-.aviso-contacto[hidden] { display: none; }
-.aviso-contacto__texto { font-size: 15px; color: var(--accent-deep); }
-.aviso-contacto__acciones { display: flex; gap: 10px; flex-wrap: wrap; }
-
-/* ---------- Chips de estado ---------- */
+/* ============================================================
+   Chips de estado. Una familia de color por significado y siempre
+   con texto: el punto ayuda a escanear, nunca va solo.
+   ============================================================ */
 .chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
-  padding: 4px 11px;
+  padding: 3px 10px;
   border-radius: 100px;
   border: 1px solid transparent;
   white-space: nowrap;
+  line-height: 1.45;
 }
-.chip--nueva      { background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
-.chip--contactada { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
-.chip--agendada   { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
-.chip--descartada { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
-
-/* Terminado es un final bueno —se convirtió en paciente—, así que va en el
-   verde de la marca y no en el gris de descartada, que es el final malo. */
-.chip--terminado  { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
-
-/* Estados de tratamiento. Comparten escala con los de solicitud para que la
-   doctora no tenga que aprenderse dos códigos de color: verde = va bien,
-   ámbar = requiere atención, gris = cerrado. */
-.chip--activo     { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
-.chip--retencion  { background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
-.chip--alta       { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
-.chip--pausado    { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
+.chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .85;
+}
+.chip--teal, .chip--agendada, .chip--retencion, .chip--cita-programada, .chip--hoy
+  { background: var(--teal-100); color: var(--teal-600); border-color: var(--teal-200); }
+.chip--arcilla, .chip--nueva, .chip--origen-sitio
+  { background: var(--clay-50); color: var(--clay-700); border-color: var(--clay-200); }
+.chip--pizarra, .chip--cita-confirmada, .chip--origen-instagram
+  { background: var(--slate-50); color: var(--slate-700); border-color: var(--slate-200); }
+.chip--ok, .chip--activo, .chip--pagada, .chip--cita-atendida
+  { background: var(--ok-50); color: var(--ok-700); border-color: var(--ok-200); }
+.chip--aviso, .chip--contactada, .chip--parcial, .chip--pausado, .chip--sync
+  { background: var(--warn-50); color: var(--warn-700); border-color: var(--warn-200); }
+.chip--peligro, .chip--vencida, .chip--cita-no_asistio
+  { background: var(--bad-50); color: var(--bad-700); border-color: var(--bad-200); }
+.chip--neutro, .chip--descartada, .chip--alta, .chip--pendiente, .chip--cita-cancelada,
+.chip--origen-recomendacion, .chip--origen-otro
+  { background: var(--neutral-50); color: var(--ink-soft); border-color: var(--line); }
+/* Terminado es el final bueno del prospecto —ya es paciente— y pesa más. */
+.chip--terminado { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
+.chip--chico { font-size: 11.5px; padding: 1px 8px; }
 
 /* ---------- Estado editable dentro de la tabla ---------- */
 /* Un `select` con pinta de chip: conserva el color como señal de un vistazo y
    a la vez se puede cambiar sin abrir la ficha. */
 .estado-rapido { display: flex; align-items: center; gap: 8px; }
-
 .estado-rapido__select {
   font: inherit;
   font-size: 12.5px;
@@ -423,6 +526,7 @@ body.admin {
   padding: 4px 26px 4px 11px;
   min-height: 34px;
   cursor: pointer;
+  border-radius: 100px;
   /* La flecha va dibujada como fondo: `appearance: none` quita la nativa, que
      en macOS trae su propio fondo gris y rompería el color del chip. */
   appearance: none;
@@ -431,15 +535,14 @@ body.admin {
   background-position: right 8px center;
   background-size: 12px;
 }
-.estado-rapido__select:focus-visible { outline: 2px solid var(--accent-deep); outline-offset: 2px; }
-
+.estado-rapido__select:focus-visible { outline: 2px solid var(--teal-600); outline-offset: 2px; }
 .estado-rapido__ok {
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   padding: 7px 12px;
   min-height: 34px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: 100px;
   background: var(--surface);
   color: var(--ink);
@@ -450,118 +553,519 @@ body.admin {
    el script, así que sin JS el botón sigue visible y la tabla se opera igual. */
 .estado-rapido--auto .estado-rapido__ok { display: none; }
 
-/* ---------- Rejilla de campos de un formulario largo ---------- */
-.campos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 16px 20px;
-}
-
-/* Un formulario a 1440px de ancho se lee como una hoja de cálculo: los campos
-   quedan lejísimos de sus etiquetas y la vista tiene que saltar. Con este techo
-   caben tres por fila y sigue siendo un formulario. */
-.panel--formulario { max-width: 860px; }
-.field--ancho { grid-column: 1 / -1; }
-.field__ayuda { display: block; font-size: 12.5px; color: var(--ink-soft); margin-top: 6px; }
-
-.panel__texto {
-  margin: 0 0 18px;
-  font-size: 14.5px;
-  color: var(--ink-soft);
-  max-width: 60ch;
-}
-
-.acciones--fin { justify-content: flex-end; }
-
-.convertido {
+/* ============================================================
+   Avisos
+   ============================================================ */
+.aviso {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 18px;
-  font-size: 14.5px;
-  color: var(--ink-soft);
-}
-
-.convertir-mensaje { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
-
-/* ---------- Dinero y avance ---------- */
-/* Los importes van en cifras tabulares y alineados a la derecha: así los millares
-   quedan en la misma columna y una cantidad se compara con la de arriba de un
-   vistazo, sin leerla entera. */
-.tabla__num {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.tabla th.tabla__num { text-align: right; }
-
-.metrica__v { font-variant-numeric: tabular-nums; }
-
-/* Dentro de un panel, las métricas van más apretadas que en el resumen. */
-.metricas--compacta { gap: 12px; }
-.metricas--compacta .metrica { padding: 14px 16px; box-shadow: none; background: var(--bg); }
-.metricas--compacta .metrica__v { font-size: 23px; }
-
-.avance {
-  height: 6px;
-  border-radius: 100px;
-  background: var(--bg-deep);
-  overflow: hidden;
-}
-.avance i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  border-radius: 100px;
-}
-.avance__etiquetas {
-  display: flex;
-  justify-content: space-between;
   gap: 12px;
-  font-size: 13.5px;
-  color: var(--ink-soft);
-  margin-bottom: 6px;
-}
-
-/* Estados de cuota. Mismo código de color que el resto: verde bien, ámbar
-   atención, rojo problema, gris neutro. */
-.chip--pagada    { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
-.chip--parcial   { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
-.chip--pendiente { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
-.chip--vencida   { background: #f8e7e2; color: #b4452e; border-color: #eccfc6; }
-
-/* Un vacío dentro de un panel que ya tiene cabecera no necesita tanto aire. */
-.vacio--chico { padding: 28px 20px; }
-
-/* Separación real entre el último bloque de contenido y los botones. Sin esto,
-   «Crear ficha» queda pegado al mensaje del prospecto y parece pertenecerle. */
-.panel--formulario .acciones--fin {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-.convertir-mensaje + .acciones--fin { border-top: 0; padding-top: 0; }
-
-/* ---------- Avisos ---------- */
-.aviso {
   border-radius: var(--radius-sm);
   padding: 12px 16px;
   font-size: 14.5px;
-  margin-bottom: 20px;
   border: 1px solid;
+  margin: 0;
 }
-.aviso--ok    { background: #e4efdf; border-color: #c9debf; color: #3f6b32; }
-.aviso--error { background: #f8e7e2; border-color: #eccfc6; color: #b4452e; }
-.aviso--info  { background: var(--accent-tint); border-color: #c3d8d3; color: var(--accent-deep); }
+.aviso__texto { flex: 1; min-width: 0; }
+.aviso--ok    { background: var(--ok-50);    border-color: var(--ok-200);    color: var(--ok-700); }
+.aviso--error { background: var(--bad-50);   border-color: var(--bad-200);   color: var(--bad-700); }
+.aviso--aviso { background: var(--warn-50);  border-color: var(--warn-200);  color: var(--warn-700); }
+.aviso--info  { background: var(--slate-50); border-color: var(--slate-200); color: var(--slate-700); }
+.aviso--accion { flex-wrap: wrap; justify-content: space-between; }
+.aviso__detalle { display: block; font-size: 13px; opacity: .9; margin-top: 3px; }
+.aviso a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
-.vacio { text-align: center; padding: 56px 20px; color: var(--ink-soft); }
-.vacio strong { display: block; font-family: var(--font-display); font-size: 21px; color: var(--ink); margin-bottom: 8px; }
+/* ---------- Aviso de "¿le escribiste?" ---------- */
+.aviso-contacto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--teal-50);
+  border: 1px solid var(--teal-200);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+}
+.aviso-contacto[hidden] { display: none; }
+.aviso-contacto__texto { font-size: 15px; color: var(--teal-800); }
+.aviso-contacto__acciones { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ---------- Detalle ---------- */
-.detalle-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 860px) { .detalle-grid { grid-template-columns: 1fr; } }
+/* ---------- Vacíos ---------- */
+.vacio { text-align: center; padding: 48px 20px; color: var(--ink-soft); }
+.vacio strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 500;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.vacio.vacio--chico { padding: 22px 20px; }
+.vacio.vacio--linea { padding: 8px 0 4px; text-align: left; font-size: 14px; }
 
-.datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 20px; font-size: 15px; }
+/* ============================================================
+   Tabla
+   ============================================================ */
+/* Contenedor con scroll propio: la tabla nunca empuja el ancho de la página. */
+.tabla-scroll { overflow-x: auto; }
+.tabla { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.tabla th, .tabla td {
+  text-align: left;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.tabla th:first-child, .tabla td:first-child { padding-left: clamp(18px, 2.4vw, 26px); }
+.tabla th:last-child, .tabla td:last-child { padding-right: clamp(18px, 2.4vw, 26px); }
+.tabla th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  padding-top: 6px;
+}
+.tabla tbody tr:last-child td { border-bottom: 0; }
+.tabla tbody tr:hover { background: var(--bg); }
+.tabla__destacada { background: rgba(248, 236, 229, .4); }
+.tabla__urgente { background: rgba(248, 231, 226, .45); }
+.tabla a.tabla__nombre {
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+.tabla a.tabla__nombre:hover { text-decoration-color: var(--ink); }
+.tabla__sec { color: var(--ink-soft); font-size: 13px; display: block; margin-top: 3px; }
+.tabla__fecha { white-space: nowrap; color: var(--ink-soft); }
+.tabla__nowrap { white-space: nowrap; }
+.tabla__accion { text-align: right; white-space: nowrap; }
+.tabla__accion .acciones { justify-content: flex-end; flex-wrap: nowrap; gap: 8px; }
+.tabla__num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tabla th.tabla__num { text-align: right; }
+
+/* Tablet: menos aire por celda para que las columnas quepan sin scroll. */
+@media (min-width: 720px) and (max-width: 939px) {
+  .tabla { font-size: 14px; }
+  .tabla th, .tabla td { padding: 11px 10px; }
+  .tabla__fecha { white-space: normal; }
+}
+
+/* Bajo 720px la tabla se vuelve una lista de tarjetas: siete columnas no se
+   leen en un teléfono. Un solo marcado —la tabla semántica— y esto lo
+   reestructura; duplicar el DOM saldría más caro de mantener que este bloque.
+   El panel pierde su propia caja para que las tarjetas queden a sangre. */
+@media (max-width: 719px) {
+  .panel--lista.panel--tarjetas {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  .panel--tarjetas > .panel__cabecera, .panel--tarjetas > .panel__pie { padding-inline: 2px; }
+  .panel--tarjetas .tabla-scroll { overflow-x: visible; }
+  .panel--tarjetas .tabla,
+  .panel--tarjetas .tabla tbody { display: block; }
+  .panel--tarjetas .tabla thead { display: none; }
+  .panel--tarjetas .tabla tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .panel--tarjetas .tabla tbody tr + tr { margin-top: 10px; }
+  .panel--tarjetas .tabla tbody tr:hover { background: var(--surface); }
+  .panel--tarjetas .tabla td,
+  .panel--tarjetas .tabla td:first-child,
+  .panel--tarjetas .tabla td:last-child {
+    display: block;
+    grid-column: 1;
+    padding: 0;
+    border-bottom: 0;
+  }
+  /* Estado y cifra suben a la derecha de la primera línea. */
+  .panel--tarjetas .tabla td.tabla__estado,
+  .panel--tarjetas .tabla td.tabla__num {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    align-self: start;
+  }
+  .panel--tarjetas .tabla td.tabla__meta { font-size: 13px; color: var(--ink-soft); }
+  .panel--tarjetas .tabla td.tabla__accion {
+    grid-column: 1 / -1;
+    text-align: left;
+    margin-top: 8px;
+  }
+  .panel--tarjetas .tabla td.tabla__accion .acciones { justify-content: flex-start; flex-wrap: wrap; }
+  .panel--tarjetas .tabla td.tabla__accion .btn { min-height: 44px; }
+  .panel--tarjetas .tabla td:empty { display: none; }
+}
+
+/* ============================================================
+   Inicio: cola de hoy, agenda del día y embudo
+   ============================================================ */
+.inicio-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .inicio-grid { grid-template-columns: 1fr; } }
+
+/* Cada bloque es un tipo de pendiente y cada fila tiene UNA acción. */
+.cola { border-top: 1px solid var(--line); }
+.cola__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px clamp(18px, 2.4vw, 26px) 4px;
+}
+.cola__titulo {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.cola__cabecera a { font-size: 13.5px; font-weight: 600; color: var(--teal-600); min-height: 36px; display: inline-flex; align-items: center; }
+.cola__lista { list-style: none; margin: 0; padding: 0; }
+.cola__fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px clamp(18px, 2.4vw, 26px);
+  border-top: 1px solid var(--line);
+}
+.cola__lista .cola__fila:first-child { border-top: 0; }
+.cola__icono {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.cola__quien { flex: 1; min-width: 0; }
+.cola__quien a { font-weight: 600; color: var(--ink); }
+.cola__quien a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.cola__cuando { font-size: 13px; color: var(--ink-soft); white-space: nowrap; text-align: right; }
+.cola__cuando--tarde { color: var(--bad-700); font-weight: 600; }
+.cola__accion { flex: none; display: flex; gap: 8px; align-items: center; }
+.cola__accion form { margin: 0; }
+.cola__vacia { padding: 30px 26px; text-align: center; color: var(--ink-soft); }
+.cola__vacia strong { display: block; font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+
+.ic-arcilla { background: var(--clay-50); color: var(--clay-700); }
+.ic-teal    { background: var(--teal-100); color: var(--teal-600); }
+.ic-pizarra { background: var(--slate-50); color: var(--slate-700); }
+.ic-peligro { background: var(--bad-50); color: var(--bad-700); }
+.ic-ok      { background: var(--ok-50); color: var(--ok-700); }
+
+@media (max-width: 719px) {
+  .cola__fila { flex-wrap: wrap; padding-inline: 16px; row-gap: 8px; }
+  .cola__cuando { order: 3; text-align: left; flex-basis: calc(100% - 54px); margin-left: 54px; margin-top: -6px; }
+  .cola__accion { order: 4; margin-left: 54px; }
+  .cola__cabecera { padding-inline: 16px; }
+}
+
+/* Línea de tiempo: la agenda del día y el historial de una ficha. */
+.linea { list-style: none; margin: 0; padding: 0; }
+.linea__item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+}
+.linea__item:first-child { border-top: 0; }
+.linea__item--pasada { opacity: .72; }
+.linea__hora { font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.linea__item:not(.linea__item--pasada) .linea__hora { color: var(--ink); font-weight: 600; }
+.linea__item a { font-weight: 600; color: var(--ink); }
+.linea__item a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.linea__ahora {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  color: var(--bad-700);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.linea__ahora::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.linea__ahora::after { content: ''; flex: 1; border-top: 2px solid currentColor; }
+
+.historial { list-style: none; margin: 0; padding: 0; }
+.historial__item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  align-items: start;
+}
+.historial__item:first-child { border-top: 0; }
+.historial__item .cola__icono { width: 36px; height: 36px; border-radius: 10px; }
+.historial__item b { font-weight: 600; }
+.historial__cuando { font-size: 13px; color: var(--ink-soft); white-space: nowrap; text-align: right; }
+@media (max-width: 719px) {
+  .historial__item { grid-template-columns: 36px minmax(0, 1fr); }
+  .historial__cuando { grid-column: 2; text-align: left; }
+}
+
+/* Embudo: cuatro pasos con la tasa entre uno y otro. */
+.embudo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
+.paso { display: flex; flex-direction: column; gap: 8px; padding: 0 16px; }
+.paso:first-child { padding-left: 0; }
+.paso + .paso { border-left: 1px solid var(--line); }
+.paso__v { font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.paso__k { font-size: 13.5px; color: var(--ink-soft); font-weight: 500; }
+.paso__barra { height: 10px; border-radius: 100px; background: var(--bg-deep); overflow: hidden; }
+.paso__barra i { display: block; height: 100%; border-radius: 100px; background: var(--teal-500); }
+.paso__tasa { font-size: 12.5px; font-weight: 600; color: var(--teal-600); display: flex; align-items: center; gap: 4px; min-height: 20px; }
+.paso__tasa--base { color: var(--ink-soft); font-weight: 500; }
+@media (max-width: 719px) {
+  .embudo { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 20px; }
+  .paso:nth-child(odd) { border-left: 0; padding-left: 0; }
+}
+
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.kpis--separadas { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 18px; }
+.kpi { padding: 2px 18px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kpi:first-child { padding-left: 0; }
+.kpi + .kpi { border-left: 1px solid var(--line); }
+.kpi__v { font-size: 28px; font-weight: 600; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi__v--peligro { color: var(--bad-700); }
+.kpi__v small { font-size: 16px; font-weight: 500; color: var(--ink-soft); }
+.kpi__d { font-size: 13px; color: var(--ink-soft); }
+.kpi__d--peligro { color: var(--bad-700); font-weight: 600; }
+@media (max-width: 939px) {
+  .kpis, .kpis--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+}
+@media (max-width: 480px) {
+  .kpis { grid-template-columns: 1fr; }
+  .kpi, .kpi + .kpi { border-left: 0; padding-left: 0; }
+}
+
+.barra { height: 8px; border-radius: 100px; background: var(--bg-deep); overflow: hidden; margin-top: 4px; }
+.barra i { display: block; height: 100%; border-radius: 100px; background: var(--teal-500); }
+
+@media (max-width: 719px) { .periodos { width: 100%; } }
+
+/* ============================================================
+   Agenda
+   ============================================================ */
+.agenda-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.agenda-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.agenda-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+@media (max-width: 1180px) { .agenda-layout { grid-template-columns: 1fr; } }
+.agenda-lateral { display: flex; flex-direction: column; gap: 16px; }
+
+/* Rejilla por horas. La altura de la hora es una variable: el mismo marcado,
+   con las posiciones en porcentaje, sirve en escritorio y en teléfono. */
+.rejilla { --hora: 80px; padding: 16px 20px 20px 6px; }
+.rejilla--semana { --hora: 72px; }
+@media (max-width: 719px) { .rejilla, .rejilla--semana { --hora: 64px; padding: 12px 12px 14px 0; } }
+.rejilla__cuerpo { display: grid; grid-template-columns: 60px minmax(0, 1fr); position: relative; margin-top: 8px; }
+.rejilla--semana .rejilla__cuerpo,
+.rejilla--semana .rejilla__dias { grid-template-columns: 60px repeat(6, minmax(0, 1fr)); }
+.rejilla__horas { position: relative; height: calc(var(--hora) * 10); }
+.rejilla__h {
+  position: absolute;
+  right: 10px;
+  transform: translateY(-8px);
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.rejilla__col {
+  position: relative;
+  height: calc(var(--hora) * 10);
+  border-left: 1px solid var(--line);
+  background-image:
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(227, 220, 207, .5) 1px, transparent 1px);
+  background-size: 100% var(--hora), 100% calc(var(--hora) / 2);
+  border-bottom: 1px solid var(--line);
+}
+.rejilla__dias { display: grid; border-bottom: 1px solid var(--line); }
+.rejilla__dia {
+  padding: 6px 4px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-soft);
+  border-left: 1px solid var(--line);
+}
+.rejilla__dia a { color: inherit; display: block; border-radius: 10px; }
+.rejilla__dia a:hover { background: var(--bg); }
+.rejilla__dia b {
+  display: block;
+  margin: 2px auto 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 36px;
+  width: 36px;
+  height: 36px;
+  color: var(--ink);
+}
+.rejilla__dia--hoy b { color: var(--on-accent); background: var(--teal-500); border-radius: 100px; font-size: 18px; }
+.rejilla__cerrado {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, rgba(239, 236, 231, .9) 0 6px, rgba(255, 253, 249, .6) 6px 12px);
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.bloque {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  border-radius: 10px;
+  padding: 6px 10px;
+  border: 1px solid;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.28;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-height: 22px;
+  z-index: 1;
+}
+.bloque:hover { box-shadow: var(--shadow-sm); z-index: 2; }
+.bloque:focus-visible { z-index: 2; }
+.bloque__t { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.bloque__n { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bloque__s { font-size: 12px; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A media hora no caben dos renglones: todo va en uno. */
+.bloque--corto { flex-direction: row; align-items: center; gap: 6px; padding: 0 10px; }
+.bloque--corto .bloque__n { min-width: 0; }
+.bloque--valoracion { background: var(--clay-50); border-color: var(--clay-200); color: var(--clay-700); }
+.bloque--control { background: var(--teal-50); border-color: var(--teal-200); color: var(--teal-800); }
+.bloque--no_asistio { background: var(--bad-50); border-color: var(--bad-200); color: var(--bad-700); }
+.bloque--cancelada {
+  background: repeating-linear-gradient(135deg, var(--neutral-50) 0 6px, var(--surface) 6px 12px);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}
+.bloque--cancelada .bloque__n { text-decoration: line-through; color: var(--ink-soft); }
+.bloque--elegido { box-shadow: 0 0 0 2px var(--teal-600), var(--shadow-md); z-index: 2; }
+.rejilla--semana .bloque { left: 4px; right: 4px; padding-inline: 8px; }
+.rejilla--semana .bloque__s,
+.rejilla--semana .bloque__estado { display: none; }
+.ahora { position: absolute; left: -6px; right: 0; border-top: 2px solid var(--bad-700); z-index: 3; pointer-events: none; }
+.ahora::before { content: ''; position: absolute; left: -4px; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: var(--bad-700); }
+.ahora span { position: absolute; left: -56px; top: -10px; font-size: 11.5px; font-weight: 700; color: var(--bad-700); background: var(--surface); padding: 0 4px; }
+.rejilla--semana .ahora span { display: none; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-soft); }
+.leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid; display: inline-block; }
+
+/* Selector de día para el teléfono, encima de la rejilla. */
+.dias-movil { display: none; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.dias-movil a {
+  min-height: 60px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.dias-movil a b { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dias-movil a[aria-current='true'] { background: var(--teal-500); border-color: var(--teal-500); color: var(--on-accent); }
+.dias-movil a[aria-current='true'] b { color: var(--on-accent); }
+@media (max-width: 719px) {
+  .dias-movil { display: grid; }
+  .rejilla__cuerpo { grid-template-columns: 46px minmax(0, 1fr); }
+  .ahora span { display: none; }
+  /* En el teléfono la semana no cabe: se ve el día y se cambia con el selector. */
+  .agenda-vista-semana { display: none; }
+}
+
+/* Ocupación del día en el formulario de cita. */
+.ocupacion { position: relative; height: 44px; border-radius: 10px; background: var(--bg-deep); overflow: hidden; }
+.ocupacion__ocupado, .ocupacion__nueva { position: absolute; top: 0; bottom: 0; }
+.ocupacion__ocupado { background: var(--line-strong); opacity: .35; }
+.ocupacion__nueva { top: 5px; bottom: 5px; background: var(--clay-500); border-radius: 6px; }
+.ocupacion__nueva--choca { background: var(--bad-700); }
+.ocupacion__marca { position: absolute; bottom: 2px; font-size: 10.5px; color: var(--ink-soft); }
+.duraciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* ============================================================
+   Fichas
+   ============================================================ */
+.ficha-cabecera { display: flex; flex-direction: column; gap: 18px; }
+.ficha-cabecera__fila { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ficha-cabecera__quien { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.ficha-cabecera h1 { font-size: clamp(26px, 3.4vw, 34px); font-weight: 500; }
+.ficha-cabecera__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 13.5px; color: var(--ink-soft); }
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 22px;
+  background: var(--clay-50);
+  color: var(--clay-700);
+  border: 1px solid var(--clay-200);
+}
+.avatar--teal { background: var(--teal-100); color: var(--teal-600); border-color: var(--teal-200); }
+@media (max-width: 719px) { .avatar { width: 48px; height: 48px; font-size: 19px; } }
+
+.detalle-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 939px) { .detalle-grid { grid-template-columns: 1fr; } }
+.columna { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.secciones {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.secciones a {
+  padding: 12px 2px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink-soft);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+}
+.secciones a:hover { color: var(--ink); border-color: var(--teal-200); }
+.secciones b { font-size: 12px; background: var(--neutral-50); border-radius: 100px; padding: 0 7px; color: var(--ink-soft); }
+/* Las anclas no quedan tapadas por la barra superior pegajosa. */
+.admin [id] { scroll-margin-top: 80px; }
+
+.datos { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 9px 18px; font-size: 14.5px; margin: 0; }
 .datos dt { color: var(--ink-soft); font-size: 13.5px; }
 .datos dd { margin: 0; overflow-wrap: anywhere; }
 
@@ -570,240 +1074,182 @@ body.admin {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   background: var(--bg);
-  border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 16px;
+  padding: 14px 16px;
   font-size: 15px;
 }
 .mensaje--vacio { color: var(--ink-soft); font-style: italic; }
 
-.acciones { display: flex; flex-wrap: wrap; gap: 10px; }
+.convertido { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font-size: 14.5px; color: var(--ink-soft); }
 
-/* ---------- Acceso ---------- */
-.acceso { max-width: 420px; margin: clamp(48px, 12vh, 120px) auto; }
-.acceso h1 { font-size: 30px; margin-bottom: 8px; }
-.acceso p.acceso__desc { color: var(--ink-soft); font-size: 15px; margin-bottom: 24px; }
+.proxima-accion__titulo { font-family: var(--font-display); font-size: 24px; font-weight: 500; margin: 6px 0 2px; }
+.proxima-accion p { font-size: 15px; }
+
+.cita-destacada { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; }
+.cita-destacada .cola__icono { background: var(--surface); }
 
 /* ---------- Plegable ---------- */
 /* `details` nativo: sin JavaScript y con el comportamiento que ya conoce el
    navegador (teclado, buscar en página al expandir). */
 .plegable { border-top: 1px solid var(--line); }
+.plegable:first-child { border-top: 0; }
 .plegable > summary {
-  padding: 14px clamp(20px, 3vw, 30px);
-  font-size: 14px;
+  padding: 0;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--accent-deep);
+  color: var(--ink);
   cursor: pointer;
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 44px;
+  gap: 10px;
+  min-height: 52px;
 }
 .plegable > summary::-webkit-details-marker { display: none; }
-.plegable > summary::before {
+.plegable > summary::after {
   content: '';
+  margin-left: auto;
   width: 8px;
   height: 8px;
-  border-right: 1.6px solid currentColor;
-  border-bottom: 1.6px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform .25s cubic-bezier(.2, .8, .2, 1);
+  border-right: 1.6px solid var(--ink-soft);
+  border-bottom: 1.6px solid var(--ink-soft);
+  transform: rotate(45deg);
+  transition: transform .2s cubic-bezier(.2, .8, .2, 1);
 }
-.plegable[open] > summary::before { transform: rotate(45deg); }
-.plegable > summary:hover { background: var(--bg); }
+.plegable[open] > summary::after { transform: rotate(-135deg); }
+.plegable__resumen { font-weight: 500; font-size: 13.5px; color: var(--ink-soft); }
+.plegable__cuerpo { padding-bottom: 16px; }
+/* Dentro de un panel de lista, el plegable respeta el relleno lateral. */
+.panel--lista .plegable > summary,
+.panel--lista .plegable__cuerpo { padding-inline: clamp(18px, 2.4vw, 26px); }
 
-.panel__cuenta { font-size: 13.5px; color: var(--ink-soft); }
-
-/* El botón principal y los filtros comparten el lado derecho de la cabecera:
-   con el botón suelto en medio, quedaba entre el título y los filtros sin
-   pertenecer a ninguno de los dos. */
-.admin-head__derecha {
+/* ---------- Opciones en tarjeta (registrar pago) ---------- */
+.opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.opcion {
+  position: relative;
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  min-height: 44px;
+  margin: 0;
+  font-weight: 400;
+}
+.opcion input { position: absolute; opacity: 0; pointer-events: none; }
+.opcion b { font-weight: 600; }
+.opcion:has(input:checked) { border: 2px solid var(--teal-500); background: var(--teal-50); padding: 11px 13px; }
+.opcion:has(input:focus-visible) { outline: 2px solid var(--teal-600); outline-offset: 2px; }
+.opcion--suelta { border-style: dashed; }
+
+.importe { position: relative; display: flex; align-items: center; }
+.importe span { position: absolute; left: 20px; font-family: var(--font-display); font-size: 34px; color: var(--ink-soft); pointer-events: none; }
+.admin .field .importe input {
+  font-family: var(--font-display);
+  font-size: 38px;
+  min-height: 76px;
+  padding: 8px 20px 8px 50px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* ============================================================
-   Agenda, cola de hoy y seguimiento.
+.resumen-pago { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; font-size: 15px; }
+.resumen-pago div { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.resumen-pago s { color: var(--ink-soft); }
 
-   Todo lo que entró con la suite operativa. Reutiliza los tokens y los patrones
-   de arriba (chips, paneles, .btn) en vez de inventar otros: lo que ya sabe
-   leer la doctora en Prospectos tiene que valer igual en Agenda.
-   ============================================================ */
+/* ---------- Acceso ---------- */
+.acceso { max-width: 420px; margin: clamp(48px, 12vh, 120px) auto; }
+.acceso h1 { font-size: 30px; margin-bottom: 8px; }
+.acceso p.acceso__desc { color: var(--ink-soft); font-size: 15px; margin-bottom: 24px; }
+.acceso .aviso { margin-bottom: 18px; }
 
-/* ---------- Avisos con una acción al lado ---------- */
-/* Ámbar: no es un error —la cita está guardada— pero tampoco es «todo bien». */
-.aviso--aviso { background: #fdf1dc; border-color: #ecd9b0; color: #8a5c15; }
-.aviso--accion {
+/* ---------- Movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .admin *, .admin *::before, .admin *::after { transition: none !important; }
+}
+
+/* ---------- Menú desplegable ---------- */
+/* `details` nativo: se abre y se cierra sin JavaScript y con teclado. */
+.menu { position: relative; }
+.menu > summary { list-style: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu__lista {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 15;
+  min-width: 200px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+}
+.menu__lista a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  color: var(--ink);
 }
-.aviso__detalle { display: block; font-size: 13px; opacity: .85; margin-top: 4px; }
+.menu__lista a:hover { background: var(--bg); }
+.menu__lista a[aria-current='true'] { background: var(--teal-100); color: var(--teal-600); font-weight: 600; }
 
-.admin-barra__rol {
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 100px;
-  background: var(--accent-tint);
-  color: var(--accent-deep);
-}
+/* Atajos de duración: el elegido se marca igual que un chip de filtro activo. */
+.duraciones .fchip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
+.agenda-layout > form, form.agenda-layout { margin: 0; }
+a.cita-destacada { color: inherit; }
+a.cita-destacada:hover { border-color: var(--teal-500) !important; }
 
-/* ---------- Barra de la agenda ---------- */
-.agenda-barra {
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-.agenda-nav, .agenda-vista { display: flex; gap: 6px; }
-.agenda-barra .filtros { margin-left: auto; }
+/* ---------- Ajustes tras revisar el panel real ---------- */
 
-.check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* El segmentado dentro de una cabecera de panel no hereda el verde ni la
+   altura de los enlaces sueltos de la cabecera. */
+.panel__cabecera .seg a:not(.btn):not(.fchip) {
+  min-height: 36px;
+  padding: 7px 15px;
   font-size: 14px;
   color: var(--ink-soft);
-  min-height: 40px;
 }
+.panel__cabecera .seg a[aria-current='true']:not(.btn):not(.fchip) { color: var(--ink); }
 
-/* ---------- Lista de citas ---------- */
-.citas { list-style: none; margin: 0; padding: 0; }
-.cita {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 20px;
-  border-top: 1px solid var(--line);
-}
-.cita:first-child { border-top: 0; }
-.cita__hora { flex: none; width: 92px; }
-.cita__hora strong { display: block; font-variant-numeric: tabular-nums; font-size: 15.5px; }
-.cita__quien { flex: 1; min-width: 0; }
-.cita__nota { display: block; font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
-.cita__estado { flex: none; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.cita__accion { flex: none; }
+/* «10:00 a.m.» no cabe en 52px y partía la hora en dos renglones. */
+.linea__item { grid-template-columns: 76px minmax(0, 1fr) auto; }
+.linea__hora { white-space: nowrap; }
 
-/* Una cita cancelada sigue en la lista —el hueco existió— pero no compite por
-   la atención con las que sí hay que atender. */
-.cita--cancelada { opacity: .55; }
-.cita--cancelada .cita__hora strong { text-decoration: line-through; }
+/* `.proxima-accion p` ganaba por especificidad al título y lo encogía. */
+.proxima-accion .proxima-accion__titulo { font-size: 24px; }
 
-/* En un teléfono no hay sitio para la columna de la hora: la cita se apila y la
-   hora pasa a ser su primera línea, con la duración al lado en vez de debajo. */
-@media (max-width: 720px) {
-  .cita { flex-direction: column; align-items: stretch; gap: 6px; padding: 14px 16px; }
-  .cita__hora { width: auto; display: flex; align-items: baseline; gap: 8px; }
-  .cita__hora .tabla__sec { margin-top: 0; }
-  .cita__estado { justify-content: flex-start; }
-}
+/* Acciones que pueden no caber en una fila: se apilan a la derecha. */
+.tabla__accion.tabla__accion--apilada { white-space: normal; }
+.tabla__accion--apilada .acciones { flex-wrap: wrap; justify-content: flex-end; }
 
-.chip--cita-programada { background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
-.chip--cita-confirmada { background: #e4efdf; color: #3f6b32; border-color: #c9debf; }
-.chip--cita-atendida   { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
-.chip--cita-cancelada  { background: #efece7; color: var(--ink-soft); border-color: var(--line); }
-.chip--cita-no_asistio { background: #f8e7e2; color: #b4452e; border-color: #eccfc6; }
-/* Ámbar como el aviso: la cita está bien, lo que falta es su copia en Google. */
-.chip--sync { background: #fdf1dc; color: #8a5c15; border-color: #ecd9b0; }
-.chip--hoy { margin-left: 10px; background: var(--accent-tint); color: var(--accent-deep); border-color: #c3d8d3; }
+/* `.field label` de global.css es `display: block` y deshacía las tarjetas y
+   el segmentado cuando van dentro de un campo. */
+.admin .opciones .opcion { display: flex; flex-direction: column; align-items: flex-start; margin: 0; font-size: 15px; }
+.admin .seg label { display: inline-flex; margin: 0; }
+.admin .seg--lleno label { flex: 1; }
 
-/* ---------- Cola de «Hoy» ---------- */
-/* Cada bloque es un tipo de pendiente y cada fila tiene UNA acción. La lista no
-   se ordena por importancia global a propósito: son cuatro trabajos distintos,
-   y mezclarlos obligaría a leerlos todos para encontrar el que toca ahora. */
-.cola { border-top: 1px solid var(--line); padding: 16px 20px 18px; }
-.cola:first-of-type { border-top: 0; }
-.cola__titulo {
-  font-family: var(--font-display);
-  font-size: 15px;
-  color: var(--ink-soft);
-  margin: 0 0 10px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-.cola__lista { list-style: none; margin: 0; padding: 0; }
-.cola__fila {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
-}
-.cola__fila:first-child { border-top: 0; }
-.cola__quien { min-width: 0; }
-.cola__accion { flex: none; display: flex; gap: 8px; align-items: center; }
-.cola__mas { display: inline-block; margin-top: 12px; font-size: 13.5px; }
+/* `hidden` tiene que ganar siempre: `.btn { display: inline-flex }` lo pisaba y
+   el botón «Ver» del selector de mes seguía a la vista con JavaScript activo. */
+.admin [hidden] { display: none !important; }
 
-@media (max-width: 720px) {
-  .cola { padding-inline: 16px; }
-  .cola__fila { flex-direction: column; align-items: stretch; }
-  .cola__accion { justify-content: flex-start; }
-}
+/* Resumen de pagos: la primera cifra pesa más en escritorio; en el teléfono,
+   las tres apiladas en vez de tres columnas de 100px. */
+.kpis--pagos { grid-template-columns: 1.4fr 1fr 1fr; }
+@media (max-width: 939px) { .kpis--pagos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .kpis--pagos { grid-template-columns: 1fr; } }
 
-/* ---------- Selector de periodo de las métricas ---------- */
-.periodos { display: flex; gap: 6px; flex-wrap: wrap; }
-.periodo {
-  font-size: 13px;
-  padding: 5px 12px;
-  border-radius: 100px;
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
-  text-decoration: none;
-}
-.periodo:hover { background: var(--bg); }
-.periodo--activo { background: var(--ink); color: var(--on-accent); border-color: var(--ink); }
-
-.panel__nota { margin: 16px 0 0; font-size: 12.5px; color: var(--ink-soft); }
-
-/* ---------- Formularios de dos campos ---------- */
-.campos-2 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0 18px;
-}
-
-/* ---------- Listas simples (historial, citas de una ficha) ---------- */
-.lista-simple { list-style: none; margin: 0; padding: 0; }
-.lista-simple > li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 14.5px; }
-.lista-simple > li:first-child { border-top: 0; }
-
-/* ---------- Seguimiento ---------- */
-.seguimiento { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 16px; }
-.seguimiento--vencido { color: #b4452e; }
-
-/* El panel que propone convertir tras una cita atendida: es una sugerencia, no
-   un paso obligatorio, así que se distingue sin gritar. */
-.panel--destacado { border-color: #c3d8d3; background: var(--accent-tint); }
-
-/* Dos acciones en la misma celda —mandar el mensaje y anotar que se mandó—
-   necesitan apilarse: en una fila se salen de la tabla en pantallas normales. */
-.tabla__accion--doble { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-
-/* El `min-width: 190px` de los filtros alcanzaba también a las casillas, y una
-   casilla de 190px deja su etiqueta a medio metro. */
-.filtros input[type='checkbox'] { min-width: 0; width: auto; }
-
-/* `.vacio--chico` se declara antes que `.vacio` más arriba, así que la regla
-   general le ganaba por orden y el «sin nada» seguía ocupando 56px de alto.
-   Repetirlo aquí, al final, es lo que hace que funcione. */
-.vacio--chico { padding: 28px 20px; }
-
-/* Una semana son siete paneles: si cada día vacío ocupa lo que un día lleno, la
-   vista se convierte en un rollo que hay que desplazar para ver dos citas. */
-.vacio--linea { padding: 10px 20px 14px; text-align: left; font-size: 13.5px; }
-.vacio--linea p { margin: 0; }
-
-/* El selector de periodo no cabe al lado del título en un teléfono: bajarlo
-   entero es mejor que dejar «Cómo va» partido en dos líneas de una palabra. */
-@media (max-width: 720px) {
-  .panel__cabecera { flex-wrap: wrap; gap: 10px; }
-  .periodos { width: 100%; }
+/* En el teléfono una cita de 45 minutos mide 48px: caben hora y nombre, no un
+   tercer renglón que queda cortado a la mitad. */
+@media (max-width: 719px) {
+  .bloque:not(.bloque--corto) .bloque__s { display: none; }
 }

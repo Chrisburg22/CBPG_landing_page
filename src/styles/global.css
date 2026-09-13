@@ -15,6 +15,36 @@
   --accent-tint: #e2ebe7;
   --on-accent:   #fbfaf6;
 
+  /* Paleta ampliada del panel (V1.1). La marca sigue siendo crema y verde
+     azulado; esto añade una familia por significado para que el color diga
+     qué es cada cosa. Todo texto sobre su fondo pasa AA (≥ 4.5:1) y el borde
+     de control pasa 3:1 contra la superficie. Cotejado en
+     design/panel/rediseno/Sistema.dc.html. */
+  --teal-50:  #eef4f2;
+  --teal-100: #e2ebe7;
+  --teal-200: #c3d8d3;
+  --teal-500: #2f7d75;
+  --teal-600: #245f59;
+  --teal-800: #173f3b;
+  --clay-50:  #f8ece5;
+  --clay-200: #e8c7b5;
+  --clay-500: #b8694a;
+  --clay-700: #8a4a30;
+  --slate-50:  #e4ebf2;
+  --slate-200: #c5d3e0;
+  --slate-700: #3b5a78;
+  --ok-50:  #e4efdf;
+  --ok-200: #c9debf;
+  --ok-700: #3f6b32;
+  --warn-50:  #fdf1dc;
+  --warn-200: #ecd9b0;
+  --warn-700: #8a5c15;
+  --bad-50:  #f8e7e2;
+  --bad-200: #eccfc6;
+  --bad-700: #b4452e;
+  --neutral-50: #efece7;
+  --line-strong: #8f8574;
+
   --font-display: "Newsreader", Georgia, serif;
   --font-body:    "Hanken Grotesk", system-ui, sans-serif;
 

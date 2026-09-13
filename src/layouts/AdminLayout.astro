@@ -65,6 +65,9 @@ const sinAtender =
     <meta name="apple-mobile-web-app-title" content="Panel BP" />
   </head>
   <body class="admin">
+    {/* Con navegación lateral y barra pegajosa, llegar al contenido con teclado
+        costaba cinco tabulaciones en cada pantalla. */}
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
     {
       conBarra ? (
         <div class="marco">
@@ -108,6 +111,57 @@ const sinAtender =
         lista blanca del worker no reconoce casi nada y en desarrollo queda
         prácticamente inerte. A cambio, las pruebas e2e ejercitan el código de
         verdad y no una rama muerta. */}
+    {/* Un solo envío por formulario.
+
+        Un doble clic en «Guardar cita» creaba dos citas, y lo mismo pasaba con
+        los recordatorios de cobro: ninguna de las dos tablas tiene una UNIQUE
+        que lo impida, porque dos citas iguales el mismo día pueden ser reales.
+        La guarda va en el navegador y en un solo sitio para todo el panel.
+
+        Se escucha en `document` y no en cada formulario a propósito: así corre
+        DESPUÉS de los manejadores propios de la página —el `confirm()` de
+        «Quitar pago», por ejemplo— y respeta su `preventDefault`. El botón se
+        desactiva en el siguiente tick: desactivarlo en el mismo evento haría que
+        algunos navegadores no enviaran el formulario.
+
+        Sin JavaScript no hay guarda, y el panel funciona igual que antes. */}
+    <script is:inline>
+      document.addEventListener('submit', (evento) => {
+        const form = evento.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+        if (evento.defaultPrevented) return;
+        if (form.dataset.enviando === '1') {
+          evento.preventDefault();
+          return;
+        }
+        form.dataset.enviando = '1';
+        const boton = evento.submitter;
+        if (boton instanceof HTMLButtonElement) {
+          setTimeout(() => {
+            boton.dataset.texto = boton.textContent || '';
+            boton.setAttribute('aria-busy', 'true');
+            boton.disabled = true;
+            if (!boton.hasAttribute('data-sin-texto')) boton.textContent = 'Guardando…';
+          }, 0);
+        }
+      });
+      // Volver con «atrás» restaura la página desde la caché del navegador con
+      // el botón todavía desactivado. Se reactiva al volver a mostrarla, sin
+      // recargar: recargar perdería lo tecleado en otro formulario de la página.
+      window.addEventListener('pageshow', (evento) => {
+        if (!evento.persisted) return;
+        for (const form of document.querySelectorAll('form[data-enviando]')) {
+          delete form.dataset.enviando;
+        }
+        for (const boton of document.querySelectorAll('button[aria-busy="true"]')) {
+          boton.disabled = false;
+          boton.removeAttribute('aria-busy');
+          if (boton.dataset.texto) boton.textContent = boton.dataset.texto;
+        }
+      });
+    </script>
+
     <script is:inline>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

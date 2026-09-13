@@ -79,3 +79,40 @@ export function sumar(valores: (string | null | undefined)[]): number {
   }, 0);
   return centavos / 100;
 }
+
+/**
+ * Dos iniciales para el avatar de una ficha: «Sofía Guerrero» → «SG».
+ *
+ * Solo letras: un nombre de prueba con números o un apellido compuesto con
+ * guion no deben acabar en un avatar con «E2» o «-».
+ */
+export function iniciales(nombre: string): string {
+  const palabras = nombre
+    .trim()
+    .split(/\s+/)
+    .map((p) => p.replace(/[^\p{L}]/gu, ''))
+    .filter(Boolean);
+  const primera = palabras[0]?.[0] ?? '';
+  const ultima = palabras.length > 1 ? (palabras[palabras.length - 1]?.[0] ?? '') : '';
+  return (primera + ultima).toLocaleUpperCase('es-MX') || '·';
+}
+
+/**
+ * Cuántos días de calendario mexicano separan dos fechas 'AAAA-MM-DD'.
+ * Positivo si `b` es posterior a `a`.
+ */
+export function diasEntre(a: string, b: string): number {
+  const [ya, ma, da] = a.split('-').map(Number);
+  const [yb, mb, db] = b.split('-').map(Number);
+  if (!ya || !ma || !da || !yb || !mb || !db) return 0;
+  // Mediodía UTC en los dos extremos: ningún cambio de horario mueve el día.
+  return Math.round((Date.UTC(yb, mb - 1, db, 12) - Date.UTC(ya, ma - 1, da, 12)) / 86_400_000);
+}
+
+/** «hoy», «ayer», «hace 3 días»: para decir cuándo se recordó un cobro. */
+export function haceCuanto(dia: string, hoy: string): string {
+  const dias = diasEntre(dia, hoy);
+  if (dias <= 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  return `hace ${dias} días`;
+}

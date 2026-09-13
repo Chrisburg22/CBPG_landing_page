@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import AvisoContactado from '@/components/admin/AvisoContactado.astro';
+import Icono from '@/components/admin/Icono.astro';
 import { aTelefono, aWhatsapp } from '@/lib/contacto-directo';
 import { cambiarEstado, esEstado, fecha, guardarNotas, obtener } from '@/lib/solicitudes';
 import { porSolicitud } from '@/lib/pacientes';
@@ -14,6 +15,7 @@ import {
   limpiarProximaAccion,
   registrar,
 } from '@/lib/seguimiento';
+import { iniciales } from '@/lib/formato';
 import { aCampoLocal, deMexicoAIso, fechaHora } from '@/lib/tiempo';
 import {
   ESTADOS_MANUALES,
@@ -28,6 +30,7 @@ import {
   type AccionProspecto,
   type Cita,
   type Solicitud,
+  type TipoAccion,
 } from '@/lib/supabase/tipos';
 
 export const prerender = false;
@@ -122,45 +125,121 @@ const guardado = params.get('guardado') === '1';
 const pendienteTrasCambio = params.get('pendiente') === '1';
 const error = params.get('error');
 
+const ahora = Date.now();
 const vencido =
-  !!solicitud?.proxima_accion_en &&
-  new Date(solicitud.proxima_accion_en).getTime() < Date.now();
+  !!solicitud?.proxima_accion_en && new Date(solicitud.proxima_accion_en).getTime() < ahora;
 
 /** Valor por defecto del campo de seguimiento: mañana a las 10. */
-const manana = new Date(Date.now() + 24 * 60 * 60 * 1000);
+const manana = new Date(ahora + 24 * 60 * 60 * 1000);
 const sugerido = aCampoLocal(manana.toISOString()).slice(0, 11) + '10:00';
+
+/**
+ * El historial en una sola línea de tiempo: lo que se hizo y las citas.
+ *
+ * Una cita creada desde el panel ya tiene su acción «cita creada»; se le pega
+ * la hora y el estado de la cita en vez de repetirla. Las que no tienen acción
+ * (anteriores al seguimiento) entran por su cuenta.
+ */
+type Entrada = {
+  cuando: string;
+  icono: 'whatsapp' | 'telefono' | 'agenda' | 'convertir' | 'nota' | 'prospecto';
+  tono: string;
+  titulo: string;
+  detalle: string;
+  cita: Cita | null;
+};
+const ICONO_ACCION: Record<TipoAccion, [Entrada['icono'], string]> = {
+  whatsapp: ['whatsapp', 'ic-ok'],
+  llamada: ['telefono', 'ic-teal'],
+  cita_creada: ['agenda', 'ic-pizarra'],
+  cita_reprogramada: ['agenda', 'ic-pizarra'],
+  cita_cancelada: ['agenda', 'ic-peligro'],
+  conversion: ['convertir', 'ic-ok'],
+  nota: ['nota', 'ic-teal'],
+};
+const citasPorId = new Map(citas.map((c) => [c.id, c]));
+const citasConAccion = new Set(acciones.map((a) => a.cita_id).filter(Boolean));
+const entradas: Entrada[] = [
+  ...acciones.map((a) => {
+    const cita = a.cita_id ? (citasPorId.get(a.cita_id) ?? null) : null;
+    const [icono, tono] = ICONO_ACCION[a.tipo];
+    return {
+      cuando: a.creado_en,
+      icono,
+      tono,
+      titulo: ETIQUETA_ACCION[a.tipo],
+      detalle: cita ? `${ETIQUETA_TIPO_CITA[cita.tipo]} · ${fechaHora(cita.inicia_en)}` : a.nota,
+      cita,
+    };
+  }),
+  ...citas
+    .filter((c) => !citasConAccion.has(c.id))
+    .map((c) => ({
+      cuando: c.creado_en,
+      icono: 'agenda' as const,
+      tono: 'ic-pizarra',
+      titulo: 'Cita',
+      detalle: `${ETIQUETA_TIPO_CITA[c.tipo]} · ${fechaHora(c.inicia_en)}`,
+      cita: c,
+    })),
+].sort((a, b) => b.cuando.localeCompare(a.cuando));
 ---
 
 <AdminLayout title={solicitud?.nombre ?? 'Prospecto'} seccion="prospectos">
-  <div class="admin-head">
-    <div>
-      <h1>{solicitud?.nombre ?? 'Solicitud'}</h1>
-      {
-        solicitud && (
-          <p>
-            Recibida el {fecha(solicitud.creado_en, true)} · {ETIQUETA_ORIGEN[solicitud.origen]}
-          </p>
-        )
-      }
-    </div>
-    <a class="btn btn--ghost btn--chico" href="/admin/prospectos">← Todos los prospectos</a>
-  </div>
-
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
-  {guardado && !pendienteTrasCambio && <p class="aviso aviso--ok">Guardado.</p>}
-  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
-  {error === 'estado' && <p class="aviso aviso--error">Ese estado no es válido.</p>}
-  {error === 'origen' && <p class="aviso aviso--error">Ese origen no es válido.</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
+  {
+    guardado && !pendienteTrasCambio && (
+      <p class="aviso aviso--ok" role="status">
+        <Icono nombre="hecho" />
+        <span class="aviso__texto">Guardado.</span>
+      </p>
+    )
+  }
+  {
+    error === 'guardar' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">No se pudo guardar. Inténtalo otra vez.</span>
+      </p>
+    )
+  }
+  {
+    error === 'estado' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">Ese estado no es válido.</span>
+      </p>
+    )
+  }
+  {
+    error === 'origen' && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">Ese origen no es válido.</span>
+      </p>
+    )
+  }
   {
     error === 'seguimiento' && (
-      <p class="aviso aviso--error">Revisa la fecha y el tipo del seguimiento.</p>
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">Revisa la fecha y el tipo del seguimiento.</span>
+      </p>
     )
   }
 
   {
     pendienteTrasCambio && solicitud?.proxima_accion_en && (
-      <div class="aviso aviso--aviso aviso--accion">
-        <span>
+      <div class="aviso aviso--aviso aviso--accion" role="status">
+        <Icono nombre="reloj" />
+        <span class="aviso__texto">
           Estado guardado. Sigue habiendo un seguimiento pendiente para el{' '}
           {fechaHora(solicitud.proxima_accion_en)}.
         </span>
@@ -176,266 +255,292 @@ const sugerido = aCampoLocal(manana.toISOString()).slice(0, 11) + '10:00';
 
   {
     solicitud && (
-      <div class="detalle-grid">
-        <div>
-          <div class="panel">
-            <h2 class="panel__titulo">Datos</h2>
-            <dl class="datos">
-              <dt>Teléfono</dt>
-              <dd>{solicitud.telefono}</dd>
-              <dt>Tratamiento</dt>
-              <dd>{solicitud.tratamiento}</dd>
-              <dt>Consentimiento</dt>
-              <dd>
-                Aceptado el {fecha(solicitud.consentimiento_en, true)}
-                <span class="tabla__sec">Aviso de privacidad {solicitud.aviso_version}</span>
-              </dd>
-            </dl>
-
-            <div class="acciones" style="margin-top: 22px">
-              <a
-                class="btn btn--primary btn--chico"
-                href={aWhatsapp(solicitud.telefono, solicitud.nombre, solicitud.tratamiento)}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-wa-id={solicitud.id}
-                data-wa-nombre={solicitud.nombre}
-                data-wa-estado={solicitud.estado}
-              >
-                WhatsApp
-              </a>
-              <a class="btn btn--ghost btn--chico" href={aTelefono(solicitud.telefono)}>
-                Llamar
-              </a>
-              {/* Una llamada no deja rastro por sí sola: este botón es el que
-                  la mete en el historial y en la métrica de contactadas. */}
-              <form method="post">
-                <input type="hidden" name="accion" value="llamada" />
-                <button class="btn btn--ghost btn--chico" type="submit">
-                  Anotar llamada
-                </button>
-              </form>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h2 class="panel__titulo">Mensaje</h2>
-            {/* Interpolación normal, nunca set:html: es texto escrito por el prospecto. */}
-            {solicitud.mensaje ? (
-              <p class="mensaje">{solicitud.mensaje}</p>
-            ) : (
-              <p class="mensaje mensaje--vacio">No escribió mensaje.</p>
-            )}
-          </div>
-
-          <div class="panel panel--lista">
-            <div class="panel__cabecera">
-              <h2 class="panel__titulo">Citas</h2>
-              <a href={`/admin/agenda/nueva?solicitud=${solicitud.id}`}>+ Agendar</a>
-            </div>
-            {citas.length === 0 ? (
-              <div class="vacio vacio--chico">
-                <p>Todavía no tiene ninguna cita.</p>
-              </div>
-            ) : (
-              <ul class="lista-simple">
-                {citas.map((cita) => (
-                  <li>
-                    <a href={`/admin/agenda/${cita.id}`}>{fechaHora(cita.inicia_en)}</a>
-                    <span class="tabla__sec">
-                      {ETIQUETA_TIPO_CITA[cita.tipo]} · {ETIQUETA_ESTADO_CITA[cita.estado]}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div class="panel panel--lista">
-            <h2 class="panel__titulo">Historial</h2>
-            {acciones.length === 0 ? (
-              <div class="vacio vacio--chico">
-                <p>Sin movimientos registrados todavía.</p>
-              </div>
-            ) : (
-              <ul class="lista-simple">
-                {acciones.map((accion) => (
-                  <li>
-                    <span>{ETIQUETA_ACCION[accion.tipo]}</span>
-                    <span class="tabla__sec">
-                      {fechaHora(accion.creado_en)}
-                      {accion.nota && ` · ${accion.nota}`}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        <div>
-          {paciente ? (
-            /* Ya convertido. El estado deja de editarse: esta solicitud es
-               historia, y lo que cambia a partir de aquí es la ficha del
-               paciente. */
-            <div class="panel">
-              <h2 class="panel__titulo">Estado</h2>
-              <p class="convertido">
-                <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
-                <span>Ya es paciente.</span>
-              </p>
-              <a class="btn btn--primary btn--block btn--chico" href={`/admin/pacientes/${paciente.id}`}>
-                Ver ficha de {paciente.nombre}
-              </a>
-            </div>
-          ) : solicitud.estado === 'terminado' ? (
-            /* Recepción no puede leer `pacientes`, así que no sabe a qué ficha
-               enlazar. Decirlo es mejor que ofrecer un botón que no abre nada. */
-            <div class="panel">
-              <h2 class="panel__titulo">Estado</h2>
-              <p class="convertido">
-                <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
-                <span>Ya es paciente.</span>
-              </p>
-            </div>
-          ) : (
-            <>
-              <form class="panel" method="post">
-                <h2 class="panel__titulo">Estado</h2>
-                <input type="hidden" name="accion" value="estado" />
-                <div class="field">
-                  <label for="estado">Situación de este prospecto</label>
-                  <select id="estado" name="estado">
-                    {ESTADOS_MANUALES.map((valor) => (
-                      <option value={valor} selected={valor === solicitud?.estado}>
-                        {ETIQUETA_ESTADO[valor]}
-                      </option>
-                    ))}
-                  </select>
+      <>
+        <section class="panel ficha-cabecera">
+          <div class="ficha-cabecera__fila">
+            <div class="ficha-cabecera__quien">
+              <span class="avatar" aria-hidden="true">{iniciales(solicitud.nombre)}</span>
+              <div>
+                <h1>{solicitud.nombre}</h1>
+                <div class="ficha-cabecera__meta">
+                  <span class={`chip chip--${solicitud.estado}`}>{ETIQUETA_ESTADO[solicitud.estado]}</span>
+                  <span class={`chip chip--origen-${solicitud.origen}`}>{ETIQUETA_ORIGEN[solicitud.origen]}</span>
+                  <span>
+                    {solicitud.tratamiento} · recibida el {fecha(solicitud.creado_en, true)}
+                  </span>
                 </div>
-                <button class="btn btn--primary btn--block btn--chico" type="submit">
-                  Guardar estado
-                </button>
-              </form>
-
-              {esDoctora && (
-                <div class="panel">
-                  <h2 class="panel__titulo">Convertir en paciente</h2>
-                  <p class="panel__texto">
-                    Cuando acepte el tratamiento. Se crea su ficha con estos datos y esta
-                    solicitud queda como terminada, sin perder el mensaje ni el consentimiento.
-                  </p>
-                  <a
-                    class="btn btn--primary btn--block btn--chico"
-                    href={`/admin/prospectos/${id}/convertir`}
-                  >
-                    Convertir en paciente
-                  </a>
-                </div>
-              )}
-            </>
-          )}
-
-          <div class="panel">
-            <h2 class="panel__titulo">Próxima acción</h2>
-            {solicitud.proxima_accion_en ? (
-              <p class={`seguimiento ${vencido ? 'seguimiento--vencido' : ''}`}>
-                <span class={vencido ? 'chip chip--vencida' : 'chip'}>
-                  {solicitud.proxima_accion_tipo
-                    ? ETIQUETA_ACCION_PENDIENTE[solicitud.proxima_accion_tipo]
-                    : 'Seguimiento'}
-                </span>
-                <span>{fechaHora(solicitud.proxima_accion_en)}</span>
-                {solicitud.proxima_accion_nota && (
-                  <span class="tabla__sec">{solicitud.proxima_accion_nota}</span>
-                )}
-              </p>
-            ) : (
-              <p class="panel__texto">Sin nada pendiente.</p>
-            )}
-
+              </div>
+            </div>
+            <a class="btn btn--ghost btn--chico" href="/admin/prospectos">
+              <Icono nombre="izquierda" tam={16} /> Todos los prospectos
+            </a>
+          </div>
+          <div class="acciones">
+            <a
+              class="btn btn--primary btn--chico"
+              href={aWhatsapp(solicitud.telefono, solicitud.nombre, solicitud.tratamiento)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-wa-id={solicitud.id}
+              data-wa-nombre={solicitud.nombre}
+              data-wa-estado={solicitud.estado}
+            >
+              <Icono nombre="whatsapp" tam={16} />
+              WhatsApp
+            </a>
+            <a class="btn btn--ghost btn--chico" href={aTelefono(solicitud.telefono)}>
+              <Icono nombre="telefono" tam={16} />
+              Llamar
+            </a>
+            {/* Una llamada no deja rastro por sí sola: este botón es el que
+                la mete en el historial y en la métrica de contactadas. */}
             <form method="post">
-              <input type="hidden" name="accion" value="seguimiento" />
-              <div class="field">
-                <label for="cuando">Cuándo</label>
-                <input
-                  id="cuando"
-                  name="cuando"
-                  type="datetime-local"
-                  required
-                  value={
-                    solicitud.proxima_accion_en
-                      ? aCampoLocal(solicitud.proxima_accion_en)
-                      : sugerido
-                  }
-                />
-              </div>
-              <div class="field">
-                <label for="tipo">Qué toca</label>
-                <select id="tipo" name="tipo">
-                  {TIPOS_ACCION_PENDIENTE.map((valor) => (
-                    <option value={valor} selected={valor === solicitud?.proxima_accion_tipo}>
-                      {ETIQUETA_ACCION_PENDIENTE[valor]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div class="field">
-                <label for="nota">Nota corta</label>
-                <input
-                  id="nota"
-                  name="nota"
-                  maxlength="300"
-                  value={solicitud.proxima_accion_nota}
-                  placeholder="Preguntar si ya lo habló en casa"
-                />
-              </div>
-              <button class="btn btn--primary btn--block btn--chico" type="submit">
-                Guardar seguimiento
+              <input type="hidden" name="accion" value="llamada" />
+              <button class="btn btn--ghost btn--chico" type="submit">
+                <Icono nombre="nota" tam={16} /> Anotar llamada
               </button>
             </form>
+            <a class="btn btn--ghost btn--chico" href={`/admin/agenda/nueva?solicitud=${solicitud.id}`}>
+              <Icono nombre="agenda" tam={16} /> Agendar cita
+            </a>
+          </div>
+        </section>
 
-            {solicitud.proxima_accion_en && (
-              <form method="post" style="margin-top: 10px">
-                <input type="hidden" name="accion" value="seguimiento-hecho" />
-                <button class="btn btn--ghost btn--block btn--chico" type="submit">
-                  Marcar como hecho
-                </button>
-              </form>
-            )}
+        <div class="detalle-grid">
+          <div class="columna">
+            <section class="panel" aria-labelledby="titulo-mensaje">
+              <h2 class="panel__titulo" id="titulo-mensaje">Mensaje</h2>
+              {/* Interpolación normal, nunca set:html: es texto escrito por el prospecto. */}
+              {solicitud.mensaje ? (
+                <p class="mensaje">{solicitud.mensaje}</p>
+              ) : (
+                <p class="mensaje mensaje--vacio">No escribió mensaje.</p>
+              )}
+              <dl class="datos" style="margin-top: 16px">
+                <dt>Teléfono</dt>
+                <dd>{solicitud.telefono}</dd>
+                <dt>Consentimiento</dt>
+                <dd>
+                  Aceptado el {fecha(solicitud.consentimiento_en, true)}
+                  <span class="tabla__sec">Aviso de privacidad {solicitud.aviso_version}</span>
+                </dd>
+              </dl>
+            </section>
+
+            <section class="panel" aria-labelledby="titulo-historial">
+              <div class="panel__cabecera">
+                <h2 class="panel__titulo" id="titulo-historial">Historial</h2>
+                <a href={`/admin/agenda/nueva?solicitud=${solicitud.id}`}>+ Agendar</a>
+              </div>
+              <ul class="historial">
+                {entradas.map((e) => (
+                  <li class="historial__item">
+                    <span class={`cola__icono ${e.tono}`}>
+                      <Icono nombre={e.icono} tam={16} />
+                    </span>
+                    <div>
+                      <b>{e.titulo}</b>
+                      <span class="tabla__sec">
+                        {e.cita ? (
+                          <>
+                            <a href={`/admin/agenda?dia=${e.cita.inicia_en.slice(0, 10)}&cita=${e.cita.id}`}>{e.detalle}</a>{' '}
+                            <span class={`chip chip--chico chip--cita-${e.cita.estado}`}>
+                              {ETIQUETA_ESTADO_CITA[e.cita.estado]}
+                            </span>
+                          </>
+                        ) : (
+                          e.detalle
+                        )}
+                      </span>
+                    </div>
+                    <time class="historial__cuando" datetime={e.cuando}>{fechaHora(e.cuando)}</time>
+                  </li>
+                ))}
+                <li class="historial__item">
+                  <span class="cola__icono ic-arcilla">
+                    <Icono nombre="prospecto" tam={16} />
+                  </span>
+                  <div>
+                    <b>Solicitud recibida</b>
+                    <span class="tabla__sec">{ETIQUETA_ORIGEN[solicitud.origen]}</span>
+                  </div>
+                  <time class="historial__cuando" datetime={solicitud.creado_en}>
+                    {fechaHora(solicitud.creado_en)}
+                  </time>
+                </li>
+              </ul>
+            </section>
           </div>
 
-          <form class="panel" method="post">
-            <h2 class="panel__titulo">Origen</h2>
-            <input type="hidden" name="accion" value="origen" />
-            <div class="field">
-              <label for="origen">Por dónde llegó</label>
-              <select id="origen" name="origen">
-                {ORIGENES.map((valor) => (
-                  <option value={valor} selected={valor === solicitud?.origen}>
-                    {ETIQUETA_ORIGEN[valor]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button class="btn btn--ghost btn--block btn--chico" type="submit">
-              Guardar origen
-            </button>
-          </form>
+          <div class="columna">
+            <section
+              class={`panel proxima-accion ${solicitud.proxima_accion_en ? (vencido ? 'panel--alerta' : 'panel--tinta') : ''}`}
+              id="seguimiento"
+              aria-labelledby="titulo-seguimiento"
+            >
+              <h2 class="visualmente-oculto" id="titulo-seguimiento">Próxima acción</h2>
+              {solicitud.proxima_accion_en ? (
+                <>
+                  <span class="eyebrow-panel" style={vencido ? 'color: var(--bad-700)' : 'color: var(--teal-600)'}>
+                    Próxima acción{vencido ? ' · vencida' : ''}
+                  </span>
+                  <p class="proxima-accion__titulo">
+                    {solicitud.proxima_accion_tipo
+                      ? ETIQUETA_ACCION_PENDIENTE[solicitud.proxima_accion_tipo]
+                      : 'Seguimiento'}
+                  </p>
+                  <p>
+                    <b class="num">{fechaHora(solicitud.proxima_accion_en)}</b>
+                    {solicitud.proxima_accion_nota && ` · «${solicitud.proxima_accion_nota}»`}
+                  </p>
+                  <form method="post" style="margin-top: 14px">
+                    <input type="hidden" name="accion" value="seguimiento-hecho" />
+                    <button class="btn btn--primary btn--chico" type="submit">
+                      <Icono nombre="hecho" tam={16} /> Marcar como hecho
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <span class="eyebrow-panel">Próxima acción</span>
+                  <p class="panel__texto" style="margin: 6px 0 0">
+                    Nada pendiente. Deja apuntado el siguiente paso para que aparezca en la cola de Inicio.
+                  </p>
+                </>
+              )}
 
-          <form class="panel" method="post">
-            <h2 class="panel__titulo">Notas</h2>
-            <input type="hidden" name="accion" value="notas" />
-            <div class="field">
-              <label for="notas">Solo para ti. El prospecto no las ve.</label>
-              <textarea id="notas" name="notas" rows="7" maxlength="4000">{solicitud.notas}</textarea>
-            </div>
-            <button class="btn btn--ghost btn--block btn--chico" type="submit">
-              Guardar notas
-            </button>
-          </form>
+              <details class="plegable" open={!solicitud.proxima_accion_en} style="margin-top: 12px">
+                <summary>{solicitud.proxima_accion_en ? 'Cambiar el seguimiento' : 'Poner seguimiento'}</summary>
+                <form method="post" class="plegable__cuerpo">
+                  <input type="hidden" name="accion" value="seguimiento" />
+                  <div class="field">
+                    <label for="cuando">Cuándo</label>
+                    <input
+                      id="cuando"
+                      name="cuando"
+                      type="datetime-local"
+                      required
+                      value={solicitud.proxima_accion_en ? aCampoLocal(solicitud.proxima_accion_en) : sugerido}
+                    />
+                  </div>
+                  <div class="field">
+                    <label for="tipo">Qué toca</label>
+                    <select id="tipo" name="tipo">
+                      {TIPOS_ACCION_PENDIENTE.map((valor) => (
+                        <option value={valor} selected={valor === solicitud?.proxima_accion_tipo}>
+                          {ETIQUETA_ACCION_PENDIENTE[valor]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="nota">Nota corta</label>
+                    <input
+                      id="nota"
+                      name="nota"
+                      maxlength="300"
+                      value={solicitud.proxima_accion_nota}
+                      placeholder="Preguntar si ya lo habló en casa"
+                    />
+                  </div>
+                  <button class="btn btn--ghost btn--block btn--chico" type="submit">
+                    Guardar seguimiento
+                  </button>
+                </form>
+              </details>
+            </section>
+
+            {paciente ? (
+              /* Ya convertido. El estado deja de editarse: esta solicitud es
+                 historia, y lo que cambia a partir de aquí es la ficha. */
+              <section class="panel panel--tinta">
+                <p class="convertido">
+                  <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
+                  <span>Ya es paciente.</span>
+                </p>
+                <a class="btn btn--primary btn--block btn--chico" href={`/admin/pacientes/${paciente.id}`}>
+                  Ver ficha de {paciente.nombre}
+                </a>
+              </section>
+            ) : solicitud.estado === 'terminado' ? (
+              /* Recepción no puede leer `pacientes`, así que no sabe a qué ficha
+                 enlazar. Decirlo es mejor que ofrecer un botón que no abre nada. */
+              <section class="panel">
+                <p class="convertido" style="margin: 0">
+                  <span class="chip chip--terminado">{ETIQUETA_ESTADO.terminado}</span>
+                  <span>Ya es paciente.</span>
+                </p>
+              </section>
+            ) : (
+              <>
+                <form class="panel" method="post">
+                  <input type="hidden" name="accion" value="estado" />
+                  <div class="campos-2" style="align-items: end">
+                    <div class="field" style="margin-bottom: 0">
+                      <label for="estado">Situación de este prospecto</label>
+                      <select id="estado" name="estado">
+                        {ESTADOS_MANUALES.map((valor) => (
+                          <option value={valor} selected={valor === solicitud?.estado}>
+                            {ETIQUETA_ESTADO[valor]}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <button class="btn btn--ghost btn--chico" type="submit" style="min-height: 48px">
+                      Guardar estado
+                    </button>
+                  </div>
+                </form>
+
+                {esDoctora && (
+                  <section class="panel panel--tinta">
+                    <h2 class="panel__titulo" style="font-size: 20px; margin-bottom: 6px">Convertir en paciente</h2>
+                    <p class="panel__texto">
+                      Cuando acepte el tratamiento. Se crea su ficha con estos datos y esta solicitud
+                      queda como terminada, sin perder el mensaje ni el consentimiento.
+                    </p>
+                    <a class="btn btn--primary btn--block btn--chico" href={`/admin/prospectos/${id}/convertir`}>
+                      <Icono nombre="convertir" tam={16} /> Convertir en paciente
+                    </a>
+                  </section>
+                )}
+              </>
+            )}
+
+            <section class="panel" style="padding-block: 4px">
+              <details class="plegable">
+                <summary>
+                  Origen <span class="plegable__resumen">{ETIQUETA_ORIGEN[solicitud.origen]}</span>
+                </summary>
+                <form method="post" class="plegable__cuerpo">
+                  <input type="hidden" name="accion" value="origen" />
+                  <div class="field">
+                    <label for="origen">Por dónde llegó</label>
+                    <select id="origen" name="origen">
+                      {ORIGENES.map((valor) => (
+                        <option value={valor} selected={valor === solicitud?.origen}>
+                          {ETIQUETA_ORIGEN[valor]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button class="btn btn--ghost btn--block btn--chico" type="submit">Guardar origen</button>
+                </form>
+              </details>
+            </section>
+
+            <form class="panel" method="post">
+              <h2 class="panel__titulo" style="font-size: 20px">Notas</h2>
+              <input type="hidden" name="accion" value="notas" />
+              <div class="field">
+                <label for="notas">Solo para ti. El prospecto no las ve.</label>
+                <textarea id="notas" name="notas" rows="5" maxlength="4000">{solicitud.notas}</textarea>
+              </div>
+              <button class="btn btn--ghost btn--block btn--chico" type="submit">Guardar notas</button>
+            </form>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 </AdminLayout>

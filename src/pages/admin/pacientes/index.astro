@@ -1,37 +1,70 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { aWhatsapp } from '@/lib/contacto-directo';
+import Icono from '@/components/admin/Icono.astro';
 import {
-  contarTodos,
+  contarPorEstado,
   esEstadoPaciente,
-  fechaCorta,
+  idsConAdeudo,
   listar,
+  resumenes,
   type PacienteListado,
+  type ResumenPaciente,
 } from '@/lib/pacientes';
-import { ESTADOS_PACIENTE, ETIQUETA_ESTADO_PACIENTE } from '@/lib/supabase/tipos';
+import { dinero } from '@/lib/formato';
+import { fechaHora } from '@/lib/tiempo';
+import {
+  ESTADOS_PACIENTE,
+  ETIQUETA_ESTADO_PACIENTE,
+  type EstadoPaciente,
+} from '@/lib/supabase/tipos';
 
 export const prerender = false;
 
+/** Plural para los chips de filtro. */
+const PLURAL: Record<EstadoPaciente, string> = {
+  activo: 'Activos',
+  retencion: 'En retención',
+  pausado: 'Pausados',
+  alta: 'Alta',
+};
+
+const supabase = Astro.locals.supabase;
 const params = Astro.url.searchParams;
 const estadoParam = params.get('estado');
 const estado = esEstadoPaciente(estadoParam) ? estadoParam : undefined;
 const busqueda = params.get('q')?.trim() ?? '';
+const conAdeudo = params.get('adeudo') === '1';
 
 let pacientes: PacienteListado[] = [];
-let total = 0;
+let resumen = new Map<string, ResumenPaciente>();
+let porEstado: Record<EstadoPaciente, number> = { activo: 0, retencion: 0, pausado: 0, alta: 0 };
+let adeudo: string[] = [];
 let fallo: string | null = null;
 
 try {
-  [pacientes, total] = await Promise.all([
-    listar(Astro.locals.supabase, { estado, busqueda }),
-    contarTodos(Astro.locals.supabase),
-  ]);
+  [porEstado, adeudo] = await Promise.all([contarPorEstado(supabase), idsConAdeudo(supabase)]);
+  pacientes = await listar(supabase, { estado, busqueda, ids: conAdeudo ? adeudo : undefined });
+  resumen = await resumenes(
+    supabase,
+    pacientes.map((p) => p.id)
+  );
 } catch (e) {
   console.error('[admin] listado de pacientes falló:', e instanceof Error ? e.message : 'desconocido');
   fallo = 'No pudimos cargar los pacientes. Vuelve a intentarlo en un momento.';
 }
 
-const hayFiltro = !!estado || !!busqueda;
+const total = Object.values(porEstado).reduce((t, n) => t + n, 0);
+const hayFiltro = !!estado || !!busqueda || conAdeudo;
+
+function enlace(cambios: Record<string, string | undefined>): string {
+  const nuevos = new URLSearchParams(params);
+  for (const [clave, valor] of Object.entries(cambios)) {
+    if (valor === undefined) nuevos.delete(clave);
+    else nuevos.set(clave, valor);
+  }
+  const cadena = nuevos.toString();
+  return `/admin/pacientes${cadena ? `?${cadena}` : ''}`;
+}
 ---
 
 <AdminLayout title="Pacientes" seccion="pacientes">
@@ -42,7 +75,7 @@ const hayFiltro = !!estado || !!busqueda;
         {
           fallo
             ? 'Sin datos'
-            : `${pacientes.length} ${pacientes.length === 1 ? 'paciente' : 'pacientes'}${hayFiltro ? ' con este filtro' : ''}`
+            : `${porEstado.activo} ${porEstado.activo === 1 ? 'activo' : 'activos'} · ${porEstado.retencion} en retención · ${adeudo.length} con cuota vencida`
         }
         {
           hayFiltro && (
@@ -58,35 +91,52 @@ const hayFiltro = !!estado || !!busqueda;
     </div>
 
     <div class="admin-head__derecha">
-      <form class="filtros" method="get" action="/admin/pacientes">
-      <div class="field">
-        <label for="estado">Estado</label>
-        <select id="estado" name="estado">
-          <option value="">Todos</option>
-          {
-            ESTADOS_PACIENTE.map((valor) => (
-              <option value={valor} selected={valor === estado}>
-                {ETIQUETA_ESTADO_PACIENTE[valor]}
-              </option>
-            ))
-          }
-        </select>
-      </div>
-      <div class="field">
-        <label for="q">Buscar</label>
-        <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
-      </div>
+      <form class="filtros" method="get" action="/admin/pacientes" role="search">
+        {estado && <input type="hidden" name="estado" value={estado} />}
+        {conAdeudo && <input type="hidden" name="adeudo" value="1" />}
+        <div class="field buscador">
+          <label class="visualmente-oculto" for="q">Buscar</label>
+          <Icono nombre="buscar" />
+          <input id="q" name="q" type="search" value={busqueda} placeholder="Nombre o teléfono" />
+        </div>
         <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
       </form>
-      <a class="btn btn--primary btn--chico admin-head__accion" href="/admin/pacientes/nuevo">
-      + Nuevo paciente
+      <a class="btn btn--primary btn--chico" href="/admin/pacientes/nuevo">
+        <Icono nombre="mas" tam={16} /> Nuevo paciente
       </a>
     </div>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
 
-  <div class="panel panel--lista">
+  <nav class="fchips" aria-label="Filtrar pacientes">
+    <a class="fchip" href={enlace({ estado: undefined })} aria-current={!estado ? 'true' : undefined}>
+      Todos <span class="fchip__n">{total}</span>
+    </a>
+    {
+      ESTADOS_PACIENTE.map((valor) => (
+        <a class="fchip" href={enlace({ estado: valor })} aria-current={valor === estado ? 'true' : undefined}>
+          {PLURAL[valor]} <span class="fchip__n">{porEstado[valor]}</span>
+        </a>
+      ))
+    }
+    <a
+      class="fchip fchip--peligro"
+      href={enlace({ adeudo: conAdeudo ? undefined : '1' })}
+      aria-current={conAdeudo ? 'true' : undefined}
+    >
+      <Icono nombre="alerta" tam={16} /> Con cuota vencida <span class="fchip__n">{adeudo.length}</span>
+    </a>
+  </nav>
+
+  <div class="panel panel--lista panel--tarjetas">
     {
       pacientes.length === 0 && !fallo ? (
         <div class="vacio">
@@ -121,52 +171,79 @@ const hayFiltro = !!estado || !!busqueda;
             <thead>
               <tr>
                 <th>Paciente</th>
-                <th>Tratamiento</th>
-                <th>Inicio</th>
-                <th>Estado</th>
-                <th>
-                  <span class="visualmente-oculto">Contactar</span>
-                </th>
+                <th>Avance</th>
+                <th>Próxima cita</th>
+                <th class="tabla__num">Saldo</th>
+                <th>Pagos</th>
               </tr>
             </thead>
             <tbody>
-              {pacientes.map((p) => (
-                <tr>
-                  <td>
-                    <a class="tabla__nombre" href={`/admin/pacientes/${p.id}`}>
-                      {p.nombre}
-                    </a>
-                    <span class="tabla__sec">{p.telefono}</span>
-                  </td>
-                  <td class="tabla__meta">{p.tratamiento}</td>
-                  <td class="tabla__fecha tabla__meta">{fechaCorta(p.inicio)}</td>
-                  <td class="tabla__estado">
-                    <span class={`chip chip--${p.estado}`}>
-                      {ETIQUETA_ESTADO_PACIENTE[p.estado]}
-                    </span>
-                  </td>
-                  <td class="tabla__accion">
-                    <a
-                      class="btn btn--primary btn--chico"
-                      href={aWhatsapp(p.telefono, p.nombre, p.tratamiento)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      WhatsApp
-                    </a>
-                  </td>
-                </tr>
-              ))}
+              {pacientes.map((p) => {
+                const r = resumen.get(p.id);
+                const pagadas = r?.cuotasPagadas ?? 0;
+                const numCuotas = r?.numCuotas ?? 0;
+                // Sin `<=`: dentro de la plantilla, el parser de Astro lo toma por una etiqueta.
+                const saldoCero = !!r?.tienePlan && !(Number(r.saldo) > 0);
+                return (
+                  <tr class={r && r.cuotasVencidas > 0 ? 'tabla__urgente' : undefined}>
+                    <td>
+                      <a class="tabla__nombre" href={`/admin/pacientes/${p.id}`}>
+                        {p.nombre}
+                      </a>
+                      <span class="tabla__sec">
+                        {p.tratamiento}
+                        {p.estado !== 'activo' && (
+                          <>
+                            {' · '}
+                            <span class={`chip chip--chico chip--${p.estado}`}>{ETIQUETA_ESTADO_PACIENTE[p.estado]}</span>
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td class="tabla__meta" style="min-width: 170px">
+                      {r?.tienePlan && numCuotas > 0 ? (
+                        <>
+                          <span>
+                            {pagadas} de {numCuotas} mensualidades
+                          </span>
+                          <div class="barra" aria-hidden="true">
+                            <i style={`width: ${Math.min(100, (pagadas / numCuotas) * 100)}%`} />
+                          </div>
+                        </>
+                      ) : r?.tienePlan ? (
+                        'Sin calendario'
+                      ) : (
+                        <a href={`/admin/pacientes/${p.id}/plan`}>Crear plan</a>
+                      )}
+                    </td>
+                    <td class="tabla__meta tabla__nowrap">
+                      {r?.proximaCita ? (
+                        <span class="num">{fechaHora(r.proximaCita)}</span>
+                      ) : (
+                        <a href={`/admin/agenda/nueva?paciente=${p.id}`}>+ Agendar</a>
+                      )}
+                    </td>
+                    <td class="tabla__num">{r?.tienePlan ? dinero(r.saldo) : '—'}</td>
+                    <td class="tabla__estado">
+                      {!r?.tienePlan ? (
+                        <span class="chip chip--neutro">Sin plan</span>
+                      ) : r.cuotasVencidas > 0 ? (
+                        <span class="chip chip--vencida">
+                          {r.cuotasVencidas} {r.cuotasVencidas === 1 ? 'vencida' : 'vencidas'}
+                        </span>
+                      ) : saldoCero ? (
+                        <span class="chip chip--ok">Liquidado</span>
+                      ) : (
+                        <span class="chip chip--ok">Al corriente</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )
     }
   </div>
-
-  <script is:inline>
-    document.getElementById('estado')?.addEventListener('change', (e) => {
-      e.target.form.submit();
-    });
-  </script>
 </AdminLayout>

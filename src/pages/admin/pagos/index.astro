@@ -1,8 +1,10 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import { dinero, dineroCorto, fechaCorta, hoyEnMexico, sumar } from '@/lib/formato';
+import Icono from '@/components/admin/Icono.astro';
+import { dinero, dineroCorto, fechaCorta, haceCuanto, hoyEnMexico, sumar } from '@/lib/formato';
 import {
   borrar,
+  esperadoEntre,
   esTipoPago,
   limitesDelMes,
   listarMovimientos,
@@ -16,9 +18,16 @@ import {
   ETIQUETA_TIPO_PAGO,
   TIPOS_PAGO,
   type RecordatorioCobro,
+  type TipoPago,
 } from '@/lib/supabase/tipos';
 
 export const prerender = false;
+
+const PLURAL_TIPO: Record<TipoPago, string> = {
+  mensualidad: 'Mensualidades',
+  enganche: 'Enganches',
+  cargo_suelto: 'Cargos sueltos',
+};
 
 // Borrar un pago mal registrado, o dejar constancia de un recordatorio de cobro.
 // POST-Redirect-GET como el resto del panel.
@@ -40,7 +49,6 @@ if (Astro.request.method === 'POST') {
     }
   } catch (e) {
     console.error('[admin] no se pudo guardar:', e instanceof Error ? e.message : 'desconocido');
-    return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
   }
   return Astro.redirect(`${Astro.url.pathname}${Astro.url.search}`, 303);
 }
@@ -54,18 +62,21 @@ const { desde, hasta } = limitesDelMes(`${mes}-01`);
 
 const tipoParam = params.get('tipo');
 const tipo = esTipoPago(tipoParam) ? tipoParam : undefined;
+const soloVencidas = params.get('solo') === 'vencidas';
 
 let movimientos: MovimientoPago[] = [];
 let pendientes: Awaited<ReturnType<typeof porCobrar>> = [];
 let nombresPaciente = new Map<string, string>();
 let telefonos = new Map<string, string>();
 let recordatorios = new Map<string, RecordatorioCobro>();
+let esperado = 0;
 let fallo: string | null = null;
 
 try {
-  [movimientos, pendientes] = await Promise.all([
+  [movimientos, pendientes, esperado] = await Promise.all([
     listarMovimientos(Astro.locals.supabase, { desde, hasta, tipo }),
-    porCobrar(Astro.locals.supabase, 20),
+    porCobrar(Astro.locals.supabase, 30),
+    esperadoEntre(Astro.locals.supabase, desde, hasta),
   ]);
 
   const ids = [...new Set(pendientes.map((c) => c.paciente_id))];
@@ -86,9 +97,14 @@ try {
   fallo = 'No pudimos cargar los pagos. Vuelve a intentarlo en un momento.';
 }
 
+const hoy = diaEnMexico(new Date());
 const cobrado = sumar(movimientos.map((m) => m.monto));
 const vencidas = pendientes.filter((c) => c.estado === 'vencida');
 const montoVencido = sumar(vencidas.map((c) => c.restante));
+const pacientesConVencida = new Set(vencidas.map((c) => c.paciente_id)).size;
+const sinRecordar = vencidas.filter((c) => !recordatorios.has(c.id)).length;
+const porCobrarVisibles = soloVencidas ? vencidas : pendientes;
+const porcentaje = esperado > 0 ? Math.min(100, Math.round((cobrado / esperado) * 100)) : null;
 
 /** Los últimos doce meses para el selector, con su etiqueta legible. */
 const meses = Array.from({ length: 12 }, (_, i) => {
@@ -99,175 +115,229 @@ const meses = Array.from({ length: 12 }, (_, i) => {
   const etiqueta = d.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
   return { valor, etiqueta: etiqueta.charAt(0).toLocaleUpperCase('es-MX') + etiqueta.slice(1) };
 });
+const etiquetaMes = meses.find((m) => m.valor === mes)?.etiqueta ?? mes;
+const nombreMes = etiquetaMes.split(' ')[0]?.toLocaleLowerCase('es-MX') ?? '';
+
+function enlace(cambios: Record<string, string | undefined>): string {
+  const nuevos = new URLSearchParams(params);
+  for (const [clave, valor] of Object.entries(cambios)) {
+    if (valor === undefined) nuevos.delete(clave);
+    else nuevos.set(clave, valor);
+  }
+  const cadena = nuevos.toString();
+  return `/admin/pagos${cadena ? `?${cadena}` : ''}`;
+}
 ---
 
 <AdminLayout title="Pagos" seccion="pagos">
   <div class="admin-head">
     <div>
       <h1>Pagos</h1>
-      <p>Mensualidades del plan y cargos sueltos</p>
+      <p>{etiquetaMes}</p>
     </div>
     <div class="admin-head__derecha">
       <form class="filtros" method="get" action="/admin/pagos">
-      <div class="field">
-        <label for="mes">Periodo</label>
-        <select id="mes" name="mes">
-          {meses.map((m) => <option value={m.valor} selected={m.valor === mes}>{m.etiqueta}</option>)}
-        </select>
-      </div>
-      <div class="field">
-        <label for="tipo">Tipo</label>
-        <select id="tipo" name="tipo">
-          <option value="">Todos</option>
-          {
-            TIPOS_PAGO.map((valor) => (
-              <option value={valor} selected={valor === tipo}>
-                {ETIQUETA_TIPO_PAGO[valor]}
-              </option>
-            ))
-          }
-        </select>
-      </div>
-        <button class="btn btn--ghost btn--chico" type="submit">Filtrar</button>
+        {tipo && <input type="hidden" name="tipo" value={tipo} />}
+        {soloVencidas && <input type="hidden" name="solo" value="vencidas" />}
+        <div class="field">
+          <label class="visualmente-oculto" for="mes">Periodo</label>
+          <select id="mes" name="mes">
+            {meses.map((m) => <option value={m.valor} selected={m.valor === mes}>{m.etiqueta}</option>)}
+          </select>
+        </div>
+        <button class="btn btn--ghost btn--chico" type="submit" data-ver-mes>Ver</button>
       </form>
-      <a class="btn btn--primary btn--chico admin-head__accion" href="/admin/pagos/nuevo">
-      + Registrar pago
+      <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo">
+        <Icono nombre="mas" tam={16} /> Registrar pago
       </a>
     </div>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
+  {
+    fallo && (
+      <p class="aviso aviso--error" role="alert">
+        <Icono nombre="alerta" />
+        <span class="aviso__texto">{fallo}</span>
+      </p>
+    )
+  }
 
   {
     !fallo && (
-      <div class="metricas">
-        <div class="metrica">
-          <span class="metrica__k">Cobrado</span>
-          <span class="metrica__v">{dineroCorto(cobrado)}</span>
-          <span class="metrica__d">
-            {movimientos.length} {movimientos.length === 1 ? 'movimiento' : 'movimientos'}
-          </span>
+      <section class="panel" aria-label="Resumen del mes">
+        <div class="kpis kpis--pagos">
+          <div class="kpi">
+            <span class="eyebrow-panel">Cobrado en {nombreMes}</span>
+            <span class="kpi__v" style="font-size: 34px">{dineroCorto(cobrado)}</span>
+            {porcentaje !== null && (
+              <div class="barra" aria-hidden="true">
+                <i style={`width: ${porcentaje}%`} />
+              </div>
+            )}
+            <span class="kpi__d">
+              {porcentaje !== null ? `${porcentaje}% de ${dineroCorto(esperado)} esperado · ` : ''}
+              {movimientos.length} {movimientos.length === 1 ? 'movimiento' : 'movimientos'}
+            </span>
+          </div>
+          <div class="kpi">
+            <span class="eyebrow-panel">Vencido</span>
+            <span class={`kpi__v ${montoVencido > 0 ? 'kpi__v--peligro' : ''}`}>
+              {montoVencido > 0 ? dineroCorto(montoVencido) : '—'}
+            </span>
+            <span class="kpi__d">
+              {vencidas.length > 0
+                ? `${vencidas.length} ${vencidas.length === 1 ? 'cuota' : 'cuotas'} · ${pacientesConVencida} ${pacientesConVencida === 1 ? 'paciente' : 'pacientes'}`
+                : 'Nada vencido'}
+            </span>
+          </div>
+          <div class="kpi">
+            <span class="eyebrow-panel">Sin recordar</span>
+            <span class="kpi__v">{sinRecordar}</span>
+            <span class="kpi__d">
+              {vencidas.length > 0 ? `de las ${vencidas.length} vencidas` : 'Nada que recordar'}
+            </span>
+          </div>
         </div>
-        <div class="metrica">
-          <span class="metrica__k">Vencido</span>
-          <span class="metrica__v">{montoVencido > 0 ? dineroCorto(montoVencido) : '—'}</span>
-          <span class={vencidas.length > 0 ? 'metrica__d metrica__d--alta' : 'metrica__d metrica__d--ok'}>
-            {vencidas.length > 0
-              ? `${vencidas.length} ${vencidas.length === 1 ? 'cuota' : 'cuotas'}`
-              : 'Nada vencido'}
-          </span>
-        </div>
-      </div>
+      </section>
     )
   }
 
   {
     !fallo && pendientes.length > 0 && (
-      <div class="panel panel--lista">
+      <section class="panel panel--lista panel--tarjetas" aria-labelledby="titulo-por-cobrar">
         <div class="panel__cabecera">
-          <h2 class="panel__titulo">Por cobrar</h2>
+          <h2 class="panel__titulo" id="titulo-por-cobrar">Por cobrar</h2>
+          <nav class="seg" aria-label="Qué cuotas ver">
+            <a href={enlace({ solo: undefined })} aria-current={!soloVencidas ? 'true' : undefined}>
+              Vencidas y próximas
+            </a>
+            <a href={enlace({ solo: 'vencidas' })} aria-current={soloVencidas ? 'true' : undefined}>
+              Solo vencidas
+            </a>
+          </nav>
         </div>
-        <div class="tabla-scroll">
-          <table class="tabla">
-            <thead>
-              <tr>
-                <th>Paciente</th>
-                <th>Concepto</th>
-                <th>Vence</th>
-                <th class="tabla__num">Falta</th>
-                <th>Recordatorio</th>
-                <th><span class="visualmente-oculto">Registrar</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {pendientes.map((c) => {
-                const nombre = nombresPaciente.get(c.paciente_id) ?? 'Paciente';
-                const telefono = telefonos.get(c.paciente_id) ?? '';
-                const aviso = recordatorios.get(c.id);
-                return (
+        {porCobrarVisibles.length === 0 ? (
+          <div class="vacio vacio--chico">
+            <strong>Nada vencido</strong>
+            <p>Lo que vence pronto está en «Vencidas y próximas».</p>
+          </div>
+        ) : (
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
                 <tr>
-                  <td>
-                    <a class="tabla__nombre" href={`/admin/pacientes/${c.paciente_id}`}>
-                      {nombre}
-                    </a>
-                  </td>
-                  <td class="tabla__meta">Mensualidad {c.numero}</td>
-                  <td class="tabla__fecha tabla__meta">
-                    {c.estado === 'vencida' ? (
-                      <span class="chip chip--vencida">Venció {fechaCorta(c.vence_el)}</span>
-                    ) : (
-                      fechaCorta(c.vence_el)
-                    )}
-                  </td>
-                  <td class="tabla__num">{dinero(c.restante)}</td>
-                  <td class="tabla__accion tabla__accion--doble">
-                    {/* El mensaje se manda a mano desde WhatsApp; el botón de
-                        al lado solo deja constancia de que se mandó. Separados
-                        a propósito: la aplicación no puede saber si el enlace
-                        acabó en un mensaje enviado, y fingir que sí llevaría a
-                        dar por cobrado lo que nadie mandó. */}
-                    {telefono && (
-                      <a
-                        class="btn btn--primary btn--chico"
-                        href={aWhatsappCobro(telefono, {
-                          nombre,
-                          numero: c.numero,
-                          restante: c.restante,
-                          venceEl: c.vence_el,
-                          vencida: c.estado === 'vencida',
-                        })}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        WhatsApp
-                      </a>
-                    )}
-                    <form method="post">
-                      <input type="hidden" name="accion" value="recordatorio" />
-                      <input type="hidden" name="id" value={c.id} />
-                      <input type="hidden" name="paciente" value={c.paciente_id} />
-                      <button class="estado-rapido__ok" type="submit">
-                        Marcar recordatorio enviado
-                      </button>
-                    </form>
-                    {aviso && (
-                      <span class="tabla__sec">
-                        Último: {fechaCorta(diaEnMexico(aviso.creado_en))}
-                      </span>
-                    )}
-                  </td>
-                  <td class="tabla__accion">
-                    <a
-                      class="btn btn--ghost btn--chico"
-                      href={`/admin/pagos/nuevo?cuota=${c.id}`}
-                    >
-                      Registrar
-                    </a>
-                  </td>
+                  <th>Paciente</th>
+                  <th>Vence</th>
+                  <th class="tabla__num">Falta</th>
+                  <th>Recordatorio</th>
+                  <th><span class="visualmente-oculto">Acciones</span></th>
                 </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody>
+                {porCobrarVisibles.map((c) => {
+                  const nombre = nombresPaciente.get(c.paciente_id) ?? 'Paciente';
+                  const telefono = telefonos.get(c.paciente_id) ?? '';
+                  const aviso = recordatorios.get(c.id);
+                  const urgente = c.estado === 'vencida' || c.estado === 'parcial';
+                  const recordadoHoy = !!aviso && diaEnMexico(aviso.creado_en) === hoy;
+                  return (
+                    <tr class={c.estado === 'vencida' ? 'tabla__urgente' : undefined}>
+                      <td>
+                        <a class="tabla__nombre tabla__nowrap" href={`/admin/pacientes/${c.paciente_id}`}>
+                          {nombre}
+                        </a>
+                        <span class="tabla__sec tabla__nowrap">Mensualidad {c.numero}</span>
+                      </td>
+                      <td>
+                        <span class={`chip chip--${c.estado}`}>
+                          {c.estado === 'vencida'
+                            ? `Venció ${fechaCorta(c.vence_el)}`
+                            : c.estado === 'parcial'
+                              ? `Parcial · ${fechaCorta(c.vence_el)}`
+                              : fechaCorta(c.vence_el)}
+                        </span>
+                      </td>
+                      <td class="tabla__num">{dinero(c.restante)}</td>
+                      <td class="tabla__meta">
+                        {aviso ? (
+                          <span class="tabla__nowrap" style="display: inline-flex; align-items: center; gap: 6px; color: var(--ok-700); font-weight: 600">
+                            <Icono nombre="hecho" tam={16} /> Recordado {haceCuanto(diaEnMexico(aviso.creado_en), hoy)}
+                          </span>
+                        ) : urgente ? (
+                          <span class="tabla__sec" style="margin: 0">Sin recordar</span>
+                        ) : (
+                          <span class="tabla__sec" style="margin: 0">—</span>
+                        )}
+                      </td>
+                      <td class="tabla__accion">
+                        <div class="acciones">
+                          {urgente && telefono && (
+                            <a
+                              class="btn btn--ghost btn--chico"
+                              href={aWhatsappCobro(telefono, {
+                                nombre,
+                                numero: c.numero,
+                                restante: c.restante,
+                                venceEl: c.vence_el,
+                                vencida: c.estado === 'vencida',
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Icono nombre="whatsapp" tam={16} /> WhatsApp
+                            </a>
+                          )}
+                          {/* El mensaje se manda a mano desde WhatsApp; este botón
+                              solo deja constancia. Separados a propósito: la
+                              aplicación no puede saber si el enlace acabó en un
+                              mensaje enviado. */}
+                          {urgente && !recordadoHoy && (
+                            <form method="post">
+                              <input type="hidden" name="accion" value="recordatorio" />
+                              <input type="hidden" name="id" value={c.id} />
+                              <input type="hidden" name="paciente" value={c.paciente_id} />
+                              <button class="btn btn--suave btn--chico" type="submit">
+                                <Icono nombre="hecho" tam={16} /> Marcar enviado
+                              </button>
+                            </form>
+                          )}
+                          <a class="btn--enlace" href={`/admin/pagos/nuevo?cuota=${c.id}`}>
+                            Registrar
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     )
   }
 
   {
     !fallo && (
-      <div class="panel panel--lista">
+      <section class="panel panel--lista panel--tarjetas" aria-labelledby="titulo-movimientos">
         <div class="panel__cabecera">
-          <h2 class="panel__titulo">Movimientos</h2>
+          <h2 class="panel__titulo" id="titulo-movimientos">Movimientos</h2>
+          <nav class="fchips" aria-label="Filtrar por tipo">
+            <a class="fchip" href={enlace({ tipo: undefined })} aria-current={!tipo ? 'true' : undefined}>
+              Todos
+            </a>
+            {TIPOS_PAGO.map((valor) => (
+              <a class="fchip" href={enlace({ tipo: valor })} aria-current={valor === tipo ? 'true' : undefined}>
+                {PLURAL_TIPO[valor]}
+              </a>
+            ))}
+          </nav>
         </div>
 
         {movimientos.length === 0 ? (
           <div class="vacio">
             <strong>Sin movimientos en este periodo</strong>
-            <p>
-              Los pagos que registres aparecerán aquí, agrupados por el mes en que se
-              cobraron.
-            </p>
+            <p>Los pagos que registres aparecerán aquí, agrupados por el mes en que se cobraron.</p>
             <a class="btn btn--primary btn--chico" href="/admin/pagos/nuevo" style="margin-top: 20px">
               + Registrar pago
             </a>
@@ -298,14 +368,16 @@ const meses = Array.from({ length: 12 }, (_, i) => {
                       <span class="tabla__sec">{ETIQUETA_METODO_PAGO[m.metodo]}</span>
                     </td>
                     <td class="tabla__fecha tabla__meta">{fechaCorta(m.pagado_el)}</td>
-                    <td class="tabla__num">{dinero(m.monto)}</td>
+                    <td class="tabla__num" style="font-weight: 600">{dinero(m.monto)}</td>
                     <td class="tabla__accion">
                       {/* Un pago mal tecleado hay que poder quitarlo. La confirmación
                           la pide el navegador; sin JavaScript el botón borra directo,
                           que es preferible a no poder corregir nada. */}
-                      <form method="post" data-confirmar={`Quitar el pago de ${dinero(m.monto)}?`}>
+                      <form method="post" data-confirmar={`¿Quitar el pago de ${dinero(m.monto)}?`}>
                         <input type="hidden" name="id" value={m.id} />
-                        <button class="estado-rapido__ok" type="submit">Quitar</button>
+                        <button class="btn--enlace" type="submit" style="color: var(--ink-soft)" data-sin-texto>
+                          Quitar
+                        </button>
                       </form>
                     </td>
                   </tr>
@@ -314,13 +386,16 @@ const meses = Array.from({ length: 12 }, (_, i) => {
             </table>
           </div>
         )}
-      </div>
+      </section>
     )
   }
 
   <script is:inline>
-    document.getElementById('mes')?.addEventListener('change', (e) => e.target.form.submit());
-    document.getElementById('tipo')?.addEventListener('change', (e) => e.target.form.submit());
+    const selectorMes = document.getElementById('mes');
+    if (selectorMes) {
+      document.querySelector('[data-ver-mes]')?.setAttribute('hidden', '');
+      selectorMes.addEventListener('change', (e) => e.target.form.submit());
+    }
 
     for (const form of document.querySelectorAll('[data-confirmar]')) {
       form.addEventListener('submit', (e) => {

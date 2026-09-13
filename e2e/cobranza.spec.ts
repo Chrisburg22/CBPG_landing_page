@@ -42,15 +42,18 @@ test.describe('Recordatorios de cobro', () => {
     // El enlace de WhatsApp existe, pero no se pulsa: abre otra aplicación.
     await expect(fila.getByRole('link', { name: 'WhatsApp' })).toBeVisible();
 
-    await fila.getByRole('button', { name: 'Marcar recordatorio enviado' }).click();
+    await fila.getByRole('button', { name: 'Marcar enviado' }).click();
     await page.waitForURL('**/admin/pagos**');
 
     const registrados = await recordatoriosDePaciente(pacienteId);
     expect(registrados).toHaveLength(1);
     expect(registrados[0]!.tipo).toBe('whatsapp');
 
-    // Y se ve cuándo fue: es lo que evita cobrar dos veces el mismo día.
-    await expect(page.locator('tr', { hasText: nombre }).first()).toContainText('Último:');
+    // Y se ve cuándo fue: es lo que evita cobrar dos veces el mismo día. El
+    // botón desaparece de esa fila hasta mañana por lo mismo.
+    const tras = page.locator('tr', { hasText: nombre }).first();
+    await expect(tras).toContainText('Recordado hoy');
+    await expect(tras.getByRole('button', { name: 'Marcar enviado' })).toHaveCount(0);
   });
 
   test('el mensaje de cobro no lleva tratamiento ni diagnóstico', () => {

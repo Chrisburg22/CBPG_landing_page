@@ -109,7 +109,9 @@ test.describe('Tablero de inicio', () => {
     await sembrarCita({ nombre: deManana, iniciaEn: `${diaEnMexico(1)}T15:00:00.000Z` });
 
     await entrarAlPanel(page, '/admin');
-    const citasDeHoy = bloque(page, 'Citas de hoy');
+    // La agenda del día es su propia región, no un bloque de la cola: una cita
+    // no es un pendiente, es un compromiso con hora.
+    const citasDeHoy = page.getByRole('region', { name: 'Agenda de hoy' });
     await expect(citasDeHoy.getByRole('link', { name: deHoy })).toBeVisible();
     await expect(citasDeHoy.getByRole('link', { name: deManana })).toHaveCount(0);
 
@@ -121,11 +123,31 @@ test.describe('Tablero de inicio', () => {
     await entrarAlPanel(page, '/admin');
     await expect(page.getByText('Cómo va')).toBeVisible();
 
-    await page.getByRole('link', { name: 'Últimos 7 días' }).click();
+    await page.getByRole('link', { name: '7 días', exact: true }).click();
     await expect(page).toHaveURL(/periodo=7d/);
     // Por la etiqueta de la métrica, no por su texto suelto: «Solicitudes»
     // aparece también dentro de «Sin solicitudes que comparar».
-    await expect(page.locator('.metrica__k', { hasText: 'Solicitudes' })).toBeVisible();
-    await expect(page.locator('.metrica__k', { hasText: 'Convertidas' })).toBeVisible();
+    await expect(page.locator('.paso__k', { hasText: 'Solicitudes' })).toBeVisible();
+    await expect(page.locator('.paso__k', { hasText: 'Convertidas' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '7 días', exact: true })).toHaveAttribute('aria-current', 'true');
+  });
+
+  test('el listado de prospectos filtra los seguimientos vencidos', async ({ page }) => {
+    const atrasado = nombreDePrueba('atrasado');
+    const alDia = nombreDePrueba('al dia');
+    const idAtrasado = await sembrarSolicitud({ nombre: atrasado, telefono: '3312345678', tratamiento: 'Retenedores' });
+    const idAlDia = await sembrarSolicitud({ nombre: alDia, telefono: '3312345678', tratamiento: 'Retenedores' });
+    await ponerSeguimiento(idAtrasado, new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString());
+    await ponerSeguimiento(idAlDia, new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString());
+
+    await entrarAlPanel(page, '/admin/prospectos');
+    await page.getByRole('link', { name: /Seguimiento vencido/ }).click();
+    await expect(page).toHaveURL(/seguimiento=vencido/);
+
+    await expect(page.locator('tr', { hasText: atrasado })).toBeVisible();
+    await expect(page.locator('tr', { hasText: alDia })).toHaveCount(0);
+
+    await limpiar(atrasado);
+    await limpiar(alDia);
   });
 });

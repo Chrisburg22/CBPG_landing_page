@@ -69,7 +69,7 @@ if (Astro.request.method === 'POST') {
     <a class="btn btn--ghost btn--chico" href={volver ?? '/admin/pacientes'}>← Cancelar</a>
   </div>
 
-  {error && <p class="aviso aviso--error">{error}</p>}
+  {error && <p class="aviso aviso--error" role="alert">{error}</p>}
 
   <form class="panel panel--formulario" method="post">
     <p class="panel__texto">

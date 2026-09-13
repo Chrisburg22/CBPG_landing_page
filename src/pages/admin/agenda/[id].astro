@@ -125,14 +125,14 @@ const ofrecerConversion =
     <a class="btn btn--ghost btn--chico" href="/admin/agenda">← Agenda</a>
   </div>
 
-  {fallo && <p class="aviso aviso--error">{fallo}</p>}
-  {guardado && <p class="aviso aviso--ok">Guardado.</p>}
-  {error === 'guardar' && <p class="aviso aviso--error">No se pudo guardar. Inténtalo otra vez.</p>}
-  {error === 'datos' && <p class="aviso aviso--error">Revisa la fecha, la duración y el tipo.</p>}
+  {fallo && <p class="aviso aviso--error" role="alert">{fallo}</p>}
+  {guardado && <p class="aviso aviso--ok" role="status">Guardado.</p>}
+  {error === 'guardar' && <p class="aviso aviso--error" role="alert">No se pudo guardar. Inténtalo otra vez.</p>}
+  {error === 'datos' && <p class="aviso aviso--error" role="alert">Revisa la fecha, la duración y el tipo.</p>}
 
   {
     cita && (cita.google_sync === 'error' || cita.google_sync === 'pendiente') && (
-      <p class="aviso aviso--aviso">
+      <p class="aviso aviso--aviso" role="status">
         Esta cita está guardada, pero todavía no se refleja en Google Calendar.
         {cita.google_error && <span class="aviso__detalle">{cita.google_error}</span>}
         <a href="/admin/agenda">Reintentar desde la agenda</a>
@@ -258,7 +258,7 @@ const ofrecerConversion =
           </form>
 
           {ofrecerConversion && (
-            <div class="panel panel--destacado">
+            <div class="panel panel--tinta">
               <h2 class="panel__titulo">¿Aceptó el tratamiento?</h2>
               <p class="panel__texto">
                 La cita quedó como atendida. Si acepta empezar, conviértelo en paciente: se

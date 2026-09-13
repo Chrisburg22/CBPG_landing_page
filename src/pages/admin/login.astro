@@ -14,10 +14,10 @@ const error = params.get('error');
       <h1>Panel de solicitudes</h1>
       <p class="acceso__desc">Entra con tu correo y contraseña.</p>
 
-      {salio && <p class="aviso aviso--info">Cerraste sesión.</p>}
+      {salio && <p class="aviso aviso--info" role="status">Cerraste sesión.</p>}
       {
         error === 'credenciales' && (
-          <p class="aviso aviso--error">
+          <p class="aviso aviso--error" role="alert">
             Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.
           </p>
         )

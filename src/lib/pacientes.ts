@@ -10,6 +10,8 @@ const LIMITE_LISTADO = 200;
 export interface FiltroPacientes {
   estado?: EstadoPaciente | undefined;
   busqueda?: string | undefined;
+  /** Restringe a estos ids. Una lista vacía devuelve cero filas, no todas. */
+  ids?: string[] | undefined;
 }
 
 export function esEstadoPaciente(valor: unknown): valor is EstadoPaciente {
@@ -48,6 +50,10 @@ export async function listar(
     .limit(LIMITE_LISTADO);
 
   if (filtro.estado) consulta = consulta.eq('estado', filtro.estado);
+  if (filtro.ids) {
+    if (filtro.ids.length === 0) return [];
+    consulta = consulta.in('id', filtro.ids);
+  }
 
   const busqueda = filtro.busqueda ? limpiarBusqueda(filtro.busqueda) : '';
   if (busqueda) {
@@ -209,6 +215,101 @@ export async function guardarNotas(supabase: Cliente, id: string, notas: string)
     .update({ notas: notas.slice(0, 4000) })
     .eq('id', id);
   if (error) throw new Error(`No se pudieron guardar las notas: ${error.message}`);
+}
+
+/** Cuántos pacientes hay en cada estado de tratamiento. */
+export async function contarPorEstado(
+  supabase: Cliente
+): Promise<Record<EstadoPaciente, number>> {
+  const { data, error } = await supabase.from('pacientes').select('estado').limit(5000);
+  if (error) throw new Error(`No se pudo contar los pacientes: ${error.message}`);
+  const cuenta = Object.fromEntries(ESTADOS_PACIENTE.map((e) => [e, 0])) as Record<
+    EstadoPaciente,
+    number
+  >;
+  for (const fila of data ?? []) {
+    if (esEstadoPaciente(fila.estado)) cuenta[fila.estado] += 1;
+  }
+  return cuenta;
+}
+
+export interface ResumenPaciente {
+  saldo: string | null;
+  cuotasVencidas: number;
+  cuotasPagadas: number;
+  numCuotas: number;
+  tienePlan: boolean;
+  proximaCita: string | null;
+}
+
+/**
+ * Lo que el listado enseña de cada paciente además de su ficha: avance del
+ * plan, saldo y próxima cita.
+ *
+ * Dos consultas para toda la página y no dos por fila. El saldo sale de la
+ * vista (que ya respeta RLS) y la próxima cita de `citas`, la primera viva a
+ * partir de ahora.
+ */
+export async function resumenes(
+  supabase: Cliente,
+  ids: string[]
+): Promise<Map<string, ResumenPaciente>> {
+  const resultado = new Map<string, ResumenPaciente>();
+  if (ids.length === 0) return resultado;
+
+  const [saldos, citas] = await Promise.all([
+    supabase
+      .from('vista_saldo_paciente')
+      .select('paciente_id, saldo, cuotas_vencidas, cuotas_pagadas, num_cuotas')
+      .in('paciente_id', ids),
+    supabase
+      .from('citas')
+      .select('paciente_id, inicia_en')
+      .in('paciente_id', ids)
+      .gte('inicia_en', new Date().toISOString())
+      .not('estado', 'in', '(cancelada,no_asistio)')
+      .order('inicia_en', { ascending: true })
+      .limit(500),
+  ]);
+  if (saldos.error) throw new Error(`No se pudieron cargar los saldos: ${saldos.error.message}`);
+  if (citas.error) throw new Error(`No se pudieron cargar las citas: ${citas.error.message}`);
+
+  for (const id of ids) {
+    resultado.set(id, {
+      saldo: null,
+      cuotasVencidas: 0,
+      cuotasPagadas: 0,
+      numCuotas: 0,
+      tienePlan: false,
+      proximaCita: null,
+    });
+  }
+  for (const s of saldos.data ?? []) {
+    const r = resultado.get(s.paciente_id);
+    if (!r) continue;
+    r.saldo = s.saldo;
+    r.cuotasVencidas = s.cuotas_vencidas;
+    r.cuotasPagadas = s.cuotas_pagadas;
+    r.numCuotas = s.num_cuotas;
+    r.tienePlan = true;
+  }
+  // Vienen ordenadas: la primera que aparece de cada paciente es la próxima.
+  for (const c of citas.data ?? []) {
+    const r = c.paciente_id ? resultado.get(c.paciente_id) : undefined;
+    if (r && !r.proximaCita) r.proximaCita = c.inicia_en;
+  }
+  return resultado;
+}
+
+/** Ids de los pacientes con al menos una cuota vencida. Para el filtro «con adeudo». */
+export async function idsConAdeudo(supabase: Cliente): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('vista_saldo_paciente')
+    .select('paciente_id')
+    .gt('cuotas_vencidas', 0)
+    .limit(1000);
+  if (error) throw new Error(`No se pudo filtrar por adeudo: ${error.message}`);
+  return (data ?? []).map((fila) => fila.paciente_id);
 }
 
 /** Vive en `formato.ts`: la usan también pagos y cuotas. */
