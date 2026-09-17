@@ -17,6 +17,7 @@ Para quien mantiene el sistema:
 - [Arquitectura](arquitectura.md): cómo viaja una petición desde el teléfono hasta la base.
 - [Modelo de datos](modelo-datos.md): tablas, relaciones y estados.
 - [Hallazgos de la auditoría móvil](hallazgos.md): errores y mejoras encontrados, por prioridad.
+- [Documentación UML completa](../uml/README.md): requisitos, casos de uso, componentes, despliegue, clases, actividad, estados, secuencia, trazabilidad y decisiones. También en el [tablero de FigJam](https://www.figma.com/board/1G5l7tKjzITEo8OgkuzwWG).
 
 ## El recorrido completo, en un diagrama
 

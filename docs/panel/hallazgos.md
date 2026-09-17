@@ -23,6 +23,8 @@ Severidad: **alta** = pierde o falsea datos, o toca sistemas reales · **media**
 | H-13 | baja | Agenda | Guardar «Cancelada» en una cita que ya estaba cancelada, desde `/admin/agenda/<id>`, vuelve a anotar «Cita cancelada» en el historial. La vista de agenda sí lo evita. | `src/pages/admin/agenda/[id].astro:69` | Comparar con `antes.estado` como en `agenda/index.astro`. |
 | H-14 | baja | Pagos | La lista de meses se arma con el reloj del servidor (UTC): el último día del mes, después de las 18:00, empieza por el mes siguiente. | `src/pages/admin/pagos/index.astro:110` | Partir de `hoyEnMexico()`. |
 | H-15 | baja | Prospectos | Convertir no es atómico: crea el paciente y después actualiza la solicitud en otra llamada. Si la segunda falla, queda un paciente con la solicitud sin terminar. | `src/lib/pacientes.ts:160` | RPC en una transacción. |
+| H-17 | alta | Pacientes / Pagos | **Editar un plan borra y rehace las cuotas.** `crear_plan_con_cuotas` hace `delete` del plan, así que las cuotas se van en cascada y los pagos quedan con `cuota_id = null` (`ON DELETE SET NULL`). El saldo total sigue bien, pero **las mensualidades ya pagadas vuelven a salir como pendientes o vencidas** en Inicio, Pagos y la ficha, y el panel ofrece cobrárselas otra vez. El aviso de la pantalla («los pagos no se pierden») no lo advierte. | `supabase/migrations/0005_vistas_y_generar_cuotas.sql:103`, `pacientes/[id]/plan.astro` | Al rehacer, volver a aplicar los pagos existentes a las cuotas nuevas en orden, o no permitir editar un plan con pagos aplicados sin confirmación explícita. |
+| H-18 | media | Pagos | Un **cargo suelto** (retenedor, radiografía) resta del saldo del tratamiento: `vista_saldo_paciente` suma **todos** los pagos del paciente contra `costo_total`. Cobrar un extra hace parecer que se abonó al plan. | `0005_vistas_y_generar_cuotas.sql` (vista_saldo_paciente) | Excluir `tipo = 'cargo_suelto'` del pagado del plan, o sumar esos cargos al costo. |
 | H-16 | baja | Acceso | No hay «olvidé mi contraseña»: reponerla exige el script. | `src/pages/admin/auth/entrar.ts` | Aceptable con una usuaria; documentado en [acceso-y-roles.md](acceso-y-roles.md). |
 
 ## UX en celular (revisión de código y CSS)
@@ -43,7 +45,7 @@ _Pendiente de ejecutar._ `pnpm test:movil` escribe `test-results/movil/hallazgos
 ## Lotes de arreglo propuestos
 
 1. **Higiene de pruebas** (H-01, H-02): antes de volver a correr la suite completa.
-2. **Datos correctos** (H-03, H-04, H-05, H-07, H-08, H-12, H-13): cambios pequeños y con prueba e2e cada uno.
+2. **Datos correctos** (H-17 primero, luego H-18, H-03, H-04, H-05, H-07, H-08, H-12, H-13): cambios pequeños y con prueba e2e cada uno. H-17 puede hacer que se le cobre dos veces a una paciente.
 3. **Formularios que no pierden nada** (H-09, H-10, H-11, U-03).
 4. **Ficha de prospecto móvil** (U-01, U-02, U-04, U-05).
 5. **Métricas por cohorte** (H-06): conviene decidirlo con la doctora, porque cambia cómo se leen los números.
