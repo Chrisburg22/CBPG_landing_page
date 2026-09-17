@@ -28,6 +28,9 @@ export default defineConfig({
     locale: 'es-MX',
     timezoneId: 'America/Mexico_City',
     launchOptions: { slowMo: 350 },
+    // Un paso atascado falla en segundos, no al agotar los 5 minutos del video.
+    actionTimeout: 20_000,
+    navigationTimeout: 30_000,
   },
 
   projects: [
@@ -39,7 +42,9 @@ export default defineConfig({
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,
-        video: { mode: 'on', size: { width: 780, height: 1688 } },
+        // Playwright graba en píxeles CSS: un tamaño mayor que el viewport deja el
+        // resto del cuadro en gris. El escalado a 2x se hace en videos-manual.mjs.
+        video: { mode: 'on', size: { width: 390, height: 844 } },
       },
     },
   ],

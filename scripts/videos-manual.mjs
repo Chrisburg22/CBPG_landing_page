@@ -37,7 +37,7 @@ for (const carpeta of carpetas) {
   execFileSync(
     'ffmpeg',
     ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-preset', 'slow', '-crf', '28',
-      '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', '-movflags', '+faststart', '-an', mp4],
+      '-pix_fmt', 'yuv420p', '-vf', 'scale=780:1688:flags=lanczos', '-movflags', '+faststart', '-an', mp4],
     { stdio: 'inherit' }
   );
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '3', '-i', mp4, '-frames:v', '1', '-q:v', '4', poster], {

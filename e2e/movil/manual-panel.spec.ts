@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { clienteAdmin } from '../apoyo';
 import { DEMO, diaHabil, limpiarDemo, sembrarEscenario, telDemo, type Escenario } from './escenario';
 import {
   entrarParaGrabar,
@@ -15,11 +16,9 @@ import {
  * Videos del manual. Cada prueba es un video (manual-video/<prueba>/video.webm);
  * `scripts/videos-manual.mjs` los renombra por el número del título.
  *
- * En serie y sobre un solo escenario: el 05 convierte al prospecto que el 04
- * dejó con la valoración atendida, igual que pasaría en el consultorio.
+ * Independientes entre sí: si uno falla, los demás se graban igual. Cada uno
+ * parte del escenario sembrado; el 05 deja por su cuenta la valoración atendida.
  */
-
-test.describe.configure({ mode: 'serial' });
 
 let e: Escenario;
 test.beforeAll(async () => {
@@ -71,7 +70,7 @@ test('01-acceso', async ({ page }) => {
   );
   await rotulo(page, 'Navegación', 'Abajo están las secciones. Arriba, tu rol y el botón Salir.');
   await page.getByRole('button', { name: 'Salir' }).click();
-  await page.waitForURL('**/admin/login');
+  await page.waitForURL(/\/admin\/login/);
   await rotulo(page, 'Salir', 'Al salir vuelves a la pantalla de acceso.');
   await quitarRotulo(page);
 });
@@ -179,7 +178,7 @@ test('04-agenda', async ({ page }) => {
   await rotulo(page, 'Nueva cita', 'Nombre y teléfono ya vienen puestos.');
   const dia = diaHabil(1);
   await page.getByLabel('Fecha y hora').fill(`${dia}T12:30`);
-  await page.getByRole('button', { name: '45', exact: false }).first().click();
+  await page.getByRole('button', { name: '45 min' }).click();
   await page.getByLabel('Nota para la agenda').pressSequentially('Primera valoración', { delay: 30 });
   await rotulo(page, 'Cuándo', 'Elige fecha, hora, tipo y duración. La franja enseña lo ocupado.');
   await page.getByRole('button', { name: 'Guardar cita' }).click();
@@ -209,6 +208,7 @@ test('04-agenda', async ({ page }) => {
 });
 
 test('05-convertir', async ({ page }) => {
+  await clienteAdmin().from('citas').update({ estado: 'atendida' }).eq('id', e.citas.valoradaAyer);
   await entrarParaGrabar(page, `/admin/agenda/${e.citas.valoradaAyer}`);
   const convertir = page.getByRole('link', { name: 'Convertir en paciente' });
   await llevarA(page, convertir);
@@ -216,8 +216,8 @@ test('05-convertir', async ({ page }) => {
   await convertir.click();
   await limpiarVista(page);
   await rotulo(page, 'Revisar', 'Los datos vienen del prospecto. Revisa tratamiento, inicio y estado.');
-  await page.getByLabel('Tratamiento').fill('Alineadores invisibles');
-  const crear = page.getByRole('button', { name: /Crear paciente|Convertir/ });
+  await page.getByLabel('Tratamiento', { exact: true }).fill('Alineadores invisibles');
+  const crear = page.getByRole('button', { name: 'Crear ficha de paciente' });
   await llevarA(page, crear);
   await crear.click();
   await page.waitForURL('**/admin/pacientes/**');
@@ -237,7 +237,7 @@ test('06-pacientes', async ({ page }) => {
   await rotulo(page, 'Alta directa', 'Para quien no llegó por el sitio: nombre, teléfono y tratamiento.');
   await page.getByLabel('Nombre completo').pressSequentially(DEMO.pacienteNuevo, { delay: 25 });
   await page.getByLabel('Teléfono').fill(telDemo(20));
-  await page.getByLabel('Tratamiento').fill('Brackets metálicos');
+  await page.getByLabel('Tratamiento', { exact: true }).fill('Brackets metálicos');
   await page.getByRole('button', { name: 'Crear paciente' }).click();
   await page.waitForURL('**/admin/pacientes/**');
   await limpiarVista(page);
@@ -249,7 +249,7 @@ test('06-pacientes', async ({ page }) => {
   await page.getByLabel('Enganche').fill('3000');
   await page.getByLabel('Mensualidades').fill('10');
   await rotulo(page, 'Plan', 'Las mensualidades se calculan solas con el día de corte.');
-  await page.getByRole('button', { name: /Guardar|Crear/ }).last().click();
+  await page.getByRole('button', { name: 'Crear plan' }).click();
   await page.waitForURL(/\/admin\/pacientes\/[^/]+\?plan=1/);
   await limpiarVista(page);
   await rotulo(page, 'Ficha', 'Resumen de saldo, mensualidades, pagos y citas en una sola pantalla.', 2600);

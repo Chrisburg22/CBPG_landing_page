@@ -1,0 +1,781 @@
+<title>Planos de CBPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+  :root {
+    --fondo: #eef3f1;
+    --superficie: #ffffff;
+    --superficie-2: #f6f9f8;
+    --tinta: #13201e;
+    --tinta-2: #4b5c58;
+    --tinta-3: #6d7d79;
+    --linea: #d3ddda;
+    --linea-fuerte: #aebdb9;
+    --acento: #245f59;
+    --acento-tinta: #ffffff;
+    --acento-suave: #e2efeb;
+    --pizarra: #3b5a78;
+    --arcilla: #8a4a30;
+    --alta: #b4452e;
+    --alta-suave: #f8e7e2;
+    --media: #8a5c15;
+    --media-suave: #fdf1dc;
+    --baja: #3b5a78;
+    --baja-suave: #e4ebf2;
+    /* La hoja del plano es papel en los dos temas: los diagramas se dibujan
+       con tinta oscura y así se leen igual con el panel claro u oscuro. */
+    --papel: #fbfcfb;
+    --papel-reticula: rgba(36, 95, 89, 0.07);
+    --papel-tinta: #13201e;
+    --zona-1: #a4476f;
+    --zona-2: #6a4fa8;
+    --zona-3: #3b5a78;
+    --zona-4: #a35a1c;
+    --zona-5: #3f6b32;
+    --zona-6: #5b6663;
+    --zona-7: #8a6a12;
+    --zona-8: #245f59;
+    --sombra: 0 1px 2px rgba(19, 32, 30, 0.06), 0 6px 18px rgba(19, 32, 30, 0.05);
+    --radio: 10px;
+    --display: "Newsreader", Georgia, "Times New Roman", serif;
+    --cuerpo: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --nav-ancho: 248px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #0e1615;
+      --superficie: #15201e;
+      --superficie-2: #1a2725;
+      --tinta: #e4ecea;
+      --tinta-2: #a9b8b4;
+      --tinta-3: #8a9a96;
+      --linea: #283633;
+      --linea-fuerte: #3a4b47;
+      --acento: #7cc7bb;
+      --acento-tinta: #0e1615;
+      --acento-suave: #1d302d;
+      --pizarra: #a4bdd4;
+      --arcilla: #e3a88b;
+      --alta: #f08d77;
+      --alta-suave: #3a211b;
+      --media: #e6b866;
+      --media-suave: #33290f;
+      --baja: #a4bdd4;
+      --baja-suave: #1f2a36;
+      --zona-1: #e38fb2;
+      --zona-2: #b7a2ee;
+      --zona-3: #a4bdd4;
+      --zona-4: #e9a66a;
+      --zona-5: #a6d38f;
+      --zona-6: #b2bdba;
+      --zona-7: #e2c46b;
+      --zona-8: #7cc7bb;
+      --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fondo: #0e1615;
+    --superficie: #15201e;
+    --superficie-2: #1a2725;
+    --tinta: #e4ecea;
+    --tinta-2: #a9b8b4;
+    --tinta-3: #8a9a96;
+    --linea: #283633;
+    --linea-fuerte: #3a4b47;
+    --acento: #7cc7bb;
+    --acento-tinta: #0e1615;
+    --acento-suave: #1d302d;
+    --pizarra: #a4bdd4;
+    --arcilla: #e3a88b;
+    --alta: #f08d77;
+    --alta-suave: #3a211b;
+    --media: #e6b866;
+    --media-suave: #33290f;
+    --baja: #a4bdd4;
+    --baja-suave: #1f2a36;
+    --zona-1: #e38fb2;
+    --zona-2: #b7a2ee;
+    --zona-3: #a4bdd4;
+    --zona-4: #e9a66a;
+    --zona-5: #a6d38f;
+    --zona-6: #b2bdba;
+    --zona-7: #e2c46b;
+    --zona-8: #7cc7bb;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fondo);
+    color: var(--tinta);
+    font-family: var(--cuerpo);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--acento); text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--superficie-2);
+    border: 1px solid var(--linea);
+    border-radius: 4px;
+    padding: 0 4px;
+    word-break: break-word;
+  }
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+
+  /* Los hijos de grid y flex no se encogen por debajo de su contenido si no
+     se les dice: una fila de chips o un diagrama ancho empujaría la página
+     entera hacia los lados. Cada contenedor con scroll propio lo absorbe. */
+  .marco > *, .principal > *, .portada > *, .zona > *, .rejilla > *,
+  .hoja__cuerpo > *, .sub > *, .nav-movil > *, .zona__cabecera > *, .zona__intro > * { min-width: 0; }
+  .plano, .tabla-marco { max-width: 100%; }
+  code, .hoja h3, .hallazgo__texto, .alertas a { overflow-wrap: anywhere; }
+
+  /* ---------- Estructura ---------- */
+  .marco {
+    display: grid;
+    grid-template-columns: var(--nav-ancho) minmax(0, 1fr);
+    min-height: 100%;
+  }
+  .nav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 22px 14px 28px;
+    border-right: 1px solid var(--linea);
+    background: var(--superficie);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .nav__marca { display: grid; gap: 2px; padding-inline: 8px; }
+  .nav__marca b { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .nav__marca span { font-family: var(--mono); font-size: 11.5px; color: var(--tinta-3); }
+  .buscar { display: grid; gap: 6px; padding-inline: 8px; }
+  .buscar label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+  .buscar input {
+    width: 100%;
+    font: inherit;
+    font-size: 14px;
+    color: var(--tinta);
+    background: var(--superficie-2);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .buscar output { font-size: 12px; color: var(--tinta-3); min-height: 1.4em; }
+  .nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .nav a {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--tinta-2);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .nav a:hover { background: var(--superficie-2); color: var(--tinta); }
+  .nav a[aria-current="true"] { background: var(--acento-suave); color: var(--tinta); }
+  .nav__n {
+    font-family: var(--mono);
+    font-size: 12px;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid var(--linea-fuerte);
+  }
+  .nav a[aria-current="true"] .nav__n { background: var(--acento); color: var(--acento-tinta); border-color: var(--acento); }
+  .nav__c { font-family: var(--mono); font-size: 11.5px; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+  .nav__pie { margin-top: auto; padding-inline: 8px; font-size: 12px; color: var(--tinta-3); display: grid; gap: 4px; }
+
+  .principal {
+    padding-inline: clamp(16px, 3.2vw, 44px);
+    padding-block: 28px 80px;
+    display: grid;
+    gap: 56px;
+    min-width: 0;
+  }
+
+  /* ---------- Portada ---------- */
+  .portada { display: grid; gap: 22px; max-width: 1280px; }
+  .portada__eyebrow { font-family: var(--mono); font-size: 12px; color: var(--tinta-3); letter-spacing: 0.02em; margin: 0; }
+  .portada h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(34px, 4.4vw, 54px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+  }
+  .portada__lead { font-size: 17px; color: var(--tinta-2); max-width: 68ch; margin: 0; }
+  .ficha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    background: var(--superficie);
+    overflow: hidden;
+  }
+  .ficha div { padding: 12px 18px; border-right: 1px solid var(--linea); display: grid; gap: 2px; flex: 1 1 140px; }
+  .ficha div:last-child { border-right: 0; }
+  .ficha dt { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+  .ficha dd { margin: 0; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .ficha dl { display: contents; }
+
+  .indice { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .indice__zona {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "n t" "p p" "c c";
+    gap: 6px 10px;
+    padding: 14px 16px 16px;
+    border-radius: var(--radio);
+    border: 1px solid var(--linea);
+    background: var(--superficie);
+    color: var(--tinta);
+    text-decoration: none;
+    border-top: 3px solid var(--z);
+  }
+  .indice__zona:hover { border-color: var(--z); box-shadow: var(--sombra); }
+  .indice__n { grid-area: n; font-family: var(--mono); font-size: 13px; color: var(--z); font-weight: 600; }
+  .indice__t { grid-area: t; font-weight: 700; }
+  .indice__p { grid-area: p; font-size: 13.5px; color: var(--tinta-2); }
+  .indice__codigos { grid-area: c; display: flex; flex-wrap: wrap; gap: 4px; }
+  .indice__codigos code { font-size: 11px; }
+
+  .alertas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 16px 18px;
+    border-radius: var(--radio);
+    background: var(--alta-suave);
+    border: 1px solid color-mix(in srgb, var(--alta) 35%, transparent);
+  }
+  .alertas h2 { font-size: 15px; font-family: var(--cuerpo); font-weight: 700; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .alertas h2 span { font-weight: 500; color: var(--tinta-2); font-size: 13.5px; }
+  .alertas ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .alertas a { color: var(--tinta); text-decoration: none; }
+  .alertas a:hover { text-decoration: underline; }
+
+  /* ---------- Zonas ---------- */
+  .zona { display: grid; gap: 22px; scroll-margin-top: 16px; }
+  .zona__cabecera { display: grid; gap: 6px; max-width: 900px; border-left: 3px solid var(--z); padding-left: 18px; }
+  .zona__eyebrow { margin: 0; font-family: var(--mono); font-size: 12px; color: var(--z); font-weight: 600; letter-spacing: 0.02em; }
+  .zona h2 { font-family: var(--display); font-weight: 600; font-size: clamp(28px, 3vw, 38px); letter-spacing: -0.015em; line-height: 1.1; }
+  .zona__pregunta { margin: 0; font-size: 16px; color: var(--tinta-2); }
+  .zona__intro { color: var(--tinta-2); font-size: 14.5px; }
+  .zona__intro p { margin: 6px 0 0; max-width: 72ch; }
+  .zona__intro .tabla-marco { margin-top: 10px; }
+
+  .rejilla { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; align-items: start; }
+  .hoja {
+    grid-column: span 12;
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    display: grid;
+    min-width: 0;
+    scroll-margin-top: 16px;
+  }
+  @media (min-width: 1280px) { .hoja--media { grid-column: span 6; } }
+  .hoja__cabecera {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--linea);
+  }
+  .hoja__codigo {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--z);
+    border: 1.5px solid var(--z);
+    border-radius: 6px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+  .hoja h3 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .hoja__num { font-family: var(--mono); font-size: 11.5px; color: var(--tinta-3); white-space: nowrap; }
+  .hoja__cuerpo { padding: 16px 18px 18px; display: grid; gap: 12px; min-width: 0; }
+  .hoja__cuerpo > p, .sub > p { margin: 0; max-width: 78ch; color: var(--tinta-2); }
+  .hoja__cuerpo ul, .hoja__cuerpo ol { margin: 0; padding-left: 20px; color: var(--tinta-2); display: grid; gap: 4px; max-width: 80ch; }
+  .nota { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--media-suave); color: var(--tinta); }
+  .sub { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--linea); border-radius: 8px; background: var(--superficie-2); }
+  .sub h4 { font-size: 15px; font-weight: 700; }
+  .sub ul { padding-left: 18px; }
+  .ref {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0 5px;
+    border-radius: 4px;
+    background: var(--alta-suave);
+    color: var(--alta);
+    white-space: nowrap;
+  }
+
+  /* ---------- Plano (diagrama) ---------- */
+  .plano { margin: 0; border: 1px solid var(--linea-fuerte); border-radius: 8px; overflow: hidden; background: var(--papel); }
+  .plano__barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    background: var(--superficie-2);
+    border-bottom: 1px solid var(--linea);
+  }
+  .plano__barra button {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--tinta-2);
+    background: var(--superficie);
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 6px;
+    padding: 4px 9px;
+    min-height: 30px;
+    cursor: pointer;
+  }
+  .plano__barra button[aria-pressed="true"] { background: var(--acento); color: var(--acento-tinta); border-color: var(--acento); }
+  .plano__barra button:hover { color: var(--tinta); }
+  .plano__barra button[data-zoom="completa"] { margin-left: auto; }
+  .plano__barra output { font-family: var(--mono); font-size: 12px; min-width: 46px; text-align: center; color: var(--tinta-3); font-variant-numeric: tabular-nums; }
+  .plano__hoja {
+    overflow: auto;
+    max-height: 72vh;
+    padding: 18px;
+    color: var(--papel-tinta);
+    background-color: var(--papel);
+    background-image:
+      linear-gradient(var(--papel-reticula) 1px, transparent 1px),
+      linear-gradient(90deg, var(--papel-reticula) 1px, transparent 1px);
+    background-size: 24px 24px;
+    cursor: grab;
+  }
+  .plano__hoja.arrastrando { cursor: grabbing; user-select: none; }
+  .plano__hoja pre.mermaid { margin: 0; background: transparent; font-family: var(--mono); font-size: 12px; white-space: pre; color: var(--papel-tinta); }
+  .plano__hoja svg { display: block; margin-inline: auto; height: auto; }
+  .plano__hoja[data-modo="ajustar"] svg { width: 100% !important; max-width: 100% !important; }
+
+  /* ---------- Tablas ---------- */
+  .tabla-marco { overflow-x: auto; border: 1px solid var(--linea); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  thead th {
+    position: sticky;
+    top: 0;
+    background: var(--superficie-2);
+    text-align: left;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tinta-3);
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--linea-fuerte);
+    white-space: nowrap;
+  }
+  tbody th, tbody td { padding: 9px 12px; border-bottom: 1px solid var(--linea); vertical-align: top; text-align: left; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--superficie-2); }
+  td { min-width: 12ch; }
+
+  /* ---------- Videos ---------- */
+  .videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+  .video {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+    background: var(--superficie);
+    border: 1px solid var(--linea);
+    border-radius: var(--radio);
+    padding: 10px;
+    box-shadow: var(--sombra);
+    scroll-margin-top: 16px;
+  }
+  .video video {
+    width: 100%;
+    aspect-ratio: 390 / 844;
+    max-width: 100%;
+    border-radius: 18px;
+    background: #0e1615;
+    border: 6px solid #13201e;
+    display: block;
+  }
+  .video__pie { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding-inline: 4px; }
+  .video__pie h3 { font-size: 15.5px; font-weight: 700; }
+  .video__pie p { margin: 2px 0 0; font-size: 13.5px; color: var(--tinta-2); }
+  .video__doc { padding-inline: 4px; font-size: 13px; font-weight: 600; }
+
+  /* ---------- Hallazgos ---------- */
+  .hallazgos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .hallazgo { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); padding: 14px 16px; display: grid; gap: 8px; scroll-margin-top: 16px; }
+  .hallazgo:target { outline: 2px solid var(--alta); }
+  .hallazgo__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; }
+  .hallazgo__id { font-family: var(--mono); font-weight: 600; }
+  .hallazgo__donde { color: var(--tinta-3); }
+  .hallazgo__texto { margin: 0; font-size: 14px; }
+  .hallazgo details { font-size: 13px; color: var(--tinta-2); }
+  .hallazgo summary { cursor: pointer; font-weight: 600; color: var(--acento); }
+  .hallazgo details p { margin: 6px 0 0; }
+  .sev { font-family: var(--mono); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
+  .sev--alta { background: var(--alta-suave); color: var(--alta); }
+  .sev--media { background: var(--media-suave); color: var(--media); }
+  .sev--baja { background: var(--baja-suave); color: var(--baja); }
+  .resumen-sev { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ---------- Pantalla completa ---------- */
+  dialog.visor {
+    width: min(96vw, 1800px);
+    height: min(92vh, 1200px);
+    max-width: 96vw;
+    padding: 0;
+    border: 1px solid var(--linea-fuerte);
+    border-radius: 12px;
+    background: var(--superficie);
+    color: var(--tinta);
+    overflow: hidden;
+  }
+  dialog.visor[open] { display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  dialog.visor::backdrop { background: rgba(10, 18, 17, 0.6); }
+  .visor__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--linea); }
+  .visor__barra strong { margin-right: auto; font-size: 15px; }
+  .visor .plano__hoja { max-height: none; height: 100%; }
+
+  .vacio-busqueda { padding: 18px; border: 1px dashed var(--linea-fuerte); border-radius: var(--radio); color: var(--tinta-2); }
+
+  /* ---------- Móvil ---------- */
+  .nav-movil { display: none; }
+  @media (max-width: 960px) {
+    .marco { grid-template-columns: minmax(0, 1fr); }
+    .nav { display: none; }
+    .nav-movil {
+      display: grid;
+      gap: 10px;
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      z-index: 5;
+      background: color-mix(in srgb, var(--fondo) 92%, transparent);
+      backdrop-filter: blur(6px);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--linea);
+    }
+    .nav-movil__zonas { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .nav-movil__zonas a {
+      flex: none;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--tinta-2);
+      border: 1px solid var(--linea-fuerte);
+      border-radius: 99px;
+      padding: 5px 11px;
+      background: var(--superficie);
+    }
+    .nav-movil__zonas a[aria-current="true"] { background: var(--acento); color: var(--acento-tinta); border-color: var(--acento); }
+    .nav-movil input { width: 100%; font: inherit; font-size: 15px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--linea-fuerte); background: var(--superficie); color: var(--tinta); }
+    .hoja__cabecera { grid-template-columns: auto minmax(0, 1fr); }
+    .hoja__num { grid-column: 1 / -1; }
+    .plano__hoja { max-height: 64vh; padding: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="nav-movil" aria-label="Navegación de zonas">
+  <input id="buscar-movil" type="search" placeholder="Buscar hoja: E-04, cita, pago…" aria-label="Buscar hoja">
+  <nav class="nav-movil__zonas" aria-label="Zonas" data-nav-movil>
+    <a href="#manual-video" data-nav="manual-video">Videos</a>
+    <a href="#hallazgos" data-nav="hallazgos">Hallazgos</a>
+  </nav>
+</div>
+
+<div class="marco">
+  <aside class="nav" aria-label="Zonas del plano">
+    <div class="nav__marca"><b>Planos de CBPG</b><span>commit {{COMMIT}} · 2026-09-16</span></div>
+    <div class="buscar">
+      <label for="buscar">Buscar hoja</label>
+      <input id="buscar" type="search" placeholder="E-04, cita, Google…" autocomplete="off">
+      <output id="buscar-resultado" for="buscar" aria-live="polite"></output>
+    </div>
+    <nav aria-label="Zonas">
+      <ul data-nav-lista>
+        <li><a href="#inicio" data-nav="inicio"><span class="nav__n">0</span><span class="nav__t">Resumen</span><span class="nav__c"></span></a></li>
+        <li><a href="#manual-video" data-nav="manual-video"><span class="nav__n">▶</span><span class="nav__t">Manual en video</span><span class="nav__c">{{N_VIDEOS}}</span></a></li>
+{{NAV}}
+        <li><a href="#hallazgos" data-nav="hallazgos"><span class="nav__n">!</span><span class="nav__t">Hallazgos</span><span class="nav__c">{{N_HALLAZGOS}}</span></a></li>
+      </ul>
+    </nav>
+    <div class="nav__pie">
+      <a href="{{REPO}}/docs/uml/README.md" target="_blank" rel="noopener">Fuentes en GitHub</a>
+      <span>Se generó desde docs/uml; se actualiza al regenerarlo.</span>
+    </div>
+  </aside>
+
+  <main class="principal" id="contenido">
+    <section class="portada" id="inicio" aria-labelledby="t-inicio">
+      <p class="portada__eyebrow">Documentación de arquitectura · UML · commit {{COMMIT}}</p>
+      <h1 id="t-inicio">Planos de CBPG</h1>
+      <p class="portada__lead">La aplicación del consultorio de ortodoncia completa, dibujada desde su código: la landing con su formulario, el panel que usa la doctora en el teléfono, Supabase, Google Calendar y la app instalable. Cada hoja dice de qué archivos sale.</p>
+      <dl class="ficha">
+        <div><dt>Hojas</dt><dd>{{N_HOJAS}}</dd></div>
+        <div><dt>Diagramas</dt><dd>{{N_DIAGRAMAS}}</dd></div>
+        <div><dt>Tablas</dt><dd>{{N_TABLAS}}</dd></div>
+        <div><dt>Hallazgos</dt><dd>{{SEV_ALTA}} altos · {{SEV_MEDIA}} medios · {{SEV_BAJA}} bajos</dd></div>
+        <div><dt>Stack</dt><dd>Astro 7 · Vercel · Supabase</dd></div>
+      </dl>
+      <nav class="indice" aria-label="Índice de zonas">
+{{INDICE}}
+      </nav>
+      <aside class="alertas" aria-labelledby="t-alertas">
+        <h2 id="t-alertas">Antes de leer los planos: hallazgos de severidad alta <span>afectan datos reales o sistemas externos</span></h2>
+        <ul>
+{{ALTAS}}
+        </ul>
+      </aside>
+    </section>
+
+<section class="zona" id="manual-video" style="--z: var(--acento)" aria-labelledby="t-manual-video">
+      <header class="zona__cabecera">
+        <p class="zona__eyebrow">Manual de uso · {{N_VIDEOS}} videos · celular 390 × 844</p>
+        <h2 id="t-manual-video">Manual en video</h2>
+        <p class="zona__pregunta">Cómo se usa cada sección del panel, grabado en el panel real a tamaño de teléfono.</p>
+        <div class="zona__intro"><p>Datos inventados en una base local; ningún paciente real aparece. Cada video trae rótulos con el paso y un círculo donde se toca la pantalla.</p></div>
+      </header>
+      <div class="videos">
+{{VIDEOS}}
+      </div>
+    </section>
+
+{{ZONAS}}
+
+    <section class="zona" id="hallazgos" style="--z: var(--alta)" aria-labelledby="t-hallazgos">
+      <header class="zona__cabecera">
+        <p class="zona__eyebrow">Anexo · {{N_HALLAZGOS}} hallazgos</p>
+        <h2 id="t-hallazgos">Hallazgos</h2>
+        <p class="zona__pregunta">Errores y mejoras que salieron al levantar los planos, de mayor a menor severidad.</p>
+        <div class="resumen-sev"><span class="sev sev--alta">{{SEV_ALTA}} altos</span><span class="sev sev--media">{{SEV_MEDIA}} medios</span><span class="sev sev--baja">{{SEV_BAJA}} bajos</span></div>
+      </header>
+      <div class="hallazgos">
+{{HALLAZGOS}}
+      </div>
+    </section>
+    <p class="vacio-busqueda" id="sin-resultados" hidden>Ninguna hoja coincide con la búsqueda. Prueba con un código (S-03) o una palabra (pago, Google).</p>
+  </main>
+</div>
+
+<dialog class="visor" id="visor" aria-labelledby="visor-titulo">
+  <div class="visor__barra">
+    <strong id="visor-titulo">Diagrama</strong>
+    <div class="plano__barra" style="border:0;background:transparent;padding:0" role="toolbar" aria-label="Zoom">
+      <button type="button" data-visor="ajustar" aria-pressed="true">Ajustar</button>
+      <button type="button" data-visor="menos" aria-label="Alejar">−</button>
+      <output id="visor-escala">100%</output>
+      <button type="button" data-visor="mas" aria-label="Acercar">+</button>
+    </div>
+    <button type="button" class="visor__cerrar" data-visor="cerrar" style="font:inherit;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--linea-fuerte);background:var(--superficie);color:var(--tinta);cursor:pointer">Cerrar</button>
+  </div>
+  <div class="plano__hoja" id="visor-hoja" data-modo="ajustar" tabindex="0"></div>
+</dialog>
+
+<script>
+(() => {
+  const PASOS = [0.25, 0.35, 0.5, 0.67, 0.8, 1, 1.25, 1.5, 2, 2.5, 3];
+
+  /** Tamaño natural del SVG, leído del viewBox que deja mermaid. */
+  function natural(svg) {
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width) return { w: vb.width, h: vb.height };
+    const r = svg.getBoundingClientRect();
+    return { w: r.width || 800, h: r.height || 600 };
+  }
+
+  /** Aplica un modo (ajustar o una escala) a una hoja con su SVG. */
+  function aplicar(hoja, svg, modo, salida) {
+    if (!svg) return;
+    const { w } = natural(svg);
+    if (modo === 'ajustar') {
+      hoja.dataset.modo = 'ajustar';
+      svg.style.removeProperty('width');
+      svg.style.maxWidth = '100%';
+      const escala = Math.min(1, (hoja.clientWidth - 36) / w);
+      if (salida) salida.textContent = `${Math.round(escala * 100)}%`;
+    } else {
+      hoja.dataset.modo = 'escala';
+      svg.style.maxWidth = 'none';
+      svg.style.width = `${Math.round(w * modo)}px`;
+      if (salida) salida.textContent = `${Math.round(modo * 100)}%`;
+    }
+  }
+
+  function escalaActual(hoja, svg) {
+    if (hoja.dataset.modo !== 'escala') {
+      const { w } = natural(svg);
+      return Math.min(1, (hoja.clientWidth - 36) / w);
+    }
+    return parseFloat(svg.style.width) / natural(svg).w;
+  }
+
+  function paso(actual, dir) {
+    if (dir > 0) return PASOS.find((p) => p > actual + 0.01) ?? PASOS[PASOS.length - 1];
+    return [...PASOS].reverse().find((p) => p < actual - 0.01) ?? PASOS[0];
+  }
+
+  /** Arrastrar para desplazar el plano cuando está ampliado. */
+  function arrastrable(hoja) {
+    let x = 0, y = 0, sl = 0, st = 0, activo = false;
+    hoja.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || hoja.dataset.modo !== 'escala') return;
+      activo = true; x = e.clientX; y = e.clientY; sl = hoja.scrollLeft; st = hoja.scrollTop;
+      hoja.classList.add('arrastrando'); hoja.setPointerCapture(e.pointerId);
+    });
+    hoja.addEventListener('pointermove', (e) => {
+      if (!activo) return;
+      hoja.scrollLeft = sl - (e.clientX - x); hoja.scrollTop = st - (e.clientY - y);
+    });
+    const soltar = () => { activo = false; hoja.classList.remove('arrastrando'); };
+    hoja.addEventListener('pointerup', soltar);
+    hoja.addEventListener('pointercancel', soltar);
+  }
+
+  const visor = document.getElementById('visor');
+  const visorHoja = document.getElementById('visor-hoja');
+  const visorEscala = document.getElementById('visor-escala');
+  const visorTitulo = document.getElementById('visor-titulo');
+  arrastrable(visorHoja);
+
+  function abrirVisor(svg, titulo) {
+    visorHoja.replaceChildren(svg.cloneNode(true));
+    visorTitulo.textContent = titulo;
+    if (typeof visor.showModal === 'function') visor.showModal();
+    else visor.setAttribute('open', '');
+    const clon = visorHoja.querySelector('svg');
+    requestAnimationFrame(() => aplicar(visorHoja, clon, 'ajustar', visorEscala));
+    visor.querySelectorAll('[data-visor="ajustar"]').forEach((b) => b.setAttribute('aria-pressed', 'true'));
+  }
+  visor.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-visor]');
+    if (!b) { if (e.target === visor) visor.close(); return; }
+    const svg = visorHoja.querySelector('svg');
+    const accion = b.dataset.visor;
+    if (accion === 'cerrar') return visor.close();
+    const ajustar = visor.querySelector('[data-visor="ajustar"]');
+    if (accion === 'ajustar') { aplicar(visorHoja, svg, 'ajustar', visorEscala); ajustar.setAttribute('aria-pressed', 'true'); return; }
+    const nueva = paso(escalaActual(visorHoja, svg), accion === 'mas' ? 1 : -1);
+    aplicar(visorHoja, svg, nueva, visorEscala);
+    ajustar.setAttribute('aria-pressed', 'false');
+  });
+
+  /** Cada plano: espera a que mermaid dibuje el SVG y conecta la barra. */
+  document.querySelectorAll('[data-plano]').forEach((figura) => {
+    const hoja = figura.querySelector('[data-hoja]');
+    const salida = figura.querySelector('[data-escala]');
+    const ajustar = figura.querySelector('[data-zoom="ajustar"]');
+    hoja.dataset.modo = 'ajustar';
+    arrastrable(hoja);
+    const svgDe = () => hoja.querySelector('svg');
+    const listo = () => { const s = svgDe(); if (s) aplicar(hoja, s, 'ajustar', salida); return !!s; };
+    if (!listo()) {
+      const obs = new MutationObserver(() => { if (listo()) obs.disconnect(); });
+      obs.observe(hoja, { childList: true, subtree: true });
+    }
+    figura.querySelector('.plano__barra').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-zoom]');
+      const svg = svgDe();
+      if (!b || !svg) return;
+      const accion = b.dataset.zoom;
+      const titulo = figura.closest('.hoja')?.querySelector('h3')?.textContent ?? 'Diagrama';
+      const codigo = figura.closest('.hoja')?.querySelector('.hoja__codigo')?.textContent ?? '';
+      if (accion === 'completa') return abrirVisor(svg, codigo ? `${codigo} · ${titulo}` : titulo);
+      if (accion === 'ajustar') { aplicar(hoja, svg, 'ajustar', salida); ajustar.setAttribute('aria-pressed', 'true'); return; }
+      const nueva = paso(escalaActual(hoja, svg), accion === 'mas' ? 1 : -1);
+      aplicar(hoja, svg, nueva, salida);
+      ajustar.setAttribute('aria-pressed', 'false');
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    document.querySelectorAll('[data-hoja][data-modo="ajustar"]').forEach((hoja) => {
+      const svg = hoja.querySelector('svg');
+      const salida = hoja.closest('[data-plano]')?.querySelector('[data-escala]');
+      if (svg) aplicar(hoja, svg, 'ajustar', salida);
+    });
+  });
+
+  /* ---------- Navegación: zona activa y chips en móvil ---------- */
+  const zonas = [...document.querySelectorAll('.portada, .zona')];
+  const movil = document.querySelector('[data-nav-movil]');
+  zonas.filter((z) => z.classList.contains('zona') && z.id !== 'hallazgos' && z.id !== 'manual-video').forEach((z) => {
+    const a = document.createElement('a');
+    a.href = `#${z.id}`;
+    a.dataset.nav = z.id;
+    a.textContent = z.querySelector('h2')?.textContent ?? z.id;
+    movil.insertBefore(a, movil.lastElementChild);
+  });
+  const enlaces = [...document.querySelectorAll('[data-nav]')];
+  const marcar = (id) => enlaces.forEach((a) => a.setAttribute('aria-current', a.dataset.nav === id ? 'true' : 'false'));
+  if ('IntersectionObserver' in window) {
+    const visibles = new Map();
+    const io = new IntersectionObserver((entradas) => {
+      entradas.forEach((e) => visibles.set(e.target.id, e.isIntersecting ? e.intersectionRatio : 0));
+      const top = zonas.find((z) => (visibles.get(z.id) ?? 0) > 0);
+      if (top) marcar(top.id);
+    }, { rootMargin: '-10% 0px -60% 0px', threshold: [0, 0.01] });
+    zonas.forEach((z) => io.observe(z));
+  }
+  marcar('inicio');
+
+  /* ---------- Búsqueda de hojas ---------- */
+  const campos = [document.getElementById('buscar'), document.getElementById('buscar-movil')];
+  const resultado = document.getElementById('buscar-resultado');
+  const sinResultados = document.getElementById('sin-resultados');
+  const piezas = [...document.querySelectorAll('.hoja, .hallazgo, .video')];
+  function filtrar(valor) {
+    const q = valor.trim().toLowerCase();
+    let n = 0;
+    piezas.forEach((p) => {
+      const ok = !q || (p.dataset.texto ?? '').includes(q);
+      p.hidden = !ok;
+      if (ok) n++;
+    });
+    document.querySelectorAll('.zona').forEach((z) => {
+      const quedan = z.querySelectorAll('.hoja:not([hidden]), .hallazgo:not([hidden]), .video:not([hidden])').length;
+      z.hidden = !!q && quedan === 0;
+    });
+    document.querySelector('.portada').hidden = !!q;
+    resultado.textContent = q ? `${n} ${n === 1 ? 'coincidencia' : 'coincidencias'}` : '';
+    sinResultados.hidden = !q || n > 0;
+    campos.forEach((c) => { if (c.value !== valor) c.value = valor; });
+    if (q) {
+      // Los planos que estaban ocultos se vuelven a ajustar al mostrarse.
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    }
+  }
+  campos.forEach((c) => c.addEventListener('input', () => filtrar(c.value)));
+})();
+</script>
