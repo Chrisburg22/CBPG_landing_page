@@ -25,3 +25,5 @@
 # no, son ~2,7 MB del editor empaquetado que se regeneran con seed-canvas.mjs.
 /design/panel/panel-ortodoncia.html
 /design/panel/rediseno/panel-bp-rediseno.html
+/manual-video
+/docs/panel/videos

@@ -14,6 +14,9 @@
     "verify:build": "node scripts/verificar-build.mjs",
     "test": "astro check && astro build && node scripts/verificar-build.mjs && playwright test",
     "demo": "playwright test --config playwright.demo.config.ts",
+    "test:movil": "playwright test --config playwright.movil.config.ts",
+    "manual": "playwright test --config playwright.manual.config.ts",
+    "manual:videos": "node scripts/videos-manual.mjs",
     "admin": "node scripts/admin.mjs",
     "iconos": "node scripts/generar-iconos.mjs"
   },
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.62.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
