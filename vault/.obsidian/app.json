@@ -1,0 +1,14 @@
+{
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "attachmentFolderPath": "99-Adjuntos",
+  "defaultViewMode": "source",
+  "livePreview": true,
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "showUnsupportedFiles": false,
+  "showInlineTitle": true,
+  "promptDelete": true,
+  "trashOption": "local"
+}
