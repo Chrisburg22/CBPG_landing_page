@@ -49,8 +49,8 @@ export default function FAQ({ items }: FAQProps) {
   return (
     <section className="section section--alt" id="faq">
       <div className="wrap">
-        <div className="section__head reveal" style={{ marginInline: 'auto', textAlign: 'center' }}>
-          <span className="eyebrow" style={{ justifyContent: 'center' }}>Preguntas frecuentes</span>
+        <div className="section__head section__head--centrado reveal">
+          <span className="eyebrow">Preguntas frecuentes</span>
           <h2>Resolvemos tus dudas.</h2>
         </div>
         <div className="faq reveal">

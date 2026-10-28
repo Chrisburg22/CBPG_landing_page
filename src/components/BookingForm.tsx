@@ -183,7 +183,6 @@ export default function BookingForm({ whatsappNumber }: BookingFormProps) {
             href={`https://wa.me/${whatsappNumber}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: 'var(--accent-deep)', fontWeight: 600 }}
           >
             WhatsApp
           </a>{' '}

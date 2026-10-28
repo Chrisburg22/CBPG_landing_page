@@ -1,7 +1,7 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: cda093c300b9
+hash: c00a58e7b2e0
 actualizado: 2026-10-27
 tags:
   - proyecto
@@ -15,7 +15,7 @@ tags:
 Estructura y tamaño del código, generada desde el árbol de archivos.
 Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 
-- **199 archivos** en las carpetas del proyecto.
+- **200 archivos** en las carpetas del proyecto.
 - Los números entre paréntesis son líneas, no KB.
 
 ## Raíz
@@ -28,7 +28,7 @@ Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 | `e2e/` | 23 |
 | `public/` | 11 |
 | `scripts/` | 6 |
-| `src/` | 85 |
+| `src/` | 86 |
 | `supabase/` | 8 |
 
 Archivos sueltos en la raíz:
@@ -45,7 +45,7 @@ Archivos sueltos en la raíz:
 | `src/layouts/` | 2 |
 | `src/lib/` | 23 |
 | `src/pages/` | 27 |
-| `src/styles/` | 2 |
+| `src/styles/` | 3 |
 | `src/types/` | 1 |
 
 ## `src/lib/` — dominio
