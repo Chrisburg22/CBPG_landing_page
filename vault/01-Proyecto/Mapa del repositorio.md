@@ -1,7 +1,7 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: c00a58e7b2e0
+hash: 6c97cad67580
 actualizado: 2026-10-27
 tags:
   - proyecto
@@ -15,7 +15,7 @@ tags:
 Estructura y tamaño del código, generada desde el árbol de archivos.
 Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 
-- **200 archivos** en las carpetas del proyecto.
+- **211 archivos** en las carpetas del proyecto.
 - Los números entre paréntesis son líneas, no KB.
 
 ## Raíz
@@ -24,16 +24,16 @@ Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 | --- | --- |
 | `.opencode/` | 1 |
 | `design/` | 54 |
-| `docs/` | 11 |
+| `docs/` | 20 |
 | `e2e/` | 23 |
 | `public/` | 11 |
-| `scripts/` | 6 |
+| `scripts/` | 8 |
 | `src/` | 86 |
 | `supabase/` | 8 |
 
 Archivos sueltos en la raíz:
 
-`.env.example` (54) · `.gitignore` (29) · `.npmrc` (6) · `AGENTS.md` (113) · `astro.config.mjs` (67) · `opencode.json` (4) · `package.json` (48) · `playwright.config.ts` (87) · `playwright.demo.config.ts` (74) · `playwright.manual.config.ts` (63) · `playwright.movil.config.ts` (79) · `tsconfig.json` (13) · `vercel.json` (9)
+`.env.example` (54) · `.gitignore` (29) · `.npmrc` (6) · `AGENTS.md` (113) · `astro.config.mjs` (67) · `opencode.json` (4) · `package.json` (48) · `playwright.config.ts` (87) · `playwright.demo.config.ts` (74) · `playwright.manual.config.ts` (68) · `playwright.movil.config.ts` (79) · `tsconfig.json` (13) · `vercel.json` (9)
 
 ## `src/`
 
@@ -82,7 +82,7 @@ Archivos sueltos en la raíz:
 
 ## `docs/panel/`
 
-`README.md` (54) · `acceso-y-roles.md` (56) · `agenda.md` (77) · `arquitectura.md` (79) · `google.md` (40) · `hallazgos.md` (49) · `inicio.md` (48) · `modelo-datos.md` (112) · `pacientes.md` (61) · `pagos.md` (45) · `prospectos.md` (70)
+`README.md` (55) · `acceso-y-roles.md` (56) · `agenda.md` (77) · `arquitectura.md` (79) · `google.md` (40) · `hallazgos.md` (51) · `inicio.md` (48) · `modelo-datos.md` (112) · `pacientes.md` (61) · `pagos.md` (45) · `prospectos.md` (70)
 
 ## `supabase/migrations/`
 
