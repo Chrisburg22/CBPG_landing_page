@@ -31,13 +31,13 @@ const icons: Record<string, string> = {
         </article>
       ))}
 
-      <!-- CTA card -->
-      <article class="card reveal" style="display:flex;flex-direction:column;justify-content:center;background:var(--accent);color:var(--on-accent);border-color:var(--accent);">
-        <h3 style="color:var(--on-accent);">¿No sabes cuál elegir?</h3>
-        <p style="color:color-mix(in oklab,var(--on-accent) 85%,transparent);">
+      <!-- Tarjeta de cierre: mismo objeto que las demás, en tinta profunda. -->
+      <article class="card card--cta reveal">
+        <h3>¿No sabes cuál elegir?</h3>
+        <p>
           En la valoración estudiamos tu caso y te recomendamos la mejor opción, sin compromiso.
         </p>
-        <a href="#contacto" class="btn" style="background:var(--on-accent);color:var(--accent-deep);margin-top:20px;align-self:flex-start;">
+        <a href="#contacto" class="btn btn--inverso">
           Agendar valoración
         </a>
       </article>

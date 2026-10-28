@@ -18,7 +18,11 @@
     "manual": "playwright test --config playwright.manual.config.ts",
     "manual:videos": "node scripts/videos-manual.mjs",
     "admin": "node scripts/admin.mjs",
-    "iconos": "node scripts/generar-iconos.mjs"
+    "iconos": "node scripts/generar-iconos.mjs",
+    "boveda": "python3 scripts/vault/vault.py generar && python3 scripts/vault/vault.py verificar",
+    "boveda:generar": "python3 scripts/vault/vault.py generar",
+    "boveda:verificar": "python3 scripts/vault/vault.py verificar",
+    "boveda:brief": "python3 scripts/vault/vault.py brief"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.5",

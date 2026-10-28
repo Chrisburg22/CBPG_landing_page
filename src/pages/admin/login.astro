@@ -10,9 +10,14 @@ const error = params.get('error');
 
 <AdminLayout title="Acceso" conBarra={false}>
   <div class="acceso">
+    <div class="acceso__marca">
+      <span class="acceso__sello" aria-hidden="true">BP</span>
+      <span class="acceso__nombre">Dra. Berenice Parada</span>
+    </div>
+
     <form class="panel" method="post" action="/admin/auth/entrar">
-      <h1>Panel de solicitudes</h1>
-      <p class="acceso__desc">Entra con tu correo y contraseña.</p>
+      <h1>Panel del consultorio</h1>
+      <p class="acceso__desc">Expediente, agenda y cobros en un solo lugar.</p>
 
       {salio && <p class="aviso aviso--info" role="status">Cerraste sesión.</p>}
       {
