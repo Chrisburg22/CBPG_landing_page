@@ -27,6 +27,36 @@ historial completo.
 - **Pendiente**: riesgos, datos que faltan, migraciones sin aplicar.
 ```
 
+## 2026-10-28 — Guía de la doctora y recibo por pago
+
+- **Objetivo**: que la doctora aprenda a usar la plataforma sin leer diez
+  páginas por sección ni depender de alguien que se la explique, y que cada
+  pago tenga un comprobante que pueda entregar.
+- **Cambios**: `docs/panel/guia-doctora.md` (nuevo): qué es el panel y qué no
+  hace, primer acceso, primer día, rutina diaria/semanal/mensual, diez tareas
+  paso a paso, cómo leer el dinero, diez cuidados que evitan errores,
+  solución de problemas, chuleta y glosario. `docs/panel/README.md` la enlaza
+  como primera entrada. **Recibo**: `src/pages/admin/pagos/recibo/[id].astro`,
+  `src/components/admin/Recibo.astro`, `src/layouts/ReciboLayout.astro` y
+  `src/styles/recibo.css`; el pago redirige al recibo al guardarse y se enlaza
+  desde Movimientos e Historial de pagos.
+- **Decisión**: la guía se organiza por **trabajo de la doctora**, no por menú;
+  no repite los diagramas ni los videos de las páginas por sección. Se
+  verificaron los rótulos contra el código (el campo es **Mensualidades**, el
+  aviso de WhatsApp solo sale con prospectos en **Nueva**, **Sin recordar**
+  cuenta mensualidades vencidas, no pacientes). El recibo **no lleva migración**:
+  el folio se deriva del `id` del pago y de su fecha (`R-AAAAMMDD-XXXXXXXXXXXX`),
+  así que no bloquea el despliegue ni depende de una columna nueva. Es un
+  comprobante **interno**, no un CFDI; el pie lo dice.
+- **Verificación**: `pnpm check` (78 archivos, 0 errores), `pnpm build` y
+  `pnpm verify:build` en verde. Recibo revisado con datos falsos a 900, 390 y
+  320 px y en impresión a tamaño carta: se corrigió la tabla en móvil y el
+  recorte del importe al imprimir. Falta verlo con datos reales de Supabase.
+- **Pendiente**: los e2e siguen sin correr por falta de `E2E_ADMIN_PASSWORD` de
+  una cuenta `doctora` en `ADMIN_EMAILS` y en `admins`. Si la doctora quiere
+  folios consecutivos en vez de derivados del `id`, hará falta una migración
+  con columna o tabla y volver a aplicar los recibos existentes.
+
 ## 2026-10-27 — Sistema visual y rediseño de landing y panel
 
 - **Objetivo**: mejorar el diseño de toda la aplicación —landing y panel— con

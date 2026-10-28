@@ -2,7 +2,7 @@
 tipo: nota
 area: agentes
 estado: verificado
-actualizado: 2026-10-27
+actualizado: 2026-10-28
 resumen: Cómo leer la bóveda, buscar en el repo y no dejar la documentación atrás.
 fuentes:
   - AGENTS.md

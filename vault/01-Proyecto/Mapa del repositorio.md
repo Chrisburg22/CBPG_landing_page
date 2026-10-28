@@ -1,8 +1,8 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: 6c97cad67580
-actualizado: 2026-10-27
+hash: 8311ee58f154
+actualizado: 2026-10-28
 tags:
   - proyecto
   - generado
@@ -15,7 +15,7 @@ tags:
 Estructura y tamaño del código, generada desde el árbol de archivos.
 Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 
-- **211 archivos** en las carpetas del proyecto.
+- **216 archivos** en las carpetas del proyecto.
 - Los números entre paréntesis son líneas, no KB.
 
 ## Raíz
@@ -24,11 +24,11 @@ Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 | --- | --- |
 | `.opencode/` | 1 |
 | `design/` | 54 |
-| `docs/` | 20 |
+| `docs/` | 21 |
 | `e2e/` | 23 |
 | `public/` | 11 |
 | `scripts/` | 8 |
-| `src/` | 86 |
+| `src/` | 90 |
 | `supabase/` | 8 |
 
 Archivos sueltos en la raíz:
@@ -40,17 +40,17 @@ Archivos sueltos en la raíz:
 | Carpeta | Archivos |
 | --- | --- |
 | `src/assets/` | 10 |
-| `src/components/` | 17 |
+| `src/components/` | 18 |
 | `src/config/` | 1 |
-| `src/layouts/` | 2 |
+| `src/layouts/` | 3 |
 | `src/lib/` | 23 |
-| `src/pages/` | 27 |
-| `src/styles/` | 3 |
+| `src/pages/` | 28 |
+| `src/styles/` | 4 |
 | `src/types/` | 1 |
 
 ## `src/lib/` — dominio
 
-`admin.ts` (28) · `citas.ts` (203) · `cobranza.ts` (106) · `contacto-directo.ts` (77) · `formato.ts` (118) · `horario.ts` (109) · `metricas.ts` (199) · `pacientes.ts` (316) · `pagos.ts` (260) · `panel.ts` (39) · `roles.ts` (62) · `seguimiento.ts` (147) · `solicitudes.ts` (176) · `tiempo.ts` (218) · `validate.ts` (73)
+`admin.ts` (28) · `citas.ts` (203) · `cobranza.ts` (106) · `contacto-directo.ts` (77) · `formato.ts` (133) · `horario.ts` (109) · `metricas.ts` (199) · `pacientes.ts` (316) · `pagos.ts` (289) · `panel.ts` (39) · `roles.ts` (62) · `seguimiento.ts` (147) · `solicitudes.ts` (176) · `tiempo.ts` (218) · `validate.ts` (73)
 
 ## `src/lib/supabase/` — clientes y tipos
 
@@ -66,7 +66,7 @@ Archivos sueltos en la raíz:
 
 ## `src/components/admin/` — panel
 
-`AvisoContactado.astro` (88) · `CamposPaciente.astro` (84) · `Icono.astro` (51) · `NavPanel.astro` (104)
+`AvisoContactado.astro` (88) · `CamposPaciente.astro` (84) · `Icono.astro` (51) · `NavPanel.astro` (104) · `Recibo.astro` (102)
 
 ## `scripts/`
 
@@ -78,11 +78,11 @@ Archivos sueltos en la raíz:
 
 ## `e2e/`
 
-`acceso.spec.ts` (59) · `agenda.spec.ts` (249) · `apoyo.ts` (350) · `cobranza.spec.ts` (76) · `conversion.spec.ts` (181) · `demo.spec.ts` (78) · `formulario.spec.ts` (102) · `global-setup.ts` (12) · `google.spec.ts` (273) · `navegacion.spec.ts` (82) · `pagos.spec.ts` (161) · `panel.spec.ts` (246) · `pwa.spec.ts` (152) · `roles.spec.ts` (142) · `seguridad.spec.ts` (126) · `tablero.spec.ts` (153)
+`acceso.spec.ts` (59) · `agenda.spec.ts` (249) · `apoyo.ts` (350) · `cobranza.spec.ts` (76) · `conversion.spec.ts` (181) · `demo.spec.ts` (78) · `formulario.spec.ts` (102) · `global-setup.ts` (12) · `google.spec.ts` (273) · `navegacion.spec.ts` (82) · `pagos.spec.ts` (163) · `panel.spec.ts` (246) · `pwa.spec.ts` (152) · `roles.spec.ts` (142) · `seguridad.spec.ts` (126) · `tablero.spec.ts` (153)
 
 ## `docs/panel/`
 
-`README.md` (55) · `acceso-y-roles.md` (56) · `agenda.md` (77) · `arquitectura.md` (79) · `google.md` (40) · `hallazgos.md` (51) · `inicio.md` (48) · `modelo-datos.md` (112) · `pacientes.md` (61) · `pagos.md` (45) · `prospectos.md` (70)
+`README.md` (57) · `acceso-y-roles.md` (56) · `agenda.md` (77) · `arquitectura.md` (79) · `google.md` (40) · `guia-doctora.md` (370) · `hallazgos.md` (51) · `inicio.md` (48) · `modelo-datos.md` (112) · `pacientes.md` (61) · `pagos.md` (55) · `prospectos.md` (70)
 
 ## `supabase/migrations/`
 
