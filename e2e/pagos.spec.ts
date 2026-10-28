@@ -86,8 +86,10 @@ test.describe('Plan de tratamiento y pagos', () => {
     await page.getByLabel('Concepto').fill('Mensualidad 1');
     await page.getByRole('button', { name: 'Guardar pago' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`/admin/pacientes/${pacienteId}`));
-    await expect(page.getByText('Pago registrado')).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/admin/pagos/recibo/[0-9a-f-]{36}`));
+    await expect(page.getByRole('heading', { name: 'Recibo de pago' })).toBeVisible();
+    await expect(page.getByText(/^R-\d{8}-[0-9A-F]{12}$/)).toBeVisible();
+    await expect(page.getByText(nombre)).toBeVisible();
 
     const saldo = await saldoDePaciente(pacienteId);
     expect(Number(saldo?.pagado)).toBe(1000);
@@ -118,7 +120,7 @@ test.describe('Plan de tratamiento y pagos', () => {
     await page.goto(`/admin/pagos/nuevo?paciente=${pacienteId}`);
     await page.getByLabel('Monto').fill('2500');
     await page.getByRole('button', { name: 'Guardar pago' }).click();
-    await expect(page.getByText('Pago registrado')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recibo de pago' })).toBeVisible();
 
     // Cambian los términos: menos mensualidades, otro precio. El calendario se
     // rehace, pero el dinero que ya entró no puede desaparecer con él.
@@ -148,7 +150,7 @@ test.describe('Plan de tratamiento y pagos', () => {
     await entrarAlPanel(page, `/admin/pagos/nuevo?paciente=${pacienteId}`);
     await page.getByLabel('Monto').fill('500');
     await page.getByRole('button', { name: 'Guardar pago' }).click();
-    await expect(page.getByText('Pago registrado')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recibo de pago' })).toBeVisible();
 
     await page.goto('/admin/pagos');
     const fila = page.locator('tr', { hasText: nombre });

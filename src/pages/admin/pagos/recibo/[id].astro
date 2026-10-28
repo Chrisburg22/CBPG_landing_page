@@ -1,0 +1,75 @@
+---
+import ReciboLayout from '@/layouts/ReciboLayout.astro';
+import Recibo from '@/components/admin/Recibo.astro';
+import { folioDePago, obtenerPago } from '@/lib/pagos';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+/** Un id que no es UUID no puede existir: evita mandar basura a Postgres. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+let pago: Awaited<ReturnType<typeof obtenerPago>> = null;
+let fallo: string | null = null;
+
+try {
+  pago = id && UUID.test(id) ? await obtenerPago(Astro.locals.supabase, id) : null;
+} catch (e) {
+  console.error(
+    '[admin] no se pudo cargar el pago para el recibo:',
+    e instanceof Error ? e.message : 'desconocido'
+  );
+  fallo = 'No pudimos cargar el recibo. Vuelve a intentarlo en un momento.';
+}
+
+if (!pago && !fallo) Astro.response.status = 404;
+
+const folio = pago ? folioDePago(pago) : '';
+const paciente = pago?.pacientes?.nombre ?? 'Paciente';
+---
+
+<ReciboLayout title={pago ? `Recibo ${folio} · ${paciente}` : 'Recibo'}>
+  <nav class="recibo-barra" aria-label="Acciones del recibo">
+    <a
+      class="btn btn--ghost"
+      href={pago ? `/admin/pacientes/${pago.paciente_id}#pagos` : '/admin/pagos'}
+    >
+      Volver a la ficha
+    </a>
+    {
+      pago && (
+        <button class="btn btn--primary" type="button" data-imprimir>
+          Imprimir o guardar PDF
+        </button>
+      )
+    }
+  </nav>
+
+  {
+    fallo ? (
+      <div class="recibo-hoja">
+        <p class="recibo-error" role="alert">
+          {fallo}
+        </p>
+        <a class="btn btn--ghost" href="/admin/pagos">
+          Volver a pagos
+        </a>
+      </div>
+    ) : !pago ? (
+      <div class="recibo-hoja">
+        <h1 class="recibo-titulo">Recibo no encontrado</h1>
+        <p class="recibo-nota">Ese pago no existe o ya se quitó.</p>
+        <a class="btn btn--ghost" href="/admin/pagos">
+          Volver a pagos
+        </a>
+      </div>
+    ) : (
+      <Recibo pago={pago} />
+    )
+  }
+
+  <script is:inline>
+    document.querySelector('[data-imprimir]')?.addEventListener('click', () => window.print());
+  </script>
+</ReciboLayout>

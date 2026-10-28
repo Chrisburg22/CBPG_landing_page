@@ -1,0 +1,31 @@
+---
+/**
+ * Marco mínimo para documentos imprimibles del panel.
+ *
+ * No lleva navegación ni barra: el recibo se imprime tal cual se ve. La
+ * comprobación de sesión y de rol la sigue haciendo el middleware, porque la
+ * ruta vive bajo /admin.
+ */
+import '@/styles/global.css';
+import '@/styles/recibo.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} · Panel</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="recibo-cuerpo">
+    <slot />
+  </body>
+</html>

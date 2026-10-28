@@ -1,0 +1,366 @@
+/* ============================================================
+   Recibo de pago
+   Hoja imprimible. En pantalla se ve como una tarjeta centrada;
+   al imprimir desaparecen la barra de acciones y la sombra.
+   ============================================================ */
+
+.recibo-cuerpo {
+  margin: 0;
+  padding: clamp(16px, 4vw, 48px);
+  background: var(--bg-deep);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.recibo-barra {
+  max-width: 760px;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recibo-hoja {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px -36px rgb(38 34 29 / 0.35);
+}
+
+/* ------------------------------------------------------------ Cabecera */
+
+.recibo-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.recibo-marca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.recibo-monograma {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--teal-100);
+  color: var(--teal-800);
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.recibo-consulta {
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.recibo-especialidad {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.recibo-contacto {
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------ Título y datos */
+
+.recibo-titulo {
+  margin-top: 32px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.recibo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+  margin: 14px 0 0;
+}
+
+.recibo-meta dt,
+.recibo-etiqueta {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.recibo-meta dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+.recibo-paciente {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+  margin-top: 28px;
+  padding: 18px 20px;
+  background: var(--surface-2);
+  border-radius: 12px;
+}
+
+.recibo-dato {
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ Concepto */
+
+.recibo-tabla {
+  width: 100%;
+  margin-top: 28px;
+  border-collapse: collapse;
+}
+
+.recibo-tabla th {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line-strong);
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.recibo-tabla td {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.recibo-tabla .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.recibo-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 2px solid var(--ink);
+}
+
+.recibo-total__etiqueta {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.recibo-total__monto {
+  font-family: var(--font-display);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.recibo-nota {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ------------------------------------------------------------ Pie */
+
+.recibo-pie {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 44px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.recibo-firma {
+  min-width: 220px;
+}
+
+.recibo-firma__linea {
+  padding-top: 8px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.recibo-aviso {
+  max-width: 320px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-mute);
+}
+
+.recibo-error {
+  margin-bottom: 16px;
+  color: var(--bad-700);
+}
+
+/* ------------------------------------------------------------ Móvil */
+
+@media (max-width: 560px) {
+  .recibo-cabecera,
+  .recibo-pie {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .recibo-contacto {
+    text-align: left;
+  }
+
+  .recibo-paciente {
+    grid-template-columns: 1fr;
+  }
+
+  /* En 320 px tres columnas no caben: cada dato pasa a un bloque con su
+     etiqueta. El tipo se omite porque el concepto ya lo dice. */
+  .recibo-tabla thead {
+    display: none;
+  }
+
+  .recibo-tabla,
+  .recibo-tabla tbody,
+  .recibo-tabla tr,
+  .recibo-tabla td {
+    display: block;
+    width: 100%;
+  }
+
+  .recibo-tabla tr {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .recibo-tabla td {
+    padding: 0;
+    border: 0;
+  }
+
+  .recibo-tabla td + td {
+    margin-top: 8px;
+  }
+
+  .recibo-tabla td::before {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .recibo-tabla td:nth-child(1)::before {
+    content: "Concepto";
+  }
+
+  .recibo-tabla td:nth-child(3)::before {
+    content: "Método";
+  }
+
+  .recibo-tabla td:nth-child(4)::before {
+    content: "Importe";
+  }
+
+  .recibo-tabla td:nth-child(2) {
+    display: none;
+  }
+
+  .recibo-tabla .num {
+    text-align: left;
+  }
+
+  .recibo-total {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .recibo-total__monto {
+    font-size: 28px;
+  }
+}
+
+/* ------------------------------------------------------------ Impresión */
+
+@page {
+  size: letter;
+  margin: 16mm;
+}
+
+@media print {
+  .recibo-cuerpo {
+    padding: 0;
+    background: #fff;
+    font-size: 11pt;
+  }
+
+  .recibo-barra {
+    display: none;
+  }
+
+  .recibo-hoja {
+    max-width: none;
+    margin: 0;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .recibo-cabecera {
+    padding-bottom: 14px;
+  }
+
+  .recibo-titulo {
+    margin-top: 22px;
+    font-size: 26pt;
+  }
+
+  .recibo-paciente {
+    background: var(--surface-2);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .recibo-total__monto {
+    font-size: 22pt;
+  }
+
+  .recibo-tabla,
+  .recibo-total,
+  .recibo-pie {
+    break-inside: avoid;
+  }
+}

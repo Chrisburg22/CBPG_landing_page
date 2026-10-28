@@ -10,7 +10,7 @@
   - **WhatsApp**: abre la conversación con el mensaje de cobro ya escrito (nombre, número de mensualidad, monto y fecha).
   - **Marcar enviado**: apunta que se recordó. La fila dice «recordada hace N días».
   - **Registrar**: abre el formulario de pago con esa cuota elegida.
-- **Movimientos**: pagos del mes, con filtro por tipo y opción **Quitar** con confirmación.
+- **Movimientos**: pagos del mes, con filtro por tipo, **Recibo** para abrir el comprobante y **Quitar** con confirmación.
 
 ## Cobrar una mensualidad vencida
 
@@ -30,10 +30,20 @@ sequenceDiagram
   P->>F: /admin/pagos/nuevo?cuota=…
   D->>F: método, fecha → Guardar pago
   F->>DB: insert pagos (cuota_id)
-  F-->>D: ficha del paciente con «Pago registrado»
+  F-->>D: recibo del pago, listo para imprimir
 ```
 
 El panel **no envía mensajes por su cuenta**: los manda la doctora desde su teléfono y el panel solo lleva la cuenta.
+
+## Recibo de cada pago
+
+Todo pago genera un recibo imprimible. Se abre solo al guardar y también desde **Recibo** en **Movimientos** o en el **Historial de pagos** de la ficha.
+
+- **Folio**: `R-AAAAMMDD-XXXXXXXXXXXX`, derivado del `id` del pago y de su fecha. Es estable: no cambia al reimprimir.
+- **Imprimir o guardar PDF**: usa el diálogo del navegador. No se guarda ningún archivo en el servidor.
+- **Qué incluye**: consultorio, paciente, tratamiento, concepto, tipo, método, importe, fecha y nota del pago.
+- **Qué no es**: un comprobante fiscal (CFDI). Eso lo lleva la contadora.
+- **Si se quita el pago**, su recibo deja de existir: la página responde «Recibo no encontrado».
 
 ## Registrar pago
 
@@ -42,4 +52,4 @@ El panel **no envía mensajes por su cuenta**: los manda la doctora desde su tel
 3. **Monto**: se rellena con lo que falta de la mensualidad elegida. Puede ser menor, y entonces la cuota queda *Parcial*.
 4. **Método** (efectivo, transferencia, tarjeta) y **fecha**.
 5. **Concepto** y **nota** (referencia de la transferencia).
-6. El lateral enseña el **saldo después de este pago**. **Guardar pago**.
+6. El lateral enseña el **Saldo** actual y, al lado, cómo queda con este pago. **Guardar pago**.
