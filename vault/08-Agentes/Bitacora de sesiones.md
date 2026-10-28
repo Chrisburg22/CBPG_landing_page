@@ -39,8 +39,10 @@ historial completo.
 - **Decisión**: las notas derivadas del código se generan y no se editan a mano;
   las decisiones y pendientes se escriben aquí. El plugin inyecta el mapa una vez
   por sesión y regenera al quedar inactiva, pero no sustituye la entrada de la
-  bitácora.
+  bitácora. `session.idle` llega en ráfaga: sin espaciar las corridas, el
+  generador competía con las ediciones.
 - **Verificación**: `pnpm boveda`, `pnpm check` y `pnpm build` +
-  `pnpm verify:build`.
+  `pnpm verify:build`. El generador probado contra una edición manual de una nota
+  generada: `verificar` la marca y `generar` la restaura.
 - **Pendiente**: completar los datos legales de `src/config/site.ts` (los pone la
   doctora) y revisar el texto del caso clínico antes de publicarlo.

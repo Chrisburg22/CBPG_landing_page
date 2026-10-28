@@ -62,9 +62,10 @@ Cuatro notas salen del código y **no se editan a mano**:
 - [[Rutas del panel]] ← `src/pages/`, `prerender` y `SOLO_DOCTORA`.
 - [[Tablas]] ← `src/lib/supabase/tipos.ts` y las migraciones.
 
-Llevan `tipo: generado`, un `hash` y el commit. Si `pnpm boveda:verificar` dice
-que están desactualizadas, corre `pnpm boveda`; no las corrijas a mano. Si el
-generador se equivoca, se corrige `scripts/vault/vault.py`.
+Llevan `tipo: generado`, un `hash` y la fecha en que cambió el cuerpo. Si
+`pnpm boveda:verificar` dice que están desactualizadas, corre `pnpm boveda`; no
+las corrijas a mano. Si el generador se equivoca, se corrige
+`scripts/vault/vault.py`.
 
 ## Editor
 

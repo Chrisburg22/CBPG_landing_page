@@ -18,11 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import re
-import subprocess
 import sys
 import unicodedata
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[2]
@@ -66,27 +65,6 @@ RESUMEN_GENERADO = {
     "Rutas del panel": "Rutas, prerender y acceso.",
     "Tablas": "Columnas, tipos, RLS, vistas y funciones.",
 }
-
-
-# --------------------------------------------------------------------------
-# Git: fechas deterministas
-# --------------------------------------------------------------------------
-
-def _git(*args: str) -> str:
-    try:
-        salida = subprocess.run(
-            ["git", "-C", str(RAIZ), *args],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        return salida.stdout.strip() if salida.returncode == 0 else ""
-    except (OSError, subprocess.SubprocessError):
-        return ""
-
-
-FECHA = _git("log", "-1", "--format=%cs") or "1970-01-01"
-COMMIT = _git("rev-parse", "--short", "HEAD") or "sin-git"
 
 
 # --------------------------------------------------------------------------
@@ -748,14 +726,19 @@ def _cuerpo_generado(texto: str) -> str:
 
 
 def escribir_generada(ruta: Path, cuerpo: str, tags: list[str]) -> bool:
-    """Escribe la nota solo si el cuerpo cambió. Devuelve si hubo escritura."""
+    """Escribe la nota solo si el texto completo cambió. Devuelve si escribió."""
     cuerpo = cuerpo.strip() + "\n"
     huella = hashlib.sha256(cuerpo.encode("utf-8")).hexdigest()[:12]
+
+    # La fecha solo avanza cuando el cuerpo cambia: la del commit no sirve,
+    # porque avanza igual aunque la nota no se toque.
+    actualizado = date.today().isoformat()
     if ruta.exists():
-        actual = leer(ruta)
-        datos = parsear_frontmatter(actual)
-        if datos.get("hash") == huella and _cuerpo_generado(actual) == cuerpo.strip():
-            return False
+        datos = parsear_frontmatter(leer(ruta))
+        # Si el cuerpo no cambió, se conserva la fecha: así `generar` no
+        # reescribe la nota cada día que alguien lo corre sin motivo.
+        if datos.get("hash") == huella and datos.get("actualizado"):
+            actualizado = str(datos["actualizado"])
 
     etiquetas = "\n".join(f"  - {t}" for t in tags)
     texto = (
@@ -763,14 +746,15 @@ def escribir_generada(ruta: Path, cuerpo: str, tags: list[str]) -> bool:
         "tipo: generado\n"
         "generado_por: scripts/vault/vault.py\n"
         f"hash: {huella}\n"
-        f"commit: {COMMIT}\n"
-        f"actualizado: {FECHA}\n"
+        f"actualizado: {actualizado}\n"
         "tags:\n"
         f"{etiquetas}\n"
         "---\n\n"
         "<!-- No editar a mano: pnpm boveda:generar -->\n\n"
         f"{cuerpo}"
     )
+    if ruta.exists() and leer(ruta) == texto:
+        return False
     ruta.parent.mkdir(parents=True, exist_ok=True)
     ruta.write_text(texto, encoding="utf-8")
     return True

@@ -41,8 +41,9 @@ pnpm boveda:brief
 
 El plugin de OpenCode `.opencode/plugins/boveda-cbpg.ts` inyecta la nota de
 inicio una vez por sesión (la lee del disco, sin llamar a Python) y corre
-`generar` + `verificar` cuando la sesión queda inactiva. Si el plugin falla,
-hazlo a mano; `brief` sigue sirviendo para ver el mapa desde la terminal.
+`generar` + `verificar` cuando la sesión queda inactiva. Las corridas se
+espacian 15 s porque `session.idle` llega en ráfaga. Si el plugin falla, hazlo a
+mano; `brief` sigue sirviendo para ver el mapa desde la terminal.
 
 ## Notas generadas
 
@@ -53,9 +54,9 @@ No se editan a mano:
 - [[Rutas del panel]] — rutas, prerender y acceso.
 - [[Tablas]] — columnas, tipos, RLS, vistas y funciones.
 
-Llevan `tipo: generado`, `hash` y `commit`. Si `verificar` dice que están
-obsoletas, corre `generar`. Si el generador se equivoca, se corrige
-`scripts/vault/vault.py`, no la nota.
+Llevan `tipo: generado`, `hash` y la fecha del último cambio de cuerpo. Si
+`verificar` dice que están obsoletas, corre `generar`. Si el generador se
+equivoca, se corrige `scripts/vault/vault.py`, no la nota.
 
 ## Corregir un aviso
 

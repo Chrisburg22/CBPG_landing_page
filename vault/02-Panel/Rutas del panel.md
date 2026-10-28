@@ -2,8 +2,7 @@
 tipo: generado
 generado_por: scripts/vault/vault.py
 hash: 795b1f5b2e59
-commit: 4f96c24
-actualizado: 2026-09-16
+actualizado: 2026-10-27
 tags:
   - panel
   - generado

@@ -1,9 +1,8 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: f62bc44a8392
-commit: 4f96c24
-actualizado: 2026-09-16
+hash: cda093c300b9
+actualizado: 2026-10-27
 tags:
   - proyecto
   - generado
@@ -75,7 +74,7 @@ Archivos sueltos en la raíz:
 
 ## `scripts/vault/` — generador de esta bóveda
 
-`vault.py` (977)
+`vault.py` (961)
 
 ## `e2e/`
 
