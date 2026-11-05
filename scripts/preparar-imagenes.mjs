@@ -43,7 +43,6 @@ const AJUSTES = {
   // algoritmo de entropía, que en la primera prueba eligió el plano equivocado.
   // Referencias medidas sobre la foto: cabeza y=290..540, cara centrada en
   // x=390, bandera desde y=700, libro desde y=1150.
-  recorteHero:  { left: 170, top: 235, width: 440, height: 550 },  // 4:5, corta antes de la bandera
   recorteAbout: { left: 0,   top: 217, width: 898, height: 1078 }, // 5:6, plano completo
 
   // Umbral para detectar el marco negro perimetral.
@@ -53,7 +52,6 @@ const AJUSTES = {
   // para que las tres etapas se lean como una secuencia.
   aspectoFrontal: 725 / 346,   // ≈ 2.10 — lo marca la de «durante», la más cuadrada
   aspectoOclusal: 654 / 522,   // ≈ 1.25 — lo marca «después superior»
-  aspectoHero: 4 / 5,
   aspectoAbout: 5 / 6,
 
   calidad: 90,
@@ -119,13 +117,7 @@ async function procesarRetrato(dir) {
     .modulate({ saturation: AJUSTES.saturacionRetrato, brightness: AJUSTES.brilloRetrato })
     .toBuffer();
 
-  // 3. Portada: plano corto de cabeza y hombros.
-  const hero = path.join(DESTINO, 'doctora-retrato.jpg');
-  await sharp(armonizado).extract(AJUSTES.recorteHero)
-    .jpeg({ quality: AJUSTES.calidad, mozjpeg: true }).toFile(hero);
-  log('✓', `${hero} — ${AJUSTES.recorteHero.width}×${AJUSTES.recorteHero.height}`);
-
-  // 4. Sobre la doctora: plano completo, con la bandera y el libro.
+  // 3. Portada: plano completo, con la bandera y el libro.
   const about = path.join(DESTINO, 'doctora-titulacion.jpg');
   await sharp(armonizado).extract(AJUSTES.recorteAbout)
     .jpeg({ quality: AJUSTES.calidad, mozjpeg: true }).toFile(about);

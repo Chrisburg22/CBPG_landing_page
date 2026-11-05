@@ -7,12 +7,15 @@ interface Props {
   description?: string;
   /** Las páginas legales no deben competir en buscadores con la principal. */
   noindex?: boolean;
+  /** Clase extra en <body>: la landing se estiliza aparte del panel. */
+  bodyClass?: string;
 }
 
 const {
   title = 'Dra. Berenice Parada — Ortodoncia',
   description = 'Ortodoncia de precisión y estética para adultos y adolescentes. Alineadores invisibles, brackets estéticos y planes a tu medida.',
   noindex = false,
+  bodyClass = '',
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -87,7 +90,7 @@ const faqSchema = {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
 
@@ -100,7 +103,7 @@ const faqSchema = {
     <script is:inline type="application/ld+json" set:html={JSON.stringify(negocioSchema)} />
     {!noindex && <script is:inline type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
   </head>
-  <body>
+  <body class={bodyClass}>
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
     <slot />
 

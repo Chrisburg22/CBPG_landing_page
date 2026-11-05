@@ -71,9 +71,12 @@ const hayComparadorDeArcada = arcadas.some((a) => a.comparador !== null);
 
 <section class="section" id="resultados">
   <div class="wrap">
+    <div class="meta-row reveal">
+      <span>(03) Un caso real</span>
+      <span>Publicado con consentimiento</span>
+    </div>
 
     <div class="section__head reveal">
-      <span class="eyebrow">Un caso real</span>
       <h2>De principio a fin, sin saltarnos el proceso.</h2>
       <p>
         Así avanza un tratamiento de ortodoncia: el punto de partida, los meses de trabajo
@@ -103,7 +106,7 @@ const hayComparadorDeArcada = arcadas.some((a) => a.comparador !== null);
         const img = foto(`${etapa.id}-frontal`);
         return (
           <li class="stage reveal">
-            <div class="stage__media stage__media--frontal">
+            <div class="stage__media stage__media--frontal" data-foto>
               {img ? (
                 <Image src={img} alt={etapa.alt} widths={[400, 700, 1000]} sizes="(max-width: 720px) 92vw, (max-width: 940px) 46vw, 30vw" loading="lazy" />
               ) : (
@@ -168,7 +171,7 @@ const hayComparadorDeArcada = arcadas.some((a) => a.comparador !== null);
                 const alt = momento === 'antes' ? arcada.altAntes : arcada.altDespues;
                 return (
                   <figure class="arch__shot">
-                    <div class="stage__media stage__media--oclusal">
+                    <div class="stage__media stage__media--oclusal" data-foto>
                       {img ? (
                         <Image src={img} alt={alt} widths={[300, 520, 660]} sizes="(max-width: 720px) 44vw, 22vw" loading="lazy" />
                       ) : (

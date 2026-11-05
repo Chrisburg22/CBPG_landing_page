@@ -156,3 +156,32 @@
   --gutter: clamp(20px, 5vw, 64px);
   --nav-h:  76px;
 }
+
+/* ============================================================
+   Capa editorial de la landing
+   La landing se separa del panel a propósito: tipografía grande,
+   reglas finas y mucho aire. El panel sigue en «modo trabajo».
+   ============================================================ */
+
+:root {
+  /* Papel y tinta: un solo fondo y un verde muy profundo, en vez
+     de bandas alternas de color. */
+  --paper:      #f3efe7;
+  --paper-deep: #e8e1d3;
+  --ink-deep:   #12302a;
+  --rule:       #d7cebd;
+  --rule-soft:  rgb(18 48 42 / 0.14);
+
+  /* Grotesk apretada solo para titulares de landing. */
+  --font-display-tight: "Inter Tight", "Hanken Grotesk", system-ui, sans-serif;
+
+  --text-display:    clamp(2.5rem, 0.4rem + 6.2vw, 6rem);   /* hero */
+  --text-display-sm: clamp(1.9rem, 1.1rem + 3.4vw, 4.15rem); /* h2 de sección */
+  --tracking-tight:  -0.045em;
+
+  /* Etiquetas pequeñas: números de sección, pies de foto, metadatos. */
+  --text-label: 0.6875rem; /* 11 */
+  --tracking-label: 0.14em;
+
+  --section-gap: clamp(56px, 7.5vw, 112px);
+}

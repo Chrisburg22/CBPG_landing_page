@@ -1,8 +1,8 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: 8311ee58f154
-actualizado: 2026-10-28
+hash: 8ae276818a00
+actualizado: 2026-11-04
 tags:
   - proyecto
   - generado
@@ -15,7 +15,7 @@ tags:
 Estructura y tamaño del código, generada desde el árbol de archivos.
 Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 
-- **216 archivos** en las carpetas del proyecto.
+- **319 archivos** en las carpetas del proyecto.
 - Los números entre paréntesis son líneas, no KB.
 
 ## Raíz
@@ -26,9 +26,10 @@ Excluye `.git`, artefactos de build, dependencias y la propia bóveda.
 | `design/` | 54 |
 | `docs/` | 21 |
 | `e2e/` | 23 |
+| `presentacion/` | 102 |
 | `public/` | 11 |
 | `scripts/` | 8 |
-| `src/` | 90 |
+| `src/` | 91 |
 | `supabase/` | 8 |
 
 Archivos sueltos en la raíz:
@@ -39,18 +40,19 @@ Archivos sueltos en la raíz:
 
 | Carpeta | Archivos |
 | --- | --- |
-| `src/assets/` | 10 |
+| `src/assets/` | 9 |
 | `src/components/` | 18 |
 | `src/config/` | 1 |
 | `src/layouts/` | 3 |
 | `src/lib/` | 23 |
 | `src/pages/` | 28 |
-| `src/styles/` | 4 |
+| `src/scripts/` | 1 |
+| `src/styles/` | 5 |
 | `src/types/` | 1 |
 
 ## `src/lib/` — dominio
 
-`admin.ts` (28) · `citas.ts` (203) · `cobranza.ts` (106) · `contacto-directo.ts` (77) · `formato.ts` (133) · `horario.ts` (109) · `metricas.ts` (199) · `pacientes.ts` (316) · `pagos.ts` (289) · `panel.ts` (39) · `roles.ts` (62) · `seguimiento.ts` (147) · `solicitudes.ts` (176) · `tiempo.ts` (218) · `validate.ts` (73)
+`admin.ts` (28) · `citas.ts` (203) · `cobranza.ts` (106) · `contacto-directo.ts` (77) · `formato.ts` (133) · `horario.ts` (109) · `metricas.ts` (199) · `pacientes.ts` (316) · `pagos.ts` (290) · `panel.ts` (39) · `roles.ts` (62) · `seguimiento.ts` (147) · `solicitudes.ts` (176) · `tiempo.ts` (218) · `validate.ts` (73)
 
 ## `src/lib/supabase/` — clientes y tipos
 
@@ -62,7 +64,7 @@ Archivos sueltos en la raíz:
 
 ## `src/components/` — landing
 
-`About.astro` (57) · `CaseStudy.astro` (199) · `Contact.astro` (84) · `Footer.astro` (60) · `Hero.astro` (86) · `Nav.astro` (75) · `Process.astro` (23) · `Strip.astro` (19) · `Testimonials.astro` (32) · `Treatments.astro` (46)
+`About.astro` (71) · `CaseStudy.astro` (202) · `Contact.astro` (47) · `Footer.astro` (70) · `Hero.astro` (36) · `Nav.astro` (80) · `Process.astro` (26) · `Strip.astro` (17) · `Testimonials.astro` (32) · `Treatments.astro` (44)
 
 ## `src/components/admin/` — panel
 
@@ -70,7 +72,7 @@ Archivos sueltos en la raíz:
 
 ## `scripts/`
 
-`admin.mjs` (186) · `generar-iconos.mjs` (207) · `preparar-imagenes.mjs` (176) · `verificar-build.mjs` (157) · `videos-manual.mjs` (54)
+`admin.mjs` (186) · `generar-iconos.mjs` (207) · `preparar-imagenes.mjs` (168) · `verificar-build.mjs` (157) · `videos-manual.mjs` (54)
 
 ## `scripts/vault/` — generador de esta bóveda
 

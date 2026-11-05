@@ -27,6 +27,32 @@ historial completo.
 - **Pendiente**: riesgos, datos que faltan, migraciones sin aplicar.
 ```
 
+## 2026-11-04 — Rediseño editorial de la landing y movimiento
+
+- **Objetivo**: que la landing se sienta como un consultorio de autor y no como
+  una plantilla, y que la foto de la doctora tenga presencia real.
+- **Cambios**: `src/styles/landing.css` (nuevo) con toda la capa editorial,
+  importada solo desde `src/pages/index.astro` y activada por `body.landing`
+  (prop `bodyClass` en `Layout.astro`, que además carga Inter Tight). Tokens
+  nuevos al final de `src/styles/tokens.css`. Componentes reescritos: `Nav`,
+  `Hero`, `Strip`, `About`, `Treatments`, `CaseStudy`, `Process`, `Contact`,
+  `FAQ`, `Footer`. Movimiento en `src/scripts/landing-scroll.ts` (nuevo):
+  revelado de fotos con `clip-path`, acercamiento `[data-zoom]`, paralaje
+  `[data-parallax]` y barra `.progreso`. Ver [[Landing y contenido]].
+- **Decisión**: el hero queda **solo tipográfico**; se borra
+  `src/assets/doctora-retrato.jpg` y su paso en `scripts/preparar-imagenes.mjs`.
+  La foto de «Sobre la doctora» pasa a dominar la sección: montaje sobre papel,
+  etiqueta de archivo y acercamiento ligado al scroll. Nada de librerías (ni
+  GSAP ni Lenis): todo en `requestAnimationFrame`, y con
+  `prefers-reduced-motion` no se mueve nada.
+- **Verificación**: `pnpm check` (0 errores), `pnpm build` +
+  `pnpm verify:build` (60 archivos, ningún `/admin` estático), sin desbordes en
+  320/390/768/900/1024/1440, consola limpia, comparadores intactos. **Sin
+  probar**: los e2e siguen sin correr por falta de `E2E_ADMIN_PASSWORD`.
+- **Pendiente**: la doctora debe aprobar la cinta de tratamientos (sustituyó a
+  la de certificaciones, que no eran verificables), los titulares en mayúsculas
+  y el copy del caso clínico.
+
 ## 2026-10-28 — Guía de la doctora y recibo por pago
 
 - **Objetivo**: que la doctora aprenda a usar la plataforma sin leer diez

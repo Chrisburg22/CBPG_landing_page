@@ -1,5 +1,13 @@
 ---
 import { doctor } from '@/config/site';
+
+// Mismo criterio que Nav: en la landing las anclas funcionan; en las páginas
+// legales hay que volver a «/» antes del ancla.
+interface Props {
+  enInicio?: boolean;
+}
+const { enInicio = true } = Astro.props;
+const enlace = (ancla: string) => `${enInicio ? '' : '/'}${ancla}`;
 ---
 
 <footer class="footer">
@@ -7,7 +15,7 @@ import { doctor } from '@/config/site';
     <div class="footer__grid">
 
       <div>
-        <a class="brand" href="#top" aria-label="Volver al inicio">
+        <a class="brand" href={enlace('#top')} aria-label="Volver al inicio">
           <span class="brand__mark">{doctor.initials}</span>
           <span class="brand__name">
             {doctor.name}
@@ -22,10 +30,10 @@ import { doctor } from '@/config/site';
       <div>
         <h4>Navegación</h4>
         <ul>
-          <li><a href="#sobre">Sobre mí</a></li>
-          <li><a href="#tratamientos">Tratamientos</a></li>
-          <li><a href="#resultados">Resultados</a></li>
-          <li><a href="#faq">Preguntas</a></li>
+          <li><a href={enlace('#sobre')}>Sobre mí</a></li>
+          <li><a href={enlace('#tratamientos')}>Tratamientos</a></li>
+          <li><a href={enlace('#resultados')}>Resultados</a></li>
+          <li><a href={enlace('#faq')}>Preguntas</a></li>
         </ul>
       </div>
 
@@ -33,11 +41,13 @@ import { doctor } from '@/config/site';
         <h4>Contacto</h4>
         <ul>
           <li><a href={`tel:+${doctor.whatsapp}`}>{doctor.phone}</a></li>
-          <li><a href="#contacto">Agendar cita →</a></li>
+          <li><a href={enlace('#contacto')}>Agendar cita →</a></li>
         </ul>
       </div>
 
     </div>
+
+    <p class="footer__wordmark" aria-hidden="true">{doctor.name}</p>
 
     <div class="footer__bottom">
       <span>© {new Date().getFullYear()} Dra. {doctor.name} · {doctor.specialty}. Todos los derechos reservados.</span>

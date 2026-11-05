@@ -6,7 +6,6 @@ rayado, y al copiarlo aparece solo, sin tocar código.
 
 Archivos esperados:
 
-    doctora-retrato.jpg        4:5   portada
     doctora-titulacion.jpg     5:6   sección «Sobre la doctora»
     caso-01/antes-frontal.jpg     ~2.27:1
     caso-01/durante-frontal.jpg   ~2.27:1

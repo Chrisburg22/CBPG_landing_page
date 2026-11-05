@@ -1,4 +1,5 @@
 ---
+import '@/styles/landing.css';
 import Layout from "@/layouts/Layout.astro";
 import Nav from "@/components/Nav.astro";
 import Hero from "@/components/Hero.astro";
@@ -14,7 +15,8 @@ import Footer from "@/components/Footer.astro";
 import { faqs } from "@/config/site";
 ---
 
-<Layout>
+<Layout bodyClass="landing">
+  <div class="progreso" aria-hidden="true"></div>
   <Nav />
 
   <main id="contenido">
@@ -31,3 +33,7 @@ import { faqs } from "@/config/site";
 
   <Footer />
 </Layout>
+
+<script>
+  import '@/scripts/landing-scroll';
+</script>

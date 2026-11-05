@@ -47,21 +47,32 @@ export default function FAQ({ items }: FAQProps) {
   const toggle = (i: number) => setOpenIndex((prev) => (prev === i ? null : i));
 
   return (
-    <section className="section section--alt" id="faq">
+    <section className="section" id="faq">
       <div className="wrap">
-        <div className="section__head section__head--centrado reveal">
-          <span className="eyebrow">Preguntas frecuentes</span>
-          <h2>Resolvemos tus dudas.</h2>
+        <div className="meta-row reveal">
+          <span>(06) Preguntas frecuentes</span>
+          <span>Lo que más nos preguntan</span>
         </div>
-        <div className="faq reveal">
-          {items.map((item, i) => (
-            <FAQItemComponent
-              key={item.question}
-              item={item}
-              isOpen={openIndex === i}
-              onToggle={() => toggle(i)}
-            />
-          ))}
+
+        <div className="faq__layout">
+          <div className="faq__head reveal">
+            <h2>Resolvemos tus dudas.</h2>
+            <p>
+              Si te queda algo suelto, escríbenos por WhatsApp: contestamos el mismo
+              día en horario de consultorio.
+            </p>
+          </div>
+
+          <div className="faq reveal">
+            {items.map((item, i) => (
+              <FAQItemComponent
+                key={item.question}
+                item={item}
+                isOpen={openIndex === i}
+                onToggle={() => toggle(i)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

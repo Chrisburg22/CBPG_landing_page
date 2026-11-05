@@ -1,19 +1,17 @@
 ---
-const certifications = [
-  'Colegio Odontológico',
-  'Asoc. de Ortodoncia',
-  'Invisalign Provider',
-  'Univ. Posgrado',
-];
+import { treatments } from '@/config/site';
+
+// La cinta repite los tratamientos que ya están en la lista de abajo: es
+// decorativa, así que se oculta a lectores de pantalla y no compite con el
+// contenido real. Se repite tres veces por mitad para que el bucle no deje
+// huecos en pantallas anchas.
+const servicios = treatments.map((t) => t.title);
+const pista = [...servicios, ...servicios, ...servicios];
 ---
 
-<div class="strip">
-  <div class="wrap strip__inner">
-    <p>Certificaciones y membresías</p>
-    <div class="strip__logos" role="list">
-      {certifications.map((cert) => (
-        <span role="listitem">{cert}</span>
-      ))}
-    </div>
+<div class="strip" aria-hidden="true">
+  <div class="strip__track">
+    {pista.map((servicio) => <span class="strip__item">{servicio}</span>)}
+    {pista.map((servicio) => <span class="strip__item">{servicio}</span>)}
   </div>
 </div>
