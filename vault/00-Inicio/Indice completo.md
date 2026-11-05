@@ -1,8 +1,8 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: 259645adc41f
-actualizado: 2026-10-27
+hash: adff84030736
+actualizado: 2026-11-04
 tags:
   - indice
   - generado
@@ -38,7 +38,7 @@ título visible. Las notas `generado` no se editan a mano.
 
 ## 03-Web
 
-- [[Landing y contenido]] — Secciones de la landing, copy centralizado, formulario de contacto y fotos.
+- [[Landing y contenido]] — Secciones de la landing, capa editorial, movimiento, copy centralizado, formulario y fotos.
 
 ## 04-Datos
 

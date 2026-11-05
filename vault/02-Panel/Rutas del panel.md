@@ -1,8 +1,8 @@
 ---
 tipo: generado
 generado_por: scripts/vault/vault.py
-hash: 795b1f5b2e59
-actualizado: 2026-10-27
+hash: be48dbb45b8c
+actualizado: 2026-10-28
 tags:
   - panel
   - generado
@@ -15,7 +15,7 @@ tags:
 Rutas de `src/pages/`, su tipo, si se renderizan en el servidor y quién
 puede verlas. Se genera desde los archivos y desde `src/lib/roles.ts`.
 
-- **27 rutas**: 21 de panel, 2 de API, 4 públicas.
+- **28 rutas**: 22 de panel, 2 de API, 4 públicas.
 - **0 rutas de panel/API sin `prerender = false`.** Si hay alguna, el panel quedaría público.
 - `doctora + recepción` = cualquier cuenta con fila en `admins`; RLS sigue
   decidiendo las filas.
@@ -41,6 +41,7 @@ puede verlas. Se genera desde los archivos y desde `src/lib/roles.ts`.
 | `/admin/pacientes/nuevo` | página | SSR | doctora | `src/pages/admin/pacientes/nuevo.astro` |
 | `/admin/pagos` | página | SSR | doctora | `src/pages/admin/pagos/index.astro` |
 | `/admin/pagos/nuevo` | página | SSR | doctora | `src/pages/admin/pagos/nuevo.astro` |
+| `/admin/pagos/recibo/[id]` | página | SSR | doctora | `src/pages/admin/pagos/recibo/[id].astro` |
 | `/admin/prospectos/[id]/convertir` | página | SSR | doctora | `src/pages/admin/prospectos/[id]/convertir.astro` |
 | `/admin/prospectos/[id]` | página | SSR | doctora + recepción | `src/pages/admin/prospectos/[id].astro` |
 | `/admin/prospectos` | página | SSR | doctora + recepción | `src/pages/admin/prospectos/index.astro` |

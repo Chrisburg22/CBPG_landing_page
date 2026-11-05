@@ -29,6 +29,21 @@ export function fechaCorta(iso: string): string {
   });
 }
 
+/**
+ * Fecha larga para un `date` de Postgres ('AAAA-MM-DD'), sin pasar por UTC.
+ * Se usa en el recibo, donde «28 de octubre de 2026» se lee mejor que la forma
+ * corta de las tablas.
+ */
+export function fechaLarga(iso: string): string {
+  const [anio, mes, dia] = iso.split('-').map(Number);
+  if (!anio || !mes || !dia) return iso;
+  return new Date(anio, mes - 1, dia).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 const PESOS = new Intl.NumberFormat('es-MX', {
   style: 'currency',
   currency: 'MXN',

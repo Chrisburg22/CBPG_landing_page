@@ -191,6 +191,36 @@ export async function historialDe(supabase: Cliente, pacienteId: string): Promis
   return (data ?? []) as Pago[];
 }
 
+export type PagoConPaciente = Pago & {
+  pacientes: { nombre: string; tratamiento: string } | null;
+};
+
+/** Un pago con el nombre y el tratamiento del paciente, para el recibo. */
+export async function obtenerPago(
+  supabase: Cliente,
+  id: string
+): Promise<PagoConPaciente | null> {
+  const { data, error } = await supabase
+    .from('pagos')
+    .select('*, pacientes(nombre, tratamiento)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`No se pudo cargar el pago: ${error.message}`);
+  return (data as unknown as PagoConPaciente | null) ?? null;
+}
+
+/**
+ * Folio legible y estable de un pago. No hay columna `folio`: se deriva del
+ * `id`, que ya es único, y de la fecha del pago. Doce caracteres del UUID (sin
+ * guiones) dan margen de sobra para que dos recibos no compartan folio, y el
+ * formato no cambia aunque se reimprima años después.
+ */
+export function folioDePago(pago: Pick<Pago, 'id' | 'pagado_el'>): string {
+  const fecha = pago.pagado_el.replace(/-/g, '');
+  const sufijo = pago.id.replace(/-/g, '').slice(0, 12).toUpperCase();
+  return `R-${fecha}-${sufijo}`;
+}
+
 export interface FiltroPagos {
   desde?: string | undefined;
   hasta?: string | undefined;

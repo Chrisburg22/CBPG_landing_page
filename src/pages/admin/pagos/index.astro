@@ -351,7 +351,7 @@ function enlace(cambios: Record<string, string | undefined>): string {
                   <th>Concepto</th>
                   <th>Fecha</th>
                   <th class="tabla__num">Monto</th>
-                  <th><span class="visualmente-oculto">Quitar</span></th>
+                  <th><span class="visualmente-oculto">Acciones</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -370,15 +370,20 @@ function enlace(cambios: Record<string, string | undefined>): string {
                     <td class="tabla__fecha tabla__meta">{fechaCorta(m.pagado_el)}</td>
                     <td class="tabla__num" style="font-weight: 600">{dinero(m.monto)}</td>
                     <td class="tabla__accion">
-                      {/* Un pago mal tecleado hay que poder quitarlo. La confirmación
-                          la pide el navegador; sin JavaScript el botón borra directo,
-                          que es preferible a no poder corregir nada. */}
-                      <form method="post" data-confirmar={`¿Quitar el pago de ${dinero(m.monto)}?`}>
-                        <input type="hidden" name="id" value={m.id} />
-                        <button class="btn--enlace" type="submit" style="color: var(--ink-soft)" data-sin-texto>
-                          Quitar
-                        </button>
-                      </form>
+                      <div class="acciones">
+                        <a class="btn--enlace" href={`/admin/pagos/recibo/${m.id}`}>
+                          Recibo
+                        </a>
+                        {/* Un pago mal tecleado hay que poder quitarlo. La confirmación
+                            la pide el navegador; sin JavaScript el botón borra directo,
+                            que es preferible a no poder corregir nada. */}
+                        <form method="post" data-confirmar={`¿Quitar el pago de ${dinero(m.monto)}?`}>
+                          <input type="hidden" name="id" value={m.id} />
+                          <button class="btn--enlace" type="submit" style="color: var(--ink-soft)" data-sin-texto>
+                            Quitar
+                          </button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}

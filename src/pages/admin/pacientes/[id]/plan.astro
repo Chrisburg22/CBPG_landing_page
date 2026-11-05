@@ -92,8 +92,8 @@ if (!paciente && !fallo) return new Response('No encontrado', { status: 404 });
     paciente && (
       <form class="panel panel--formulario" method="post">
         <p class="panel__texto">
-          Con 0 mensualidades no se genera calendario: es un tratamiento con precio cerrado
-          que se va pagando sin fechas, y el saldo se calcula igual.
+          Si dejas las mensualidades en 0 no se genera calendario: es un tratamiento con
+          precio cerrado que se va pagando sin fechas, y el saldo se calcula igual.
         </p>
 
         <div class="campos">
@@ -119,7 +119,7 @@ if (!paciente && !fallo) return new Response('No encontrado', { status: 404 });
               value={plan ? Number(plan.costo_total).toFixed(2) : ''}
               placeholder="0.00"
             />
-            <span class="field__ayuda">[PRECIO REAL DEL TRATAMIENTO]</span>
+            <span class="field__ayuda">El precio completo del tratamiento, antes del enganche.</span>
           </div>
 
           <div class="field">

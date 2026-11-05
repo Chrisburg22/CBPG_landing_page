@@ -1,0 +1,102 @@
+---
+import { folioDePago, type PagoConPaciente } from '@/lib/pagos';
+import { dinero, fechaLarga } from '@/lib/formato';
+import { doctor } from '@/config/site';
+import { ETIQUETA_METODO_PAGO, ETIQUETA_TIPO_PAGO } from '@/lib/supabase/tipos';
+
+interface Props {
+  pago: PagoConPaciente;
+}
+
+const { pago } = Astro.props;
+const folio = folioDePago(pago);
+const paciente = pago.pacientes?.nombre ?? 'Paciente';
+---
+
+<article class="recibo-hoja" aria-labelledby="titulo-recibo">
+  <header class="recibo-cabecera">
+    <div class="recibo-marca">
+      <span class="recibo-monograma" aria-hidden="true">{doctor.initials}</span>
+      <div>
+        <p class="recibo-consulta">Dra. {doctor.name}</p>
+        <p class="recibo-especialidad">{doctor.specialty}</p>
+      </div>
+    </div>
+    <div class="recibo-contacto">
+      <p>{doctor.phone}</p>
+      <p>{doctor.schedule}</p>
+    </div>
+  </header>
+
+  <h1 class="recibo-titulo" id="titulo-recibo">Recibo de pago</h1>
+  <dl class="recibo-meta">
+    <div>
+      <dt>Folio</dt>
+      <dd>{folio}</dd>
+    </div>
+    <div>
+      <dt>Fecha del pago</dt>
+      <dd>{fechaLarga(pago.pagado_el)}</dd>
+    </div>
+  </dl>
+
+  <section class="recibo-paciente" aria-label="Paciente">
+    <div>
+      <span class="recibo-etiqueta">Paciente</span>
+      <p class="recibo-dato">{paciente}</p>
+    </div>
+    {
+      pago.pacientes?.tratamiento && (
+        <div>
+          <span class="recibo-etiqueta">Tratamiento</span>
+          <p class="recibo-dato">{pago.pacientes.tratamiento}</p>
+        </div>
+      )
+    }
+  </section>
+
+  <table class="recibo-tabla">
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th>Tipo</th>
+        <th>Método</th>
+        <th class="num">Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{pago.concepto || ETIQUETA_TIPO_PAGO[pago.tipo]}</td>
+        <td>{ETIQUETA_TIPO_PAGO[pago.tipo]}</td>
+        <td>{ETIQUETA_METODO_PAGO[pago.metodo]}</td>
+        <td class="num">{dinero(pago.monto)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="recibo-total">
+    <span class="recibo-total__etiqueta">Total recibido</span>
+    <span class="recibo-total__monto">{dinero(pago.monto)}</span>
+  </div>
+
+  {
+    pago.nota.trim() && (
+      <p class="recibo-nota">
+        <strong>Nota:</strong> {pago.nota}
+      </p>
+    )
+  }
+
+  <footer class="recibo-pie">
+    <div class="recibo-firma">
+      <div class="recibo-firma__linea">
+        Dra. {doctor.name}
+        <br />
+        {doctor.specialty}
+      </div>
+    </div>
+    <p class="recibo-aviso">
+      Documento interno de control de pagos. No sustituye un comprobante fiscal.
+    </p>
+  </footer>
+</article>

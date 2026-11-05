@@ -465,6 +465,7 @@ const citasRecientes = citas.filter((c) => c.id !== proximaCita?.id).slice(0, 5)
                         <th>Concepto</th>
                         <th>Fecha</th>
                         <th class="tabla__num">Monto</th>
+                        <th><span class="visualmente-oculto">Recibo</span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -476,6 +477,11 @@ const citasRecientes = citas.filter((c) => c.id !== proximaCita?.id).slice(0, 5)
                           </td>
                           <td class="tabla__fecha tabla__meta">{fechaCorta(g.pagado_el)}</td>
                           <td class="tabla__num">{dinero(g.monto)}</td>
+                          <td class="tabla__accion">
+                            <a class="btn--enlace" href={`/admin/pagos/recibo/${g.id}`}>
+                              Recibo
+                            </a>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

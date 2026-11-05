@@ -66,7 +66,7 @@ if (Astro.request.method === 'POST') {
       console.error('[admin] no se pudo registrar el pago:', e instanceof Error ? e.message : 'desconocido');
       error = 'No se pudo registrar el pago. Inténtalo otra vez.';
     }
-    if (creado) return Astro.redirect(`/admin/pacientes/${pacienteId}?pago=1`, 303);
+    if (creado) return Astro.redirect(`/admin/pagos/recibo/${creado}`, 303);
   }
 }
 

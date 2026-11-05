@@ -2,7 +2,7 @@
 tipo: nota
 area: panel
 estado: verificado
-actualizado: 2026-10-27
+actualizado: 2026-10-28
 resumen: Fichas, plan de tratamiento, cuotas derivadas, pagos y recordatorios de cobro.
 fuentes:
   - src/lib/pacientes.ts
@@ -61,6 +61,18 @@ pendiente → parcial (abono menor) → pagada (pagado ≥ monto)
 - Los importes llegan de Postgres `numeric` como **string**; no los conviertas a
   `number` sin pasar por `dinero()` de `src/lib/formato.ts`.
 
+## Recibos
+
+- Cada pago tiene un recibo imprimible en `/admin/pagos/recibo/<id>`, solo para
+  la doctora.
+- **No hay columna `folio`**: `folioDePago()` lo deriva del `id` y de
+  `pagado_el` (`R-AAAAMMDD-XXXXXXXXXXXX`). Es estable y no necesita migración.
+- `obtenerPago()` trae el pago con nombre y tratamiento del paciente.
+- La página usa `ReciboLayout` (sin navegación) y `src/styles/recibo.css`;
+  `@media print` oculta la barra de acciones y ajusta a carta.
+- Es un comprobante **interno**, no un CFDI. Al quitar el pago, su recibo deja
+  de existir y la ruta responde 404.
+
 ## Recordatorios
 
 El panel **no manda mensajes**. La doctora abre WhatsApp con `wa.me` y el panel
@@ -80,6 +92,7 @@ solo lleva la cuenta:
 | Planes, cuotas, pagos y saldos | `src/lib/pagos.ts` |
 | Recordatorios y mensaje de cobro | `src/lib/cobranza.ts` |
 | Pantallas | `src/pages/admin/pacientes/`, `src/pages/admin/pagos/` |
+| Recibo imprimible | `src/pages/admin/pagos/recibo/[id].astro`, `src/components/admin/Recibo.astro` |
 | Formato de dinero/fechas | `src/lib/formato.ts` |
 
 Ver [[Modelo de datos]] y [[Tablas]].

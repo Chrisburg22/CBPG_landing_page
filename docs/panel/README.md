@@ -2,6 +2,8 @@
 
 El panel vive en `/admin` y está pensado para usarse **desde el celular**. Aquí están cada sección explicada, sus diagramas y el video de cómo se usa.
 
+> **¿Es tu primera vez?** Empieza por la [Guía de la doctora](guia-doctora.md): el recorrido completo en orden de trabajo —primer día, rutina diaria, tareas paso a paso y cuidados para no equivocarse—, sin tener que leer sección por sección.
+
 | Sección | Para qué sirve | Quién la ve |
 |---|---|---|
 | [Acceso y roles](acceso-y-roles.md) | Entrar, salir, instalar la app en el teléfono | Todas |

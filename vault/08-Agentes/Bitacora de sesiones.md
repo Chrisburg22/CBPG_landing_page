@@ -27,6 +27,62 @@ historial completo.
 - **Pendiente**: riesgos, datos que faltan, migraciones sin aplicar.
 ```
 
+## 2026-11-04 — Rediseño editorial de la landing y movimiento
+
+- **Objetivo**: que la landing se sienta como un consultorio de autor y no como
+  una plantilla, y que la foto de la doctora tenga presencia real.
+- **Cambios**: `src/styles/landing.css` (nuevo) con toda la capa editorial,
+  importada solo desde `src/pages/index.astro` y activada por `body.landing`
+  (prop `bodyClass` en `Layout.astro`, que además carga Inter Tight). Tokens
+  nuevos al final de `src/styles/tokens.css`. Componentes reescritos: `Nav`,
+  `Hero`, `Strip`, `About`, `Treatments`, `CaseStudy`, `Process`, `Contact`,
+  `FAQ`, `Footer`. Movimiento en `src/scripts/landing-scroll.ts` (nuevo):
+  revelado de fotos con `clip-path`, acercamiento `[data-zoom]`, paralaje
+  `[data-parallax]` y barra `.progreso`. Ver [[Landing y contenido]].
+- **Decisión**: el hero queda **solo tipográfico**; se borra
+  `src/assets/doctora-retrato.jpg` y su paso en `scripts/preparar-imagenes.mjs`.
+  La foto de «Sobre la doctora» pasa a dominar la sección: montaje sobre papel,
+  etiqueta de archivo y acercamiento ligado al scroll. Nada de librerías (ni
+  GSAP ni Lenis): todo en `requestAnimationFrame`, y con
+  `prefers-reduced-motion` no se mueve nada.
+- **Verificación**: `pnpm check` (0 errores), `pnpm build` +
+  `pnpm verify:build` (60 archivos, ningún `/admin` estático), sin desbordes en
+  320/390/768/900/1024/1440, consola limpia, comparadores intactos. **Sin
+  probar**: los e2e siguen sin correr por falta de `E2E_ADMIN_PASSWORD`.
+- **Pendiente**: la doctora debe aprobar la cinta de tratamientos (sustituyó a
+  la de certificaciones, que no eran verificables), los titulares en mayúsculas
+  y el copy del caso clínico.
+
+## 2026-10-28 — Guía de la doctora y recibo por pago
+
+- **Objetivo**: que la doctora aprenda a usar la plataforma sin leer diez
+  páginas por sección ni depender de alguien que se la explique, y que cada
+  pago tenga un comprobante que pueda entregar.
+- **Cambios**: `docs/panel/guia-doctora.md` (nuevo): qué es el panel y qué no
+  hace, primer acceso, primer día, rutina diaria/semanal/mensual, diez tareas
+  paso a paso, cómo leer el dinero, diez cuidados que evitan errores,
+  solución de problemas, chuleta y glosario. `docs/panel/README.md` la enlaza
+  como primera entrada. **Recibo**: `src/pages/admin/pagos/recibo/[id].astro`,
+  `src/components/admin/Recibo.astro`, `src/layouts/ReciboLayout.astro` y
+  `src/styles/recibo.css`; el pago redirige al recibo al guardarse y se enlaza
+  desde Movimientos e Historial de pagos.
+- **Decisión**: la guía se organiza por **trabajo de la doctora**, no por menú;
+  no repite los diagramas ni los videos de las páginas por sección. Se
+  verificaron los rótulos contra el código (el campo es **Mensualidades**, el
+  aviso de WhatsApp solo sale con prospectos en **Nueva**, **Sin recordar**
+  cuenta mensualidades vencidas, no pacientes). El recibo **no lleva migración**:
+  el folio se deriva del `id` del pago y de su fecha (`R-AAAAMMDD-XXXXXXXXXXXX`),
+  así que no bloquea el despliegue ni depende de una columna nueva. Es un
+  comprobante **interno**, no un CFDI; el pie lo dice.
+- **Verificación**: `pnpm check` (78 archivos, 0 errores), `pnpm build` y
+  `pnpm verify:build` en verde. Recibo revisado con datos falsos a 900, 390 y
+  320 px y en impresión a tamaño carta: se corrigió la tabla en móvil y el
+  recorte del importe al imprimir. Falta verlo con datos reales de Supabase.
+- **Pendiente**: los e2e siguen sin correr por falta de `E2E_ADMIN_PASSWORD` de
+  una cuenta `doctora` en `ADMIN_EMAILS` y en `admins`. Si la doctora quiere
+  folios consecutivos en vez de derivados del `id`, hará falta una migración
+  con columna o tabla y volver a aplicar los recibos existentes.
+
 ## 2026-10-27 — Sistema visual y rediseño de landing y panel
 
 - **Objetivo**: mejorar el diseño de toda la aplicación —landing y panel— con

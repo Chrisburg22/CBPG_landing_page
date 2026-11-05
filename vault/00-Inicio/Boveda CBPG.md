@@ -2,7 +2,7 @@
 tipo: inicio
 area: proyecto
 estado: verificado
-actualizado: 2026-10-27
+actualizado: 2026-10-28
 resumen: Mapa compacto del proyecto para leer solo la nota del área que se va a tocar.
 fuentes:
   - AGENTS.md
