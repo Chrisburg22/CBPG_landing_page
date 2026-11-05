@@ -211,13 +211,14 @@ export async function obtenerPago(
 
 /**
  * Folio legible y estable de un pago. No hay columna `folio`: se deriva del
- * `id`, que ya es único, y de la fecha del pago. Doce caracteres del UUID dan
- * margen de sobra para que dos recibos no compartan folio, y el formato no
- * cambia aunque se reimprima años después.
+ * `id`, que ya es único, y de la fecha del pago. Doce caracteres del UUID (sin
+ * guiones) dan margen de sobra para que dos recibos no compartan folio, y el
+ * formato no cambia aunque se reimprima años después.
  */
 export function folioDePago(pago: Pick<Pago, 'id' | 'pagado_el'>): string {
   const fecha = pago.pagado_el.replace(/-/g, '');
-  return `R-${fecha}-${pago.id.slice(0, 12).toUpperCase()}`;
+  const sufijo = pago.id.replace(/-/g, '').slice(0, 12).toUpperCase();
+  return `R-${fecha}-${sufijo}`;
 }
 
 export interface FiltroPagos {
